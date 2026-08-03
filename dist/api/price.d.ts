@@ -6,14 +6,14 @@ export declare const PriceRequestSchema: z.ZodObject<{
     condition: z.ZodOptional<z.ZodString>;
     tcg_id: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     tcgBaseline: z.ZodOptional<z.ZodNullable<z.ZodObject<{
-        tcp_market_usd: z.ZodNullable<z.ZodNumber>;
-        cm_trend_eur: z.ZodNullable<z.ZodNumber>;
+        tcp_market_usd: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        cm_trend_eur: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, "strip", z.ZodTypeAny, {
-        tcp_market_usd: number | null;
-        cm_trend_eur: number | null;
+        tcp_market_usd?: number | null | undefined;
+        cm_trend_eur?: number | null | undefined;
     }, {
-        tcp_market_usd: number | null;
-        cm_trend_eur: number | null;
+        tcp_market_usd?: number | null | undefined;
+        cm_trend_eur?: number | null | undefined;
     }>>>;
     /** Reprice: skip the finish-agnostic cache (read + write) so a finish correction gets a fresh,
      * variant-specific price and doesn't poison the shared cache for the other finish. */
@@ -25,8 +25,8 @@ export declare const PriceRequestSchema: z.ZodObject<{
     condition?: string | undefined;
     tcg_id?: string | null | undefined;
     tcgBaseline?: {
-        tcp_market_usd: number | null;
-        cm_trend_eur: number | null;
+        tcp_market_usd?: number | null | undefined;
+        cm_trend_eur?: number | null | undefined;
     } | null | undefined;
     noCache?: boolean | undefined;
 }, {
@@ -36,8 +36,8 @@ export declare const PriceRequestSchema: z.ZodObject<{
     condition?: string | undefined;
     tcg_id?: string | null | undefined;
     tcgBaseline?: {
-        tcp_market_usd: number | null;
-        cm_trend_eur: number | null;
+        tcp_market_usd?: number | null | undefined;
+        cm_trend_eur?: number | null | undefined;
     } | null | undefined;
     noCache?: boolean | undefined;
 }>;

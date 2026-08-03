@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.3
+- `PriceRequestSchema.tcgBaseline`'s two fields (`tcp_market_usd`, `cm_trend_eur`) made optional
+  as well as nullable — a caller legitimately sends only one of the two (e.g. `{ tcp_market_usd:
+  10 }` with no `cm_trend_eur` key at all). Caught by pokemon-tool's existing
+  `lib/__tests__/api-price.test.ts`.
+
 ## v0.1.2
 - `PriceResponseSchema`: made `comps` optional (a cached row's select can legitimately omit it)
   and added `fetched_at` (present on the stale-cache-fallback path). Caught by pokemon-tool's

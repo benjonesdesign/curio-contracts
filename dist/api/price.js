@@ -12,8 +12,8 @@ export const PriceRequestSchema = z.object({
     tcg_id: z.string().nullable().optional(),
     tcgBaseline: z
         .object({
-        tcp_market_usd: z.number().nullable(),
-        cm_trend_eur: z.number().nullable(),
+        tcp_market_usd: z.number().nullable().optional(),
+        cm_trend_eur: z.number().nullable().optional(),
     })
         .nullable()
         .optional(),
