@@ -550,6 +550,7 @@ public struct PriceResponse: Codable, Sendable {
     public let priceWarning: String?
     public let cached: Bool?
     public let stale: Bool?
+    public let fetchedAt: String?
     public let error: String?
 
     enum CodingKeys: String, CodingKey {
@@ -567,10 +568,11 @@ public struct PriceResponse: Codable, Sendable {
         case priceWarning = "price_warning"
         case cached
         case stale
+        case fetchedAt = "fetched_at"
         case error
     }
 
-    public init(low: Double?, avg: Double?, top: Double?, priceSource: String?, provider: String?, fxRate: Double?, fxDate: String?, saleCount: Int?, approxSaleCount: Bool?, comps: [[String: JSONValue]]?, confidence: GameConfidence?, priceWarning: String?, cached: Bool?, stale: Bool?, error: String?) {
+    public init(low: Double?, avg: Double?, top: Double?, priceSource: String?, provider: String?, fxRate: Double?, fxDate: String?, saleCount: Int?, approxSaleCount: Bool?, comps: [[String: JSONValue]]?, confidence: GameConfidence?, priceWarning: String?, cached: Bool?, stale: Bool?, fetchedAt: String?, error: String?) {
         self.low = low
         self.avg = avg
         self.top = top
@@ -585,6 +587,7 @@ public struct PriceResponse: Codable, Sendable {
         self.priceWarning = priceWarning
         self.cached = cached
         self.stale = stale
+        self.fetchedAt = fetchedAt
         self.error = error
     }
 }

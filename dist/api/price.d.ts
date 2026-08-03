@@ -52,13 +52,15 @@ export declare const PriceResponseSchema: z.ZodObject<{
     fx_date: z.ZodNullable<z.ZodString>;
     sale_count: z.ZodNullable<z.ZodNumber>;
     approx_sale_count: z.ZodNullable<z.ZodBoolean>;
-    comps: z.ZodNullable<z.ZodArray<z.ZodObject<{}, "passthrough", z.ZodTypeAny, z.objectOutputType<{}, z.ZodTypeAny, "passthrough">, z.objectInputType<{}, z.ZodTypeAny, "passthrough">>, "many">>;
+    comps: z.ZodOptional<z.ZodNullable<z.ZodArray<z.ZodObject<{}, "passthrough", z.ZodTypeAny, z.objectOutputType<{}, z.ZodTypeAny, "passthrough">, z.objectInputType<{}, z.ZodTypeAny, "passthrough">>, "many">>>;
     confidence: z.ZodOptional<z.ZodEnum<["high", "medium", "low"]>>;
     price_warning: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     /** Present + true only on a cache hit. */
     cached: z.ZodOptional<z.ZodBoolean>;
     /** Present + true only on the stale-cache fallback (all providers failed). */
     stale: z.ZodOptional<z.ZodBoolean>;
+    /** Present only on the stale-cache fallback — when this cached price was last fetched. */
+    fetched_at: z.ZodOptional<z.ZodString>;
     /** Present only on a genuine no-data response (no provider hit, no cache to fall back to). */
     error: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
@@ -70,13 +72,14 @@ export declare const PriceResponseSchema: z.ZodObject<{
     fx_date: string | null;
     sale_count: number | null;
     approx_sale_count: boolean | null;
-    comps: z.objectOutputType<{}, z.ZodTypeAny, "passthrough">[] | null;
     error?: string | undefined;
     confidence?: "high" | "medium" | "low" | undefined;
     cached?: boolean | undefined;
     provider?: string | null | undefined;
+    comps?: z.objectOutputType<{}, z.ZodTypeAny, "passthrough">[] | null | undefined;
     price_warning?: string | null | undefined;
     stale?: boolean | undefined;
+    fetched_at?: string | undefined;
 }, {
     low: number | null;
     avg: number | null;
@@ -86,12 +89,13 @@ export declare const PriceResponseSchema: z.ZodObject<{
     fx_date: string | null;
     sale_count: number | null;
     approx_sale_count: boolean | null;
-    comps: z.objectInputType<{}, z.ZodTypeAny, "passthrough">[] | null;
     error?: string | undefined;
     confidence?: "high" | "medium" | "low" | undefined;
     cached?: boolean | undefined;
     provider?: string | null | undefined;
+    comps?: z.objectInputType<{}, z.ZodTypeAny, "passthrough">[] | null | undefined;
     price_warning?: string | null | undefined;
     stale?: boolean | undefined;
+    fetched_at?: string | undefined;
 }>;
 export type PriceResponse = z.infer<typeof PriceResponseSchema>;

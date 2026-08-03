@@ -32,7 +32,10 @@ export const PriceResponseSchema = z.object({
     fx_date: z.string().nullable(),
     sale_count: z.number().int().nullable(),
     approx_sale_count: z.boolean().nullable(),
-    comps: z.array(CompSchema).nullable(),
+    // Cached rows don't always carry every column that's technically part of the cache table's
+    // select (e.g. an older cached row predating a column, or a stale row selected with a narrower
+    // column list) — optional rather than a hard requirement.
+    comps: z.array(CompSchema).nullable().optional(),
     // Only present on the fully-computed path — a cache hit or stale-cache fallback returns the
     // cached row as-is, which doesn't carry these (see pokemon-tool's app/api/price/route.ts).
     confidence: ConfidenceSchema.optional(),
@@ -41,6 +44,8 @@ export const PriceResponseSchema = z.object({
     cached: z.boolean().optional(),
     /** Present + true only on the stale-cache fallback (all providers failed). */
     stale: z.boolean().optional(),
+    /** Present only on the stale-cache fallback — when this cached price was last fetched. */
+    fetched_at: z.string().optional(),
     /** Present only on a genuine no-data response (no provider hit, no cache to fall back to). */
     error: z.string().optional(),
 });

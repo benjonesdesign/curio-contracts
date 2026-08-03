@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.2
+- `PriceResponseSchema`: made `comps` optional (a cached row's select can legitimately omit it)
+  and added `fetched_at` (present on the stale-cache-fallback path). Caught by pokemon-tool's
+  existing `lib/__tests__/api-price.test.ts` fixtures failing against v0.1.1.
+
 ## v0.1.1
 - `PriceRequestSchema`/`PriceResponseSchema` fix: added the request's `noCache` field and the
   response's `cached`/`stale`/`error` fields, and made `confidence`/`price_warning` optional —
