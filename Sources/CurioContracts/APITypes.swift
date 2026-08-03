@@ -497,6 +497,7 @@ public struct PriceRequest: Codable, Sendable {
     public let condition: String?
     public let tcgId: String?
     public let tcgBaseline: TcgBaseline?
+    public let noCache: Bool?
 
     enum CodingKeys: String, CodingKey {
         case name
@@ -505,15 +506,17 @@ public struct PriceRequest: Codable, Sendable {
         case condition
         case tcgId = "tcg_id"
         case tcgBaseline
+        case noCache
     }
 
-    public init(name: String, setName: String, cardNumber: String, condition: String?, tcgId: String?, tcgBaseline: TcgBaseline?) {
+    public init(name: String, setName: String, cardNumber: String, condition: String?, tcgId: String?, tcgBaseline: TcgBaseline?, noCache: Bool?) {
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
         self.condition = condition
         self.tcgId = tcgId
         self.tcgBaseline = tcgBaseline
+        self.noCache = noCache
     }
 }
 
@@ -543,8 +546,11 @@ public struct PriceResponse: Codable, Sendable {
     public let saleCount: Int?
     public let approxSaleCount: Bool?
     public let comps: [[String: JSONValue]]?
-    public let confidence: GameConfidence
+    public let confidence: GameConfidence?
     public let priceWarning: String?
+    public let cached: Bool?
+    public let stale: Bool?
+    public let error: String?
 
     enum CodingKeys: String, CodingKey {
         case low
@@ -559,9 +565,12 @@ public struct PriceResponse: Codable, Sendable {
         case comps
         case confidence
         case priceWarning = "price_warning"
+        case cached
+        case stale
+        case error
     }
 
-    public init(low: Double?, avg: Double?, top: Double?, priceSource: String?, provider: String?, fxRate: Double?, fxDate: String?, saleCount: Int?, approxSaleCount: Bool?, comps: [[String: JSONValue]]?, confidence: GameConfidence, priceWarning: String?) {
+    public init(low: Double?, avg: Double?, top: Double?, priceSource: String?, provider: String?, fxRate: Double?, fxDate: String?, saleCount: Int?, approxSaleCount: Bool?, comps: [[String: JSONValue]]?, confidence: GameConfidence?, priceWarning: String?, cached: Bool?, stale: Bool?, error: String?) {
         self.low = low
         self.avg = avg
         self.top = top
@@ -574,5 +583,8 @@ public struct PriceResponse: Codable, Sendable {
         self.comps = comps
         self.confidence = confidence
         self.priceWarning = priceWarning
+        self.cached = cached
+        self.stale = stale
+        self.error = error
     }
 }

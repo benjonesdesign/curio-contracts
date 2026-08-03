@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.1
+- `PriceRequestSchema`/`PriceResponseSchema` fix: added the request's `noCache` field and the
+  response's `cached`/`stale`/`error` fields, and made `confidence`/`price_warning` optional —
+  caught while wiring pokemon-tool's `/api/price` at the route boundary (its cache-hit and
+  stale-cache-fallback paths return a narrower shape than the fully-computed path; v0.1.0 didn't
+  model that and would have silently stripped the `cached`/`stale` flags on `.parse()`).
+
 ## v0.1.0
 - Initial release. DB types (`src/db/database.types.ts`, curated to the shared subset —
   `physical_cards`, `catalogue_cards`, `catalogue_sets`, `valuation_snapshots`, `profiles`,

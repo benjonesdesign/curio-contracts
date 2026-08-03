@@ -17,6 +17,9 @@ export const PriceRequestSchema = z.object({
     })
         .nullable()
         .optional(),
+    /** Reprice: skip the finish-agnostic cache (read + write) so a finish correction gets a fresh,
+     * variant-specific price and doesn't poison the shared cache for the other finish. */
+    noCache: z.boolean().optional(),
 });
 const CompSchema = z.object({}).passthrough();
 export const PriceResponseSchema = z.object({
@@ -30,6 +33,14 @@ export const PriceResponseSchema = z.object({
     sale_count: z.number().int().nullable(),
     approx_sale_count: z.boolean().nullable(),
     comps: z.array(CompSchema).nullable(),
-    confidence: ConfidenceSchema,
-    price_warning: z.string().nullable(),
+    // Only present on the fully-computed path — a cache hit or stale-cache fallback returns the
+    // cached row as-is, which doesn't carry these (see pokemon-tool's app/api/price/route.ts).
+    confidence: ConfidenceSchema.optional(),
+    price_warning: z.string().nullable().optional(),
+    /** Present + true only on a cache hit. */
+    cached: z.boolean().optional(),
+    /** Present + true only on the stale-cache fallback (all providers failed). */
+    stale: z.boolean().optional(),
+    /** Present only on a genuine no-data response (no provider hit, no cache to fall back to). */
+    error: z.string().optional(),
 });
