@@ -426,6 +426,88 @@ public enum Liquidity: String, Codable, Sendable {
     case low = "low"
 }
 
+public struct RecommendBatchRequest: Codable, Sendable {
+    public let cards: [RecommendBatchCardInput]
+
+    public init(cards: [RecommendBatchCardInput]) {
+        self.cards = cards
+    }
+}
+
+public struct RecommendBatchCardInput: Codable, Sendable {
+    public let id: String
+    public let avgGbp: Double?
+    public let lowGbp: Double?
+    public let topGbp: Double?
+    public let priceSource: String?
+    public let saleCount: Int?
+    public let approxSaleCount: Bool?
+    public let condition: String?
+    public let costBasis: Double?
+    public let collectionType: CollectionType2?
+    public let isVintage: Bool?
+
+    public init(id: String, avgGbp: Double?, lowGbp: Double?, topGbp: Double?, priceSource: String?, saleCount: Int?, approxSaleCount: Bool?, condition: String?, costBasis: Double?, collectionType: CollectionType2?, isVintage: Bool?) {
+        self.id = id
+        self.avgGbp = avgGbp
+        self.lowGbp = lowGbp
+        self.topGbp = topGbp
+        self.priceSource = priceSource
+        self.saleCount = saleCount
+        self.approxSaleCount = approxSaleCount
+        self.condition = condition
+        self.costBasis = costBasis
+        self.collectionType = collectionType
+        self.isVintage = isVintage
+    }
+}
+
+public enum CollectionType2: String, Codable, Sendable {
+    case personal = "personal"
+    case resale = "resale"
+}
+
+public struct RecommendBatchResponse: Codable, Sendable {
+    public let results: [RecommendBatchResult]
+
+    public init(results: [RecommendBatchResult]) {
+        self.results = results
+    }
+}
+
+public struct RecommendBatchResult: Codable, Sendable {
+    public let id: String
+    public let route: RecommendedRoute?
+    public let alternatives: [Alternative]
+    public let economics: Economics?
+    public let assumptions: [String]
+    public let explanation: String?
+    public let confidence: GameConfidence?
+    public let calculationVersion: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case route
+        case alternatives
+        case economics
+        case assumptions
+        case explanation
+        case confidence
+        case calculationVersion = "calculation_version"
+    }
+
+    public init(id: String, route: RecommendedRoute?, alternatives: [Alternative], economics: Economics?, assumptions: [String], explanation: String?, confidence: GameConfidence?, calculationVersion: String?) {
+        self.id = id
+        self.route = route
+        self.alternatives = alternatives
+        self.economics = economics
+        self.assumptions = assumptions
+        self.explanation = explanation
+        self.confidence = confidence
+        self.calculationVersion = calculationVersion
+    }
+}
+
 public struct CardSearchRequest: Codable, Sendable {
     public let q: String
     public let game: String?

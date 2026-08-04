@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.4
+- `recommend`: added a batch mode (`RecommendBatchRequestSchema`/`RecommendBatchResponseSchema`,
+  keyed by caller-assigned `id` rather than a `physicalCardId`) so pre-save cards — the
+  `pokemon-tool` add/multiple review step, before a listing has been written to `physical_cards` —
+  can get a real, server-computed recommendation (correct `sellerType`/`compatibleCount`/
+  `isVintage`) instead of the client recomputing `computeRecommendation` locally with those fields
+  omitted, which silently defaulted every caller to `sellerType: "private"` (£0 eBay fees) even for
+  business-seller accounts. `RouteEconomicsSchema`/`RouteAlternativeSchema` promoted from
+  module-private to exported so the batch result schema can reuse them without duplicating shape.
+  Per `decisions/0012-cross-platform-delivery-model.md` — one source of the number.
+
 ## v0.1.3
 - `PriceRequestSchema.tcgBaseline`'s two fields (`tcp_market_usd`, `cm_trend_eur`) made optional
   as well as nullable — a caller legitimately sends only one of the two (e.g. `{ tcp_market_usd:

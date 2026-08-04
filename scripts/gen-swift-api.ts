@@ -9,7 +9,10 @@ import { registerName, emitSwift, flush } from "./zod-to-swift.js";
 import { ApiErrorSchema } from "../src/api/common.js";
 import { IdentifyRequestSchema, IdentifyResponseSchema } from "../src/api/identify.js";
 import { CaptureCommitRequestSchema, CaptureCommitResponseSchema } from "../src/api/capture-commit.js";
-import { RecommendRequestSchema, RecommendResponseSchema, RecommendedRouteSchema } from "../src/api/recommend.js";
+import {
+  RecommendRequestSchema, RecommendResponseSchema, RecommendedRouteSchema,
+  RecommendBatchRequestSchema, RecommendBatchResponseSchema, RecommendBatchCardInputSchema, RecommendBatchResultSchema,
+} from "../src/api/recommend.js";
 import { CardSearchRequestSchema, CardSearchResponseSchema, CardSearchResultSchema } from "../src/api/card-search.js";
 import { PriceRequestSchema, PriceResponseSchema } from "../src/api/price.js";
 
@@ -21,6 +24,8 @@ const root = join(__dirname, "..");
 // Swift type, reused — not a duplicate per call site.
 registerName(RecommendedRouteSchema, "RecommendedRoute");
 registerName(CardSearchResultSchema, "CardSearchResult");
+registerName(RecommendBatchCardInputSchema, "RecommendBatchCardInput");
+registerName(RecommendBatchResultSchema, "RecommendBatchResult");
 
 emitSwift(ApiErrorSchema, "ApiError");
 emitSwift(IdentifyRequestSchema, "IdentifyRequest");
@@ -29,6 +34,8 @@ emitSwift(CaptureCommitRequestSchema, "CaptureCommitRequest");
 emitSwift(CaptureCommitResponseSchema, "CaptureCommitResponse");
 emitSwift(RecommendRequestSchema, "RecommendRequest");
 emitSwift(RecommendResponseSchema, "RecommendResponse");
+emitSwift(RecommendBatchRequestSchema, "RecommendBatchRequest");
+emitSwift(RecommendBatchResponseSchema, "RecommendBatchResponse");
 emitSwift(CardSearchRequestSchema, "CardSearchRequest");
 emitSwift(CardSearchResponseSchema, "CardSearchResponse");
 emitSwift(PriceRequestSchema, "PriceRequest");
