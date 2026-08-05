@@ -28,6 +28,9 @@ describe("RecommendResponseSchema", () => {
       calculation_version: "stub-v2",
       physicalCardId: "abc-123",
       currentRoute: null,
+      priceSource: "ebay-uk-sold",
+      priceConfidence: "high",
+      currencyNote: null,
     });
     expect(res.route).toBe("list_single");
   });
@@ -47,6 +50,9 @@ describe("RecommendResponseSchema", () => {
         calculation_version: "stub-v2",
         physicalCardId: "abc-123",
         currentRoute: null,
+        priceSource: null,
+        priceConfidence: null,
+        currencyNote: null,
       }),
     ).toThrow();
   });

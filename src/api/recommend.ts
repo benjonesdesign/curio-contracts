@@ -40,6 +40,11 @@ export const RouteAlternativeSchema = z.object({
   why: z.string(),
 });
 
+// The market value's own provenance — distinct from `confidence` above, which is the engine's
+// confidence in the *route* decision. A UK-realised value (`priceSource: "ebay-uk-sold"`) needs
+// no caveat; a US/EU reference value carries `currencyNote` so a seller can see why to double-check
+// it. See WORK-BACKLOG.md Packet 1 and pokemon-tool's lib/price-confidence.ts (the one place this
+// is computed — never re-derived per platform).
 export const RecommendResponseSchema = z.object({
   route: RecommendedRouteSchema,
   alternatives: z.array(RouteAlternativeSchema),
@@ -50,6 +55,9 @@ export const RecommendResponseSchema = z.object({
   calculation_version: z.string(),
   physicalCardId: z.string(),
   currentRoute: RecommendedRouteSchema.nullable(),
+  priceSource: z.string().nullable(),
+  priceConfidence: ConfidenceSchema.nullable(),
+  currencyNote: z.string().nullable(),
 });
 export type RecommendResponse = z.infer<typeof RecommendResponseSchema>;
 
@@ -95,6 +103,9 @@ export const RecommendBatchResultSchema = z.object({
   explanation: z.string().nullable(),
   confidence: ConfidenceSchema.nullable(),
   calculation_version: z.string().nullable(),
+  priceSource: z.string().nullable(),
+  priceConfidence: ConfidenceSchema.nullable(),
+  currencyNote: z.string().nullable(),
 });
 export type RecommendBatchResult = z.infer<typeof RecommendBatchResultSchema>;
 

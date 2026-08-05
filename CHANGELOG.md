@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.5
+- `recommend`: `RecommendResponseSchema`/`RecommendBatchResultSchema` gain `priceSource`,
+  `priceConfidence`, `currencyNote` — the market value's own provenance, distinct from the
+  existing `confidence` field (which is the engine's confidence in the *route* decision, not the
+  underlying price). Lets the decision-hero UI show a "UK sold" vs. "US/EU reference — confirm"
+  label + confidence chip without a second round-trip to `/api/price`. WORK-BACKLOG.md Packet 1
+  (UK-realised pricing).
+
 ## v0.1.4
 - `recommend`: added a batch mode (`RecommendBatchRequestSchema`/`RecommendBatchResponseSchema`,
   keyed by caller-assigned `id` rather than a `physicalCardId`) so pre-save cards — the

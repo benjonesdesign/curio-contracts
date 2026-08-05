@@ -339,6 +339,9 @@ public struct RecommendResponse: Codable, Sendable {
     public let calculationVersion: String
     public let physicalCardId: String
     public let currentRoute: RecommendedRoute?
+    public let priceSource: String?
+    public let priceConfidence: GameConfidence?
+    public let currencyNote: String?
 
     enum CodingKeys: String, CodingKey {
         case route
@@ -350,9 +353,12 @@ public struct RecommendResponse: Codable, Sendable {
         case calculationVersion = "calculation_version"
         case physicalCardId
         case currentRoute
+        case priceSource
+        case priceConfidence
+        case currencyNote
     }
 
-    public init(route: RecommendedRoute, alternatives: [Alternative], economics: Economics, assumptions: [String], explanation: String, confidence: GameConfidence, calculationVersion: String, physicalCardId: String, currentRoute: RecommendedRoute?) {
+    public init(route: RecommendedRoute, alternatives: [Alternative], economics: Economics, assumptions: [String], explanation: String, confidence: GameConfidence, calculationVersion: String, physicalCardId: String, currentRoute: RecommendedRoute?, priceSource: String?, priceConfidence: GameConfidence?, currencyNote: String?) {
         self.route = route
         self.alternatives = alternatives
         self.economics = economics
@@ -362,6 +368,9 @@ public struct RecommendResponse: Codable, Sendable {
         self.calculationVersion = calculationVersion
         self.physicalCardId = physicalCardId
         self.currentRoute = currentRoute
+        self.priceSource = priceSource
+        self.priceConfidence = priceConfidence
+        self.currencyNote = currencyNote
     }
 }
 
@@ -484,6 +493,9 @@ public struct RecommendBatchResult: Codable, Sendable {
     public let explanation: String?
     public let confidence: GameConfidence?
     public let calculationVersion: String?
+    public let priceSource: String?
+    public let priceConfidence: GameConfidence?
+    public let currencyNote: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -494,9 +506,12 @@ public struct RecommendBatchResult: Codable, Sendable {
         case explanation
         case confidence
         case calculationVersion = "calculation_version"
+        case priceSource
+        case priceConfidence
+        case currencyNote
     }
 
-    public init(id: String, route: RecommendedRoute?, alternatives: [Alternative], economics: Economics?, assumptions: [String], explanation: String?, confidence: GameConfidence?, calculationVersion: String?) {
+    public init(id: String, route: RecommendedRoute?, alternatives: [Alternative], economics: Economics?, assumptions: [String], explanation: String?, confidence: GameConfidence?, calculationVersion: String?, priceSource: String?, priceConfidence: GameConfidence?, currencyNote: String?) {
         self.id = id
         self.route = route
         self.alternatives = alternatives
@@ -505,6 +520,9 @@ public struct RecommendBatchResult: Codable, Sendable {
         self.explanation = explanation
         self.confidence = confidence
         self.calculationVersion = calculationVersion
+        self.priceSource = priceSource
+        self.priceConfidence = priceConfidence
+        self.currencyNote = currencyNote
     }
 }
 

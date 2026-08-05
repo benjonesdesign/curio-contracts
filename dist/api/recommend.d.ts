@@ -91,6 +91,9 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     calculation_version: z.ZodString;
     physicalCardId: z.ZodString;
     currentRoute: z.ZodNullable<z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>>;
+    priceSource: z.ZodNullable<z.ZodString>;
+    priceConfidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+    currencyNote: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     confidence: "high" | "medium" | "low";
     physicalCardId: string;
@@ -112,6 +115,9 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     explanation: string;
     calculation_version: string;
     currentRoute: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list" | null;
+    priceSource: string | null;
+    priceConfidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
 }, {
     confidence: "high" | "medium" | "low";
     physicalCardId: string;
@@ -133,6 +139,9 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     explanation: string;
     calculation_version: string;
     currentRoute: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list" | null;
+    priceSource: string | null;
+    priceConfidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
 }>;
 export type RecommendResponse = z.infer<typeof RecommendResponseSchema>;
 export declare const RecommendBatchCardInputSchema: z.ZodObject<{
@@ -152,10 +161,10 @@ export declare const RecommendBatchCardInputSchema: z.ZodObject<{
     id: string;
     collectionType: "personal" | "resale" | null;
     condition: string | null;
+    priceSource: string | null;
     avgGbp: number | null;
     lowGbp: number | null;
     topGbp: number | null;
-    priceSource: string | null;
     saleCount: number | null;
     approxSaleCount: boolean | null;
     costBasis: number | null;
@@ -164,10 +173,10 @@ export declare const RecommendBatchCardInputSchema: z.ZodObject<{
     id: string;
     collectionType: "personal" | "resale" | null;
     condition: string | null;
+    priceSource: string | null;
     avgGbp: number | null;
     lowGbp: number | null;
     topGbp: number | null;
-    priceSource: string | null;
     saleCount: number | null;
     approxSaleCount: boolean | null;
     costBasis: number | null;
@@ -192,10 +201,10 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         id: string;
         collectionType: "personal" | "resale" | null;
         condition: string | null;
+        priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
         topGbp: number | null;
-        priceSource: string | null;
         saleCount: number | null;
         approxSaleCount: boolean | null;
         costBasis: number | null;
@@ -204,10 +213,10 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         id: string;
         collectionType: "personal" | "resale" | null;
         condition: string | null;
+        priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
         topGbp: number | null;
-        priceSource: string | null;
         saleCount: number | null;
         approxSaleCount: boolean | null;
         costBasis: number | null;
@@ -218,10 +227,10 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         id: string;
         collectionType: "personal" | "resale" | null;
         condition: string | null;
+        priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
         topGbp: number | null;
-        priceSource: string | null;
         saleCount: number | null;
         approxSaleCount: boolean | null;
         costBasis: number | null;
@@ -232,10 +241,10 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         id: string;
         collectionType: "personal" | "resale" | null;
         condition: string | null;
+        priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
         topGbp: number | null;
-        priceSource: string | null;
         saleCount: number | null;
         approxSaleCount: boolean | null;
         costBasis: number | null;
@@ -287,6 +296,9 @@ export declare const RecommendBatchResultSchema: z.ZodObject<{
     explanation: z.ZodNullable<z.ZodString>;
     confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
     calculation_version: z.ZodNullable<z.ZodString>;
+    priceSource: z.ZodNullable<z.ZodString>;
+    priceConfidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+    currencyNote: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     confidence: "high" | "medium" | "low" | null;
@@ -307,6 +319,9 @@ export declare const RecommendBatchResultSchema: z.ZodObject<{
     assumptions: string[];
     explanation: string | null;
     calculation_version: string | null;
+    priceSource: string | null;
+    priceConfidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
 }, {
     id: string;
     confidence: "high" | "medium" | "low" | null;
@@ -327,6 +342,9 @@ export declare const RecommendBatchResultSchema: z.ZodObject<{
     assumptions: string[];
     explanation: string | null;
     calculation_version: string | null;
+    priceSource: string | null;
+    priceConfidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
 }>;
 export type RecommendBatchResult = z.infer<typeof RecommendBatchResultSchema>;
 export declare const RecommendBatchResponseSchema: z.ZodObject<{
@@ -374,6 +392,9 @@ export declare const RecommendBatchResponseSchema: z.ZodObject<{
         explanation: z.ZodNullable<z.ZodString>;
         confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
         calculation_version: z.ZodNullable<z.ZodString>;
+        priceSource: z.ZodNullable<z.ZodString>;
+        priceConfidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+        currencyNote: z.ZodNullable<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
         id: string;
         confidence: "high" | "medium" | "low" | null;
@@ -394,6 +415,9 @@ export declare const RecommendBatchResponseSchema: z.ZodObject<{
         assumptions: string[];
         explanation: string | null;
         calculation_version: string | null;
+        priceSource: string | null;
+        priceConfidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
     }, {
         id: string;
         confidence: "high" | "medium" | "low" | null;
@@ -414,6 +438,9 @@ export declare const RecommendBatchResponseSchema: z.ZodObject<{
         assumptions: string[];
         explanation: string | null;
         calculation_version: string | null;
+        priceSource: string | null;
+        priceConfidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
     }>, "many">;
 }, "strip", z.ZodTypeAny, {
     results: {
@@ -436,6 +463,9 @@ export declare const RecommendBatchResponseSchema: z.ZodObject<{
         assumptions: string[];
         explanation: string | null;
         calculation_version: string | null;
+        priceSource: string | null;
+        priceConfidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
     }[];
 }, {
     results: {
@@ -458,6 +488,9 @@ export declare const RecommendBatchResponseSchema: z.ZodObject<{
         assumptions: string[];
         explanation: string | null;
         calculation_version: string | null;
+        priceSource: string | null;
+        priceConfidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
     }[];
 }>;
 export type RecommendBatchResponse = z.infer<typeof RecommendBatchResponseSchema>;
