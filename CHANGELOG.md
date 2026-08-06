@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.6
+- New `cert-lookup` contract: `CertLookupRequestSchema`/`CertLookupResponseSchema` for
+  `POST /api/cert-lookup` — WORK-BACKLOG.md Packet 3 (graded-slab listing). A pure lookup against
+  the grader's own API (PSA Public API first; `grader` is a one-value enum so CGC can be added
+  later as a non-breaking extension), returning the card identity + grade for the seller to
+  confirm before saving. No side effects.
+- `physical_cards` DB type gains `cert_verified: boolean` — distinct from the existing
+  `grading_company`/`grade`/`cert_number` columns (what the seller typed) — this records whether
+  it's been confirmed against the grader's API. The production eBay publish path only unblocks
+  graded listing for a verified cert.
+
 ## v0.1.5
 - `recommend`: `RecommendResponseSchema`/`RecommendBatchResultSchema` gain `priceSource`,
   `priceConfidence`, `currencyNote` — the market value's own provenance, distinct from the

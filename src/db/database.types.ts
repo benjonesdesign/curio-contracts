@@ -233,6 +233,7 @@ export interface Database {
           card_number: string | null
           catalogue_card_id: string | null
           cert_number: string | null
+          cert_verified: boolean
           cm_trend_eur: number | null
           collection_type: string
           condition: string | null
@@ -288,6 +289,7 @@ export interface Database {
           card_number?: string | null
           catalogue_card_id?: string | null
           cert_number?: string | null
+          cert_verified?: boolean
           cm_trend_eur?: number | null
           collection_type?: string
           condition?: string | null
@@ -343,6 +345,7 @@ export interface Database {
           card_number?: string | null
           catalogue_card_id?: string | null
           cert_number?: string | null
+          cert_verified?: boolean
           cm_trend_eur?: number | null
           collection_type?: string
           condition?: string | null

@@ -243,6 +243,7 @@ public struct PhysicalCardsRow: Codable, Sendable, Identifiable {
     public let cardNumber: String?
     public let catalogueCardId: String?
     public let certNumber: String?
+    public let certVerified: Bool
     public let cmTrendEur: Double?
     public let collectionType: String
     public let condition: String?
@@ -298,6 +299,7 @@ public struct PhysicalCardsRow: Codable, Sendable, Identifiable {
         case cardNumber = "card_number"
         case catalogueCardId = "catalogue_card_id"
         case certNumber = "cert_number"
+        case certVerified = "cert_verified"
         case cmTrendEur = "cm_trend_eur"
         case collectionType = "collection_type"
         case condition
@@ -344,7 +346,7 @@ public struct PhysicalCardsRow: Codable, Sendable, Identifiable {
         case tcpMarketUsd = "tcp_market_usd"
     }
 
-    public init(accountId: String, acquisitionId: String?, allocationChannel: String?, allocationRefId: String?, attributes: [String], batchPosition: Int?, cardNumber: String?, catalogueCardId: String?, certNumber: String?, cmTrendEur: Double?, collectionType: String, condition: String?, conditionSource: String?, createdAt: String, decidedRoute: String?, ebayListingId: String?, ebayOfferId: String?, ebayPriceAvg: Double?, ebayPriceLow: Double?, ebayPriceTop: Double?, fxRateEurGbp: Double?, fxRateUsdGbp: Double?, game: String, grade: String?, gradingCompany: String?, id: String, idVerifiedBySeller: Bool, isGraded: Bool, isPromo: Bool, language: String, legacyCardId: String?, listingDescription: String?, listingTitle: String?, name: String?, nameConfidence: Double?, notes: String?, photoThumbUrls: [String], photoUrls: [String], purchaseCost: Double?, rarity: String?, saleFees: Double?, salePlatform: String?, salePrice: Double?, scanBatchId: String?, setConfidence: Double?, setName: String?, sku: String?, soldAt: String?, status: String, storageLocation: String?, suggestedPrice: Double?, tcgId: String?, tcpMarketUsd: Double?) {
+    public init(accountId: String, acquisitionId: String?, allocationChannel: String?, allocationRefId: String?, attributes: [String], batchPosition: Int?, cardNumber: String?, catalogueCardId: String?, certNumber: String?, certVerified: Bool, cmTrendEur: Double?, collectionType: String, condition: String?, conditionSource: String?, createdAt: String, decidedRoute: String?, ebayListingId: String?, ebayOfferId: String?, ebayPriceAvg: Double?, ebayPriceLow: Double?, ebayPriceTop: Double?, fxRateEurGbp: Double?, fxRateUsdGbp: Double?, game: String, grade: String?, gradingCompany: String?, id: String, idVerifiedBySeller: Bool, isGraded: Bool, isPromo: Bool, language: String, legacyCardId: String?, listingDescription: String?, listingTitle: String?, name: String?, nameConfidence: Double?, notes: String?, photoThumbUrls: [String], photoUrls: [String], purchaseCost: Double?, rarity: String?, saleFees: Double?, salePlatform: String?, salePrice: Double?, scanBatchId: String?, setConfidence: Double?, setName: String?, sku: String?, soldAt: String?, status: String, storageLocation: String?, suggestedPrice: Double?, tcgId: String?, tcpMarketUsd: Double?) {
         self.accountId = accountId
         self.acquisitionId = acquisitionId
         self.allocationChannel = allocationChannel
@@ -354,6 +356,7 @@ public struct PhysicalCardsRow: Codable, Sendable, Identifiable {
         self.cardNumber = cardNumber
         self.catalogueCardId = catalogueCardId
         self.certNumber = certNumber
+        self.certVerified = certVerified
         self.cmTrendEur = cmTrendEur
         self.collectionType = collectionType
         self.condition = condition

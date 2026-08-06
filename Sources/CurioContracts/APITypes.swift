@@ -691,3 +691,51 @@ public struct PriceResponse: Codable, Sendable {
         self.error = error
     }
 }
+
+public struct CertLookupRequest: Codable, Sendable {
+    public let grader: Grader
+    public let certNumber: String
+
+    public init(grader: Grader, certNumber: String) {
+        self.grader = grader
+        self.certNumber = certNumber
+    }
+}
+
+public enum Grader: String, Codable, Sendable {
+    case pSA = "PSA"
+}
+
+public struct CertLookupResponse: Codable, Sendable {
+    public let found: Bool
+    public let grader: Grader2
+    public let certNumber: String
+    public let grade: String?
+    public let gradeDescription: String?
+    public let subject: String?
+    public let year: String?
+    public let brand: String?
+    public let category: String?
+    public let cardNumber: String?
+    public let variety: String?
+    public let labelType: String?
+
+    public init(found: Bool, grader: Grader2, certNumber: String, grade: String?, gradeDescription: String?, subject: String?, year: String?, brand: String?, category: String?, cardNumber: String?, variety: String?, labelType: String?) {
+        self.found = found
+        self.grader = grader
+        self.certNumber = certNumber
+        self.grade = grade
+        self.gradeDescription = gradeDescription
+        self.subject = subject
+        self.year = year
+        self.brand = brand
+        self.category = category
+        self.cardNumber = cardNumber
+        self.variety = variety
+        self.labelType = labelType
+    }
+}
+
+public enum Grader2: String, Codable, Sendable {
+    case pSA = "PSA"
+}

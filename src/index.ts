@@ -5,3 +5,4 @@ export * from "./api/capture-commit.js";
 export * from "./api/recommend.js";
 export * from "./api/card-search.js";
 export * from "./api/price.js";
+export * from "./api/cert-lookup.js";
