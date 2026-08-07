@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.8
+- `recommend` gains whether-to-grade EV fields: `gradeEV`, `psa10PriceGbp`, `p10`, `p9`,
+  `gradingCostGbp`, `rawNetGbp`, `gradeEVConfidence` — WORK-BACKLOG.md Packet 7,
+  `decisions/0013-graded-price-data.md`. Populated only when `route === "grade_review"`. PSA-10/9
+  value comes from the existing graded-asking resolver (Packet 3's `getGradedAskingPrice()`, eBay
+  Browse active listings), falling back to the era-multiple/gem-rate estimate
+  (`GRADING-RULESET.md`) for thin/no comps — no paid feed. `gradeEVConfidence`
+  (`GradeEVConfidenceSchema`: `medium|low`, never `high`) is confidence in the *EV call* — distinct
+  from the route `confidence` and the raw-price `priceConfidence` — deliberately capped at
+  `medium` (gem rates are era bands, not per-card data) and dropped to `low` whenever either PSA
+  leg used the era-multiple fallback instead of a real graded-asking comp.
+
 ## v0.1.7
 - New `channel-listing` contract: `ChannelListingRequestSchema`/`ChannelListingResponseSchema` for
   `POST /api/channel-listing` — WORK-BACKLOG.md Packet 4 (one second sales channel). A

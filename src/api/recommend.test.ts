@@ -31,8 +31,43 @@ describe("RecommendResponseSchema", () => {
       priceSource: "ebay-uk-sold",
       priceConfidence: "high",
       currencyNote: null,
+      gradeEV: null,
+      psa10PriceGbp: null,
+      p10: null,
+      p9: null,
+      gradingCostGbp: null,
+      rawNetGbp: null,
+      gradeEVConfidence: null,
     });
     expect(res.route).toBe("list_single");
+  });
+
+  it("parses a grade_review response with EV fields populated", () => {
+    const res = RecommendResponseSchema.parse({
+      route: "grade_review",
+      alternatives: [{ route: "list_single", expected_net_gbp: 40, why: "list ungraded" }],
+      economics: {
+        expected_sale_gbp: 45, fees_gbp: 0, postage_gbp: 3, cost_basis_gbp: 2,
+        expected_net_gbp: 40, liquidity: "medium",
+      },
+      assumptions: ["Seller type: private"],
+      explanation: "Worth checking graded comps",
+      confidence: "medium",
+      calculation_version: "stub-v2",
+      physicalCardId: "abc-123",
+      currentRoute: null,
+      priceSource: "ebay-uk-sold",
+      priceConfidence: "high",
+      currencyNote: null,
+      gradeEV: 55.2,
+      psa10PriceGbp: 200,
+      p10: 0.3,
+      p9: 0.6,
+      gradingCostGbp: 24,
+      rawNetGbp: 40,
+      gradeEVConfidence: "medium",
+    });
+    expect(res.gradeEVConfidence).toBe("medium");
   });
 
   it("rejects an unknown route value", () => {
@@ -53,6 +88,13 @@ describe("RecommendResponseSchema", () => {
         priceSource: null,
         priceConfidence: null,
         currencyNote: null,
+        gradeEV: null,
+        psa10PriceGbp: null,
+        p10: null,
+        p9: null,
+        gradingCostGbp: null,
+        rawNetGbp: null,
+        gradeEVConfidence: null,
       }),
     ).toThrow();
   });
