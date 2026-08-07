@@ -342,6 +342,13 @@ public struct RecommendResponse: Codable, Sendable {
     public let priceSource: String?
     public let priceConfidence: GameConfidence?
     public let currencyNote: String?
+    public let gradeEV: Double?
+    public let psa10PriceGbp: Double?
+    public let p10: Double?
+    public let p9: Double?
+    public let gradingCostGbp: Double?
+    public let rawNetGbp: Double?
+    public let gradeEVConfidence: GradeEVConfidence?
 
     enum CodingKeys: String, CodingKey {
         case route
@@ -356,9 +363,16 @@ public struct RecommendResponse: Codable, Sendable {
         case priceSource
         case priceConfidence
         case currencyNote
+        case gradeEV
+        case psa10PriceGbp
+        case p10
+        case p9
+        case gradingCostGbp
+        case rawNetGbp
+        case gradeEVConfidence
     }
 
-    public init(route: RecommendedRoute, alternatives: [Alternative], economics: Economics, assumptions: [String], explanation: String, confidence: GameConfidence, calculationVersion: String, physicalCardId: String, currentRoute: RecommendedRoute?, priceSource: String?, priceConfidence: GameConfidence?, currencyNote: String?) {
+    public init(route: RecommendedRoute, alternatives: [Alternative], economics: Economics, assumptions: [String], explanation: String, confidence: GameConfidence, calculationVersion: String, physicalCardId: String, currentRoute: RecommendedRoute?, priceSource: String?, priceConfidence: GameConfidence?, currencyNote: String?, gradeEV: Double?, psa10PriceGbp: Double?, p10: Double?, p9: Double?, gradingCostGbp: Double?, rawNetGbp: Double?, gradeEVConfidence: GradeEVConfidence?) {
         self.route = route
         self.alternatives = alternatives
         self.economics = economics
@@ -371,6 +385,13 @@ public struct RecommendResponse: Codable, Sendable {
         self.priceSource = priceSource
         self.priceConfidence = priceConfidence
         self.currencyNote = currencyNote
+        self.gradeEV = gradeEV
+        self.psa10PriceGbp = psa10PriceGbp
+        self.p10 = p10
+        self.p9 = p9
+        self.gradingCostGbp = gradingCostGbp
+        self.rawNetGbp = rawNetGbp
+        self.gradeEVConfidence = gradeEVConfidence
     }
 }
 
@@ -431,6 +452,11 @@ public struct Economics: Codable, Sendable {
 
 public enum Liquidity: String, Codable, Sendable {
     case high = "high"
+    case medium = "medium"
+    case low = "low"
+}
+
+public enum GradeEVConfidence: String, Codable, Sendable {
     case medium = "medium"
     case low = "low"
 }

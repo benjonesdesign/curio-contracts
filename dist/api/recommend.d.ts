@@ -48,6 +48,7 @@ export declare const RouteAlternativeSchema: z.ZodObject<{
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     why: string;
 }>;
+export declare const GradeEVConfidenceSchema: z.ZodEnum<["medium", "low"]>;
 export declare const RecommendResponseSchema: z.ZodObject<{
     route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
     alternatives: z.ZodArray<z.ZodObject<{
@@ -94,6 +95,13 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     priceSource: z.ZodNullable<z.ZodString>;
     priceConfidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
     currencyNote: z.ZodNullable<z.ZodString>;
+    gradeEV: z.ZodNullable<z.ZodNumber>;
+    psa10PriceGbp: z.ZodNullable<z.ZodNumber>;
+    p10: z.ZodNullable<z.ZodNumber>;
+    p9: z.ZodNullable<z.ZodNumber>;
+    gradingCostGbp: z.ZodNullable<z.ZodNumber>;
+    rawNetGbp: z.ZodNullable<z.ZodNumber>;
+    gradeEVConfidence: z.ZodNullable<z.ZodEnum<["medium", "low"]>>;
 }, "strip", z.ZodTypeAny, {
     confidence: "high" | "medium" | "low";
     physicalCardId: string;
@@ -118,6 +126,13 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     priceSource: string | null;
     priceConfidence: "high" | "medium" | "low" | null;
     currencyNote: string | null;
+    gradeEV: number | null;
+    psa10PriceGbp: number | null;
+    p10: number | null;
+    p9: number | null;
+    gradingCostGbp: number | null;
+    rawNetGbp: number | null;
+    gradeEVConfidence: "medium" | "low" | null;
 }, {
     confidence: "high" | "medium" | "low";
     physicalCardId: string;
@@ -142,6 +157,13 @@ export declare const RecommendResponseSchema: z.ZodObject<{
     priceSource: string | null;
     priceConfidence: "high" | "medium" | "low" | null;
     currencyNote: string | null;
+    gradeEV: number | null;
+    psa10PriceGbp: number | null;
+    p10: number | null;
+    p9: number | null;
+    gradingCostGbp: number | null;
+    rawNetGbp: number | null;
+    gradeEVConfidence: "medium" | "low" | null;
 }>;
 export type RecommendResponse = z.infer<typeof RecommendResponseSchema>;
 export declare const RecommendBatchCardInputSchema: z.ZodObject<{

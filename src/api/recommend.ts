@@ -45,6 +45,17 @@ export const RouteAlternativeSchema = z.object({
 // no caveat; a US/EU reference value carries `currencyNote` so a seller can see why to double-check
 // it. See WORK-BACKLOG.md Packet 1 and pokemon-tool's lib/price-confidence.ts (the one place this
 // is computed — never re-derived per platform).
+// Whether-to-grade EV — only populated when route === "grade_review" and a PSA-10/9 value could
+// be resolved (live graded-asking comp or the era-multiple fallback). See WORK-BACKLOG.md Packet
+// 7 and decisions/0013-graded-price-data.md. `gradeEVConfidence` is confidence in the EV *call*
+// itself — distinct from `confidence` above (the route decision) and `priceConfidence` below (the
+// raw market value) — and is deliberately capped at "medium": P10/P9 are coarse era-band
+// estimates (GRADING-RULESET.md), never per-card data, so this can never read as "high". It drops
+// to "low" whenever either PSA-10 or PSA-9 leg came from the era-multiple fallback rather than a
+// real graded-asking comp — never let a fallback-derived EV imply the same confidence as a real
+// comp (asking ≠ sold, and a comp is still not a sold price).
+export const GradeEVConfidenceSchema = z.enum(["medium", "low"]);
+
 export const RecommendResponseSchema = z.object({
   route: RecommendedRouteSchema,
   alternatives: z.array(RouteAlternativeSchema),
@@ -58,6 +69,13 @@ export const RecommendResponseSchema = z.object({
   priceSource: z.string().nullable(),
   priceConfidence: ConfidenceSchema.nullable(),
   currencyNote: z.string().nullable(),
+  gradeEV: z.number().nullable(),
+  psa10PriceGbp: z.number().nullable(),
+  p10: z.number().nullable(),
+  p9: z.number().nullable(),
+  gradingCostGbp: z.number().nullable(),
+  rawNetGbp: z.number().nullable(),
+  gradeEVConfidence: GradeEVConfidenceSchema.nullable(),
 });
 export type RecommendResponse = z.infer<typeof RecommendResponseSchema>;
 
