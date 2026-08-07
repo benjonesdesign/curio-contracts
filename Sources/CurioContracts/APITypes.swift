@@ -739,3 +739,42 @@ public struct CertLookupResponse: Codable, Sendable {
 public enum Grader2: String, Codable, Sendable {
     case pSA = "PSA"
 }
+
+public struct ChannelListingRequest: Codable, Sendable {
+    public let channel: Channel
+    public let cardRef: String
+    public let priceGbp: Double
+    public let condition: String
+
+    public init(channel: Channel, cardRef: String, priceGbp: Double, condition: String) {
+        self.channel = channel
+        self.cardRef = cardRef
+        self.priceGbp = priceGbp
+        self.condition = condition
+    }
+}
+
+public enum Channel: String, Codable, Sendable {
+    case cardtrader = "cardtrader"
+}
+
+public struct ChannelListingResponse: Codable, Sendable {
+    public let channel: Channel
+    public let channelListingId: String?
+    public let url: String?
+    public let status: Status
+    public let error: String?
+
+    public init(channel: Channel, channelListingId: String?, url: String?, status: Status, error: String?) {
+        self.channel = channel
+        self.channelListingId = channelListingId
+        self.url = url
+        self.status = status
+        self.error = error
+    }
+}
+
+public enum Status: String, Codable, Sendable {
+    case listed = "listed"
+    case failed = "failed"
+}

@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.7
+- New `channel-listing` contract: `ChannelListingRequestSchema`/`ChannelListingResponseSchema` for
+  `POST /api/channel-listing` — WORK-BACKLOG.md Packet 4 (one second sales channel). A
+  channel-agnostic listing request (`channel`, `cardRef`, `priceGbp`, `condition`) → response
+  (`channelListingId`, `url`, `status`), so a future second channel reuses this shape instead of
+  reshaping it. `channel` is a one-value enum (`"cardtrader"`, Ben's decision 2026-08-04) — adding
+  another channel later is a non-breaking extension. T3 web-only (`decisions/0011`); no iOS
+  consumer yet, but the contract lives here since it's the coordination boundary for any shared
+  shape per `decisions/0012`.
+
 ## v0.1.6
 - New `cert-lookup` contract: `CertLookupRequestSchema`/`CertLookupResponseSchema` for
   `POST /api/cert-lookup` — WORK-BACKLOG.md Packet 3 (graded-slab listing). A pure lookup against
