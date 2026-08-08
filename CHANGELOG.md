@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.9
+- New `reprice` contract: `RepricingFlagSchema`/`RepricingFlagsResponseSchema` for
+  `GET /api/reprice-flags` — WORK-BACKLOG.md Packet 5 (Inventory sync + repricing), the T3 web
+  dashboard's on-demand read. Per-card shape (`cardId`, `name`, `setName`, `cardNumber`,
+  `condition`, `currentPriceGbp`, `marketValueGbp`, `deltaPct`, `direction`) — distinct from the
+  daily cron's per-account summary row in the shared `notifications` table (`kind`/`deep_link`,
+  unchanged), which stays the push/inbox delivery path. Same underlying comparison
+  (`pokemon-tool`'s `lib/reprice.ts`), two consumers.
+
 ## v0.1.8
 - `recommend` gains whether-to-grade EV fields: `gradeEV`, `psa10PriceGbp`, `p10`, `p9`,
   `gradingCostGbp`, `rawNetGbp`, `gradeEVConfidence` — WORK-BACKLOG.md Packet 7,
