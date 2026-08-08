@@ -7,3 +7,4 @@ export * from "./api/card-search.js";
 export * from "./api/price.js";
 export * from "./api/cert-lookup.js";
 export * from "./api/channel-listing.js";
+export * from "./api/reprice.js";
