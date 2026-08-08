@@ -2,6 +2,7 @@
 // inventory" call. Runs identify → price → condition server-side, then writes the full inventory
 // graph. See pokemon-tool's app/api/capture-commit/route.ts and IOS-CAPTURE-COMMIT-HANDOFF.md.
 import { z } from "zod";
+import { CatalogueLookupMatchSchema } from "./catalogue-lookup.js";
 
 const DetailImageSchema = z.object({
   side: z.enum(["front", "back"]).optional(),
@@ -11,12 +12,39 @@ const DetailImageSchema = z.object({
   url: z.string(),
 });
 
+const InlineDetailImageSchema = z.object({
+  side: z.enum(["front", "back"]).optional(),
+  corner: z.string().optional(),
+  dataUrl: z.string(),
+});
+
+// NOTE: at least one of imageUrls/inlineImages must be present — enforced by the route handler
+// (app/api/capture-commit/route.ts), not a schema-level .refine(). Keep this schema shape-only —
+// see identify.ts's IdentifyRequestSchema comment for why (Swift codegen has no ZodEffects case).
 export const CaptureCommitRequestSchema = z.object({
+  /** Public URLs (Supabase Storage) — the original path. */
   imageUrls: z.object({
     front: z.string(),
     back: z.string(),
     details: z.array(DetailImageSchema).optional(),
-  }),
+  }).optional(),
+  /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — an alternative to `imageUrls` that
+   * skips the storage-upload + fetch round trip, forwarded straight through to /api/identify's own
+   * `inlineImages`. WORK-BACKLOG.md Packet 9 (fast identify). Mirrors `imageUrls`' front/back/
+   * details shape so the server can preserve role ordering when it builds the flat array `/api/
+   * identify` expects; a caller should send either this or `imageUrls`, not both. */
+  inlineImages: z.object({
+    front: z.string(),
+    back: z.string(),
+    details: z.array(InlineDetailImageSchema).optional(),
+  }).optional(),
+  /** An already-resolved identity — e.g. iOS's on-device OCR read the printed name + collector
+   * number and got an unambiguous hit from the catalogue-lookup endpoint. When present, the server
+   * skips its own /api/identify (vision) call entirely and commits directly against this match —
+   * the real unit-economics win this packet is chasing (fewer paid vision calls, not just lower
+   * latency on the ones that still happen). Reuses CatalogueLookupMatchSchema rather than a
+   * parallel identity shape, since it's exactly a resolved catalogue match. */
+  resolvedMatch: CatalogueLookupMatchSchema.optional(),
   ocr: z.object({ name: z.string().optional(), number: z.string().optional() }).optional(),
   purchaseCost: z.number().optional(),
   collectionType: z.enum(["personal", "resale"]).optional(),

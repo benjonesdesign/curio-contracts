@@ -1,6 +1,7 @@
 import { z } from "zod";
 export declare const CaptureCommitRequestSchema: z.ZodObject<{
-    imageUrls: z.ZodObject<{
+    /** Public URLs (Supabase Storage) — the original path. */
+    imageUrls: z.ZodOptional<z.ZodObject<{
         front: z.ZodString;
         back: z.ZodString;
         details: z.ZodOptional<z.ZodArray<z.ZodObject<{
@@ -38,7 +39,73 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
             side?: "front" | "back" | undefined;
             corner?: string | undefined;
         }[] | undefined;
-    }>;
+    }>>;
+    /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — an alternative to `imageUrls` that
+     * skips the storage-upload + fetch round trip, forwarded straight through to /api/identify's own
+     * `inlineImages`. WORK-BACKLOG.md Packet 9 (fast identify). Mirrors `imageUrls`' front/back/
+     * details shape so the server can preserve role ordering when it builds the flat array `/api/
+     * identify` expects; a caller should send either this or `imageUrls`, not both. */
+    inlineImages: z.ZodOptional<z.ZodObject<{
+        front: z.ZodString;
+        back: z.ZodString;
+        details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            side: z.ZodOptional<z.ZodEnum<["front", "back"]>>;
+            corner: z.ZodOptional<z.ZodString>;
+            dataUrl: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }, {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        front: string;
+        back: string;
+        details?: {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    }, {
+        front: string;
+        back: string;
+        details?: {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    }>>;
+    /** An already-resolved identity — e.g. iOS's on-device OCR read the printed name + collector
+     * number and got an unambiguous hit from the catalogue-lookup endpoint. When present, the server
+     * skips its own /api/identify (vision) call entirely and commits directly against this match —
+     * the real unit-economics win this packet is chasing (fewer paid vision calls, not just lower
+     * latency on the ones that still happen). Reuses CatalogueLookupMatchSchema rather than a
+     * parallel identity shape, since it's exactly a resolved catalogue match. */
+    resolvedMatch: z.ZodOptional<z.ZodObject<{
+        nativeId: z.ZodString;
+        name: z.ZodString;
+        setName: z.ZodNullable<z.ZodString>;
+        cardNumber: z.ZodNullable<z.ZodString>;
+        rarity: z.ZodNullable<z.ZodString>;
+        language: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        name: string;
+        language: string;
+        rarity: string | null;
+        nativeId: string;
+        setName: string | null;
+        cardNumber: string | null;
+    }, {
+        name: string;
+        language: string;
+        rarity: string | null;
+        nativeId: string;
+        setName: string | null;
+        cardNumber: string | null;
+    }>>;
     ocr: z.ZodOptional<z.ZodObject<{
         name: z.ZodOptional<z.ZodString>;
         number: z.ZodOptional<z.ZodString>;
@@ -52,7 +119,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     purchaseCost: z.ZodOptional<z.ZodNumber>;
     collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
 }, "strip", z.ZodTypeAny, {
-    imageUrls: {
+    imageUrls?: {
         front: string;
         back: string;
         details?: {
@@ -61,7 +128,24 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
             side?: "front" | "back" | undefined;
             corner?: string | undefined;
         }[] | undefined;
-    };
+    } | undefined;
+    inlineImages?: {
+        front: string;
+        back: string;
+        details?: {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    } | undefined;
+    resolvedMatch?: {
+        name: string;
+        language: string;
+        rarity: string | null;
+        nativeId: string;
+        setName: string | null;
+        cardNumber: string | null;
+    } | undefined;
     ocr?: {
         number?: string | undefined;
         name?: string | undefined;
@@ -69,7 +153,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     purchaseCost?: number | undefined;
     collectionType?: "personal" | "resale" | undefined;
 }, {
-    imageUrls: {
+    imageUrls?: {
         front: string;
         back: string;
         details?: {
@@ -78,7 +162,24 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
             side?: "front" | "back" | undefined;
             corner?: string | undefined;
         }[] | undefined;
-    };
+    } | undefined;
+    inlineImages?: {
+        front: string;
+        back: string;
+        details?: {
+            dataUrl: string;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    } | undefined;
+    resolvedMatch?: {
+        name: string;
+        language: string;
+        rarity: string | null;
+        nativeId: string;
+        setName: string | null;
+        cardNumber: string | null;
+    } | undefined;
     ocr?: {
         number?: string | undefined;
         name?: string | undefined;
@@ -116,11 +217,11 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
     game: string;
     name: string;
     rarity: string | null;
+    setName: string | null;
+    cardNumber: string | null;
     physicalCardId: string;
     legacyCardId: string | null;
     gameDisplayName: string;
-    setName: string | null;
-    cardNumber: string | null;
     condition: string | null;
     suggestedPrice: number | null;
     ebay: {
@@ -133,11 +234,11 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
     game: string;
     name: string;
     rarity: string | null;
+    setName: string | null;
+    cardNumber: string | null;
     physicalCardId: string;
     legacyCardId: string | null;
     gameDisplayName: string;
-    setName: string | null;
-    cardNumber: string | null;
     condition: string | null;
     suggestedPrice: number | null;
     ebay: {

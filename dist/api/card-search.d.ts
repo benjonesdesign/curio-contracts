@@ -51,8 +51,8 @@ export declare const CardSearchResultSchema: z.ZodObject<{
     game: string | null;
     name: string;
     rarity: string | null;
-    gameDisplayName: string | null;
     setName: string | null;
+    gameDisplayName: string | null;
     tcgId: string;
     image: string | null;
     marketGbp: number | null;
@@ -70,8 +70,8 @@ export declare const CardSearchResultSchema: z.ZodObject<{
     game: string | null;
     name: string;
     rarity: string | null;
-    gameDisplayName: string | null;
     setName: string | null;
+    gameDisplayName: string | null;
     tcgId: string;
     image: string | null;
     marketGbp: number | null;
@@ -128,8 +128,8 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         game: string | null;
         name: string;
         rarity: string | null;
-        gameDisplayName: string | null;
         setName: string | null;
+        gameDisplayName: string | null;
         tcgId: string;
         image: string | null;
         marketGbp: number | null;
@@ -147,8 +147,8 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         game: string | null;
         name: string;
         rarity: string | null;
-        gameDisplayName: string | null;
         setName: string | null;
+        gameDisplayName: string | null;
         tcgId: string;
         image: string | null;
         marketGbp: number | null;
@@ -168,8 +168,8 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         game: string | null;
         name: string;
         rarity: string | null;
-        gameDisplayName: string | null;
         setName: string | null;
+        gameDisplayName: string | null;
         tcgId: string;
         image: string | null;
         marketGbp: number | null;
@@ -189,8 +189,8 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         game: string | null;
         name: string;
         rarity: string | null;
-        gameDisplayName: string | null;
         setName: string | null;
+        gameDisplayName: string | null;
         tcgId: string;
         image: string | null;
         marketGbp: number | null;

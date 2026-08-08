@@ -220,13 +220,17 @@ public enum Model: String, Codable, Sendable {
 }
 
 public struct CaptureCommitRequest: Codable, Sendable {
-    public let imageUrls: ImageUrls
+    public let imageUrls: ImageUrls?
+    public let inlineImages: InlineImages?
+    public let resolvedMatch: ResolvedMatch?
     public let ocr: Ocr?
     public let purchaseCost: Double?
     public let collectionType: CollectionType?
 
-    public init(imageUrls: ImageUrls, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
+    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: ResolvedMatch?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
         self.imageUrls = imageUrls
+        self.inlineImages = inlineImages
+        self.resolvedMatch = resolvedMatch
         self.ocr = ocr
         self.purchaseCost = purchaseCost
         self.collectionType = collectionType
@@ -262,6 +266,53 @@ public struct Detail: Codable, Sendable {
 public enum Side2: String, Codable, Sendable {
     case front = "front"
     case back = "back"
+}
+
+public struct InlineImages: Codable, Sendable {
+    public let front: String
+    public let back: String
+    public let details: [Detail2]?
+
+    public init(front: String, back: String, details: [Detail2]?) {
+        self.front = front
+        self.back = back
+        self.details = details
+    }
+}
+
+public struct Detail2: Codable, Sendable {
+    public let side: Side3?
+    public let corner: String?
+    public let dataUrl: String
+
+    public init(side: Side3?, corner: String?, dataUrl: String) {
+        self.side = side
+        self.corner = corner
+        self.dataUrl = dataUrl
+    }
+}
+
+public enum Side3: String, Codable, Sendable {
+    case front = "front"
+    case back = "back"
+}
+
+public struct ResolvedMatch: Codable, Sendable {
+    public let nativeId: String
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let rarity: String?
+    public let language: String
+
+    public init(nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String) {
+        self.nativeId = nativeId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.rarity = rarity
+        self.language = language
+    }
 }
 
 public struct Ocr: Codable, Sendable {

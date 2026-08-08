@@ -6,7 +6,7 @@ describe("CaptureCommitRequestSchema", () => {
     const r = CaptureCommitRequestSchema.parse({
       imageUrls: { front: "https://x/f.jpg", back: "https://x/b.jpg" },
     });
-    expect(r.imageUrls.details).toBeUndefined();
+    expect(r.imageUrls?.details).toBeUndefined();
   });
 
   it("accepts detail shots with the v3 side+corner tags", () => {
@@ -17,7 +17,35 @@ describe("CaptureCommitRequestSchema", () => {
         details: [{ side: "front", corner: "tl", url: "https://x/d1.jpg" }],
       },
     });
-    expect(r.imageUrls.details).toHaveLength(1);
+    expect(r.imageUrls?.details).toHaveLength(1);
+  });
+
+  it("accepts inlineImages instead of imageUrls (WORK-BACKLOG.md Packet 9)", () => {
+    const r = CaptureCommitRequestSchema.parse({
+      inlineImages: {
+        front: "data:image/jpeg;base64,/9j/front",
+        back: "data:image/jpeg;base64,/9j/back",
+        details: [{ side: "front", corner: "tl", dataUrl: "data:image/jpeg;base64,/9j/d1" }],
+      },
+    });
+    expect(r.imageUrls).toBeUndefined();
+    expect(r.inlineImages?.front).toBe("data:image/jpeg;base64,/9j/front");
+    expect(r.inlineImages?.details).toHaveLength(1);
+  });
+
+  it("accepts neither imageUrls nor inlineImages (schema is shape-only — the 'at least one' rule is route-level)", () => {
+    expect(() => CaptureCommitRequestSchema.parse({})).not.toThrow();
+  });
+
+  it("accepts a resolvedMatch (on-device OCR + catalogue-lookup hit) alongside inlineImages", () => {
+    const r = CaptureCommitRequestSchema.parse({
+      inlineImages: { front: "data:image/jpeg;base64,f", back: "data:image/jpeg;base64,b" },
+      resolvedMatch: {
+        nativeId: "base1-4", name: "Charizard", setName: "Base Set", cardNumber: "4/102",
+        rarity: "Rare Holo", language: "English",
+      },
+    });
+    expect(r.resolvedMatch?.name).toBe("Charizard");
   });
 });
 

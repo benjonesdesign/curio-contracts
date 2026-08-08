@@ -26,16 +26,16 @@ export declare const CatalogueLookupMatchSchema: z.ZodObject<{
     name: string;
     language: string;
     rarity: string | null;
+    nativeId: string;
     setName: string | null;
     cardNumber: string | null;
-    nativeId: string;
 }, {
     name: string;
     language: string;
     rarity: string | null;
+    nativeId: string;
     setName: string | null;
     cardNumber: string | null;
-    nativeId: string;
 }>;
 export type CatalogueLookupMatch = z.infer<typeof CatalogueLookupMatchSchema>;
 export declare const CatalogueLookupResponseSchema: z.ZodObject<{
@@ -50,16 +50,16 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
+        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
-        nativeId: string;
     }, {
         name: string;
         language: string;
         rarity: string | null;
+        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
-        nativeId: string;
     }>>;
     /** Null when there's no match at all. Mirrors the resolver's own tier confidence (high = number
      * + name both agree; medium = number+set or name-alone; low = fuzzy). A caller deciding whether
@@ -71,9 +71,9 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
+        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
-        nativeId: string;
     } | null;
 }, {
     confidence: "high" | "medium" | "low" | null;
@@ -81,9 +81,9 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
+        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
-        nativeId: string;
     } | null;
 }>;
 export type CatalogueLookupResponse = z.infer<typeof CatalogueLookupResponseSchema>;

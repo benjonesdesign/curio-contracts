@@ -4,13 +4,21 @@
 - **Not yet tagged — open for iOS review before tagging** (WORK-BACKLOG.md Packet 9, fast
   identify). `identify` gains `inlineImages` (base64 data URLs) as an alternative to `imageUrls`,
   skipping the URL-fetch hop OpenAI otherwise does before inference; `imageUrls` becomes optional
-  (either field must be present — enforced by a schema-level refine). New `catalogue-lookup`
-  contract (`CatalogueLookupRequestSchema`/`CatalogueLookupResponseSchema`) for a pure-DB
-  name+collector-number match — meant to answer in milliseconds so an OCR fast-path (iOS on-device
-  Vision, or web's typed name+number confirm) can skip the vision LLM call entirely on an
+  (either field must be present — enforced by the route handler, not a schema-level refine; a
+  top-level `.refine()` breaks the Swift codegen, see `identify.ts`'s inline comment). New
+  `catalogue-lookup` contract (`CatalogueLookupRequestSchema`/`CatalogueLookupResponseSchema`) for
+  a pure-DB name+collector-number match — meant to answer in milliseconds so an OCR fast-path (iOS
+  on-device Vision, or web's typed name+number confirm) can skip the vision LLM call entirely on an
   unambiguous hit. Backed by `pokemon-tool`'s existing `resolveCatalogueMatch()` — no second
   matching implementation. No `candidates` list (the resolver always picks one best row per
   confidence tier, never several) — add one later if a real tie-break need shows up.
+- `capture-commit` gains the same `inlineImages` alternative to `imageUrls` (now optional, same
+  shape-only/route-validated rule), forwarded straight through to `/api/identify`'s own
+  `inlineImages`. Also gains `resolvedMatch: CatalogueLookupMatchSchema` — when the caller already
+  resolved the card's identity (iOS's on-device OCR fast-path hitting catalogue-lookup), the server
+  skips its own `/api/identify` vision call entirely and commits directly against the match. Added
+  after iOS review of the identify/catalogue-lookup shapes above (approved as-is) flagged this as
+  the missing piece to actually finish Packet 9 on mobile.
 
 ## v0.1.9
 - New `reprice` contract: `RepricingFlagSchema`/`RepricingFlagsResponseSchema` for
