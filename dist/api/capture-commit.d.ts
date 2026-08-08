@@ -106,6 +106,12 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         setName: string | null;
         cardNumber: string | null;
     }>>;
+    /** Required alongside `resolvedMatch` — the match itself carries no game (it's already scoped to
+     * one game by the catalogue-lookup call that produced it), but the server needs it to route
+     * pricing (registry cataloguer vs. Pokémon's TCG-lookup chain) once vision is skipped. Optional
+     * here (shape-only; enforced in the route handler) since a normal identify-driven commit doesn't
+     * need it — the vision call detects the game itself. */
+    game: z.ZodOptional<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>;
     ocr: z.ZodOptional<z.ZodObject<{
         name: z.ZodOptional<z.ZodString>;
         number: z.ZodOptional<z.ZodString>;
@@ -119,6 +125,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     purchaseCost: z.ZodOptional<z.ZodNumber>;
     collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
 }, "strip", z.ZodTypeAny, {
+    game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     imageUrls?: {
         front: string;
         back: string;
@@ -153,6 +160,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     purchaseCost?: number | undefined;
     collectionType?: "personal" | "resale" | undefined;
 }, {
+    game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     imageUrls?: {
         front: string;
         back: string;

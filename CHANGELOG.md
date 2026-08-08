@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.12
+- `capture-commit` gains `game: GameIdSchema` (optional; required alongside `resolvedMatch` —
+  enforced in the route handler). `CatalogueLookupMatchSchema` deliberately carries no `game` (it's
+  already scoped to one game by the lookup call that produced it), but the server needs to know the
+  game to route pricing once its own `/api/identify` vision call is skipped — a real gap found
+  implementing the resolvedMatch server behavior, not caught by the shape review alone.
+
 ## v0.1.11
 - Fix: `gen-swift-api.ts` never listed `catalogue-lookup.ts`'s schemas, so `CatalogueLookupRequest`
   /`CatalogueLookupResponse`/`CatalogueLookupMatch` were missing from `APITypes.swift` entirely —

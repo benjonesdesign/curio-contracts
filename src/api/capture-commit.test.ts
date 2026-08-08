@@ -37,15 +37,21 @@ describe("CaptureCommitRequestSchema", () => {
     expect(() => CaptureCommitRequestSchema.parse({})).not.toThrow();
   });
 
-  it("accepts a resolvedMatch (on-device OCR + catalogue-lookup hit) alongside inlineImages", () => {
+  it("accepts a resolvedMatch (on-device OCR + catalogue-lookup hit) alongside inlineImages and game", () => {
     const r = CaptureCommitRequestSchema.parse({
       inlineImages: { front: "data:image/jpeg;base64,f", back: "data:image/jpeg;base64,b" },
       resolvedMatch: {
         nativeId: "base1-4", name: "Charizard", setName: "Base Set", cardNumber: "4/102",
         rarity: "Rare Holo", language: "English",
       },
+      game: "pokemon",
     });
     expect(r.resolvedMatch?.name).toBe("Charizard");
+    expect(r.game).toBe("pokemon");
+  });
+
+  it("rejects an invalid game value", () => {
+    expect(() => CaptureCommitRequestSchema.parse({ game: "not-a-real-game" })).toThrow();
   });
 });
 

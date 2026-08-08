@@ -223,14 +223,16 @@ public struct CaptureCommitRequest: Codable, Sendable {
     public let imageUrls: ImageUrls?
     public let inlineImages: InlineImages?
     public let resolvedMatch: CatalogueLookupMatch?
+    public let game: Game?
     public let ocr: Ocr?
     public let purchaseCost: Double?
     public let collectionType: CollectionType?
 
-    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
+    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, game: Game?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
         self.resolvedMatch = resolvedMatch
+        self.game = game
         self.ocr = ocr
         self.purchaseCost = purchaseCost
         self.collectionType = collectionType
@@ -313,6 +315,17 @@ public struct CatalogueLookupMatch: Codable, Sendable {
         self.rarity = rarity
         self.language = language
     }
+}
+
+public enum Game: String, Codable, Sendable {
+    case pokemon = "pokemon"
+    case pokemonJp = "pokemon-jp"
+    case mtg = "mtg"
+    case yugioh = "yugioh"
+    case lorcana = "lorcana"
+    case onePiece = "one-piece"
+    case digimon = "digimon"
+    case dbsFusion = "dbs-fusion"
 }
 
 public struct Ocr: Codable, Sendable {
@@ -868,17 +881,6 @@ public struct CatalogueLookupRequest: Codable, Sendable {
         self.name = name
         self.collectorNumber = collectorNumber
     }
-}
-
-public enum Game: String, Codable, Sendable {
-    case pokemon = "pokemon"
-    case pokemonJp = "pokemon-jp"
-    case mtg = "mtg"
-    case yugioh = "yugioh"
-    case lorcana = "lorcana"
-    case onePiece = "one-piece"
-    case digimon = "digimon"
-    case dbsFusion = "dbs-fusion"
 }
 
 public struct CatalogueLookupResponse: Codable, Sendable {

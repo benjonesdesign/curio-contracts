@@ -3,6 +3,7 @@
 // graph. See pokemon-tool's app/api/capture-commit/route.ts and IOS-CAPTURE-COMMIT-HANDOFF.md.
 import { z } from "zod";
 import { CatalogueLookupMatchSchema } from "./catalogue-lookup.js";
+import { GameIdSchema } from "./common.js";
 
 const DetailImageSchema = z.object({
   side: z.enum(["front", "back"]).optional(),
@@ -45,6 +46,12 @@ export const CaptureCommitRequestSchema = z.object({
    * latency on the ones that still happen). Reuses CatalogueLookupMatchSchema rather than a
    * parallel identity shape, since it's exactly a resolved catalogue match. */
   resolvedMatch: CatalogueLookupMatchSchema.optional(),
+  /** Required alongside `resolvedMatch` — the match itself carries no game (it's already scoped to
+   * one game by the catalogue-lookup call that produced it), but the server needs it to route
+   * pricing (registry cataloguer vs. Pokémon's TCG-lookup chain) once vision is skipped. Optional
+   * here (shape-only; enforced in the route handler) since a normal identify-driven commit doesn't
+   * need it — the vision call detects the game itself. */
+  game: GameIdSchema.optional(),
   ocr: z.object({ name: z.string().optional(), number: z.string().optional() }).optional(),
   purchaseCost: z.number().optional(),
   collectionType: z.enum(["personal", "resale"]).optional(),
