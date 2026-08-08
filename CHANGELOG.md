@@ -1,8 +1,17 @@
 # Changelog
 
+## v0.1.11
+- Fix: `gen-swift-api.ts` never listed `catalogue-lookup.ts`'s schemas, so `CatalogueLookupRequest`
+  /`CatalogueLookupResponse`/`CatalogueLookupMatch` were missing from `APITypes.swift` entirely —
+  present in the TS output and in `v0.1.10`'s tag, but unusable from Swift. `CatalogueLookupMatch`
+  is registered before any `emitSwift` call so it comes out as one shared struct, reused by both
+  `CatalogueLookupResponse.match` and `CaptureCommitRequest.resolvedMatch` (same schema object).
+  No shape changes — TS types are identical to `v0.1.10`.
+
 ## v0.1.10
-- **Not yet tagged — open for iOS review before tagging** (WORK-BACKLOG.md Packet 9, fast
-  identify). `identify` gains `inlineImages` (base64 data URLs) as an alternative to `imageUrls`,
+- **Tagged** (was held pending iOS review — iOS approved these two shapes as-is; see v0.1.11 for
+  what iOS flagged as still missing). WORK-BACKLOG.md Packet 9, fast identify. `identify` gains
+  `inlineImages` (base64 data URLs) as an alternative to `imageUrls`,
   skipping the URL-fetch hop OpenAI otherwise does before inference; `imageUrls` becomes optional
   (either field must be present — enforced by the route handler, not a schema-level refine; a
   top-level `.refine()` breaks the Swift codegen, see `identify.ts`'s inline comment). New

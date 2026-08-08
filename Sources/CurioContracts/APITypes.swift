@@ -222,12 +222,12 @@ public enum Model: String, Codable, Sendable {
 public struct CaptureCommitRequest: Codable, Sendable {
     public let imageUrls: ImageUrls?
     public let inlineImages: InlineImages?
-    public let resolvedMatch: ResolvedMatch?
+    public let resolvedMatch: CatalogueLookupMatch?
     public let ocr: Ocr?
     public let purchaseCost: Double?
     public let collectionType: CollectionType?
 
-    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: ResolvedMatch?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
+    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
         self.resolvedMatch = resolvedMatch
@@ -297,7 +297,7 @@ public enum Side3: String, Codable, Sendable {
     case back = "back"
 }
 
-public struct ResolvedMatch: Codable, Sendable {
+public struct CatalogueLookupMatch: Codable, Sendable {
     public let nativeId: String
     public let name: String
     public let setName: String?
@@ -856,4 +856,37 @@ public struct ChannelListingResponse: Codable, Sendable {
 public enum Status: String, Codable, Sendable {
     case listed = "listed"
     case failed = "failed"
+}
+
+public struct CatalogueLookupRequest: Codable, Sendable {
+    public let game: Game
+    public let name: String
+    public let collectorNumber: String?
+
+    public init(game: Game, name: String, collectorNumber: String?) {
+        self.game = game
+        self.name = name
+        self.collectorNumber = collectorNumber
+    }
+}
+
+public enum Game: String, Codable, Sendable {
+    case pokemon = "pokemon"
+    case pokemonJp = "pokemon-jp"
+    case mtg = "mtg"
+    case yugioh = "yugioh"
+    case lorcana = "lorcana"
+    case onePiece = "one-piece"
+    case digimon = "digimon"
+    case dbsFusion = "dbs-fusion"
+}
+
+public struct CatalogueLookupResponse: Codable, Sendable {
+    public let match: CatalogueLookupMatch?
+    public let confidence: GameConfidence?
+
+    public init(match: CatalogueLookupMatch?, confidence: GameConfidence?) {
+        self.match = match
+        self.confidence = confidence
+    }
 }
