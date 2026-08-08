@@ -12,14 +12,16 @@ public struct ApiError: Codable, Sendable {
 }
 
 public struct IdentifyRequest: Codable, Sendable {
-    public let imageUrls: [String]
+    public let imageUrls: [String]?
+    public let inlineImages: [String]?
     public let taxonomyAspects: [TaxonomyAspect]?
     public let imageHash: String?
     public let game: String?
     public let games: [String]?
 
-    public init(imageUrls: [String], taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?) {
+    public init(imageUrls: [String]?, inlineImages: [String]?, taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?) {
         self.imageUrls = imageUrls
+        self.inlineImages = inlineImages
         self.taxonomyAspects = taxonomyAspects
         self.imageHash = imageHash
         self.game = game

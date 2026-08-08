@@ -1,6 +1,13 @@
 import { z } from "zod";
 export declare const IdentifyRequestSchema: z.ZodObject<{
-    imageUrls: z.ZodArray<z.ZodString, "many">;
+    /** Public URLs (Supabase Storage) — the original path. OpenAI fetches each URL itself before
+     * inference, an extra network hop. */
+    imageUrls: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — an alternative to `imageUrls` that
+     * skips that fetch hop entirely. WORK-BACKLOG.md Packet 9 (fast identify). Either `imageUrls` or
+     * `inlineImages` must be present (validated in the route handler); a caller should not mix both
+     * in one request. */
+    inlineImages: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     taxonomyAspects: z.ZodOptional<z.ZodArray<z.ZodObject<{
         localizedAspectName: z.ZodString;
         aspectConstraint: z.ZodOptional<z.ZodObject<{
@@ -40,8 +47,9 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     /** Narrows auto-detection to the seller's enabled games. */
     games: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
-    imageUrls: string[];
     game?: string | undefined;
+    imageUrls?: string[] | undefined;
+    inlineImages?: string[] | undefined;
     taxonomyAspects?: {
         localizedAspectName: string;
         aspectConstraint?: {
@@ -54,8 +62,9 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     imageHash?: string | undefined;
     games?: string[] | undefined;
 }, {
-    imageUrls: string[];
     game?: string | undefined;
+    imageUrls?: string[] | undefined;
+    inlineImages?: string[] | undefined;
     taxonomyAspects?: {
         localizedAspectName: string;
         aspectConstraint?: {

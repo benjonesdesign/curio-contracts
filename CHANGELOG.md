@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.10
+- **Not yet tagged — open for iOS review before tagging** (WORK-BACKLOG.md Packet 9, fast
+  identify). `identify` gains `inlineImages` (base64 data URLs) as an alternative to `imageUrls`,
+  skipping the URL-fetch hop OpenAI otherwise does before inference; `imageUrls` becomes optional
+  (either field must be present — enforced by a schema-level refine). New `catalogue-lookup`
+  contract (`CatalogueLookupRequestSchema`/`CatalogueLookupResponseSchema`) for a pure-DB
+  name+collector-number match — meant to answer in milliseconds so an OCR fast-path (iOS on-device
+  Vision, or web's typed name+number confirm) can skip the vision LLM call entirely on an
+  unambiguous hit. Backed by `pokemon-tool`'s existing `resolveCatalogueMatch()` — no second
+  matching implementation. No `candidates` list (the resolver always picks one best row per
+  confidence tier, never several) — add one later if a real tie-break need shows up.
+
 ## v0.1.9
 - New `reprice` contract: `RepricingFlagSchema`/`RepricingFlagsResponseSchema` for
   `GET /api/reprice-flags` — WORK-BACKLOG.md Packet 5 (Inventory sync + repricing), the T3 web

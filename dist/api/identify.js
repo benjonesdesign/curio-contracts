@@ -8,8 +8,19 @@ const TaxonomyAspectSchema = z.object({
     aspectConstraint: z.object({ aspectMode: z.string().optional() }).optional(),
     aspectValues: z.array(z.object({ localizedValue: z.string() })).optional(),
 });
+// NOTE: at least one of imageUrls/inlineImages must be non-empty — enforced by the route handler
+// (app/api/identify/route.ts), not a schema-level .refine(). The Swift codegen (scripts/
+// zod-to-swift.ts) has no ZodEffects handling, so a top-level .refine() here would break the
+// Swift build; keep this schema shape-only, like every other contract in this package.
 export const IdentifyRequestSchema = z.object({
-    imageUrls: z.array(z.string()).min(1),
+    /** Public URLs (Supabase Storage) — the original path. OpenAI fetches each URL itself before
+     * inference, an extra network hop. */
+    imageUrls: z.array(z.string()).optional(),
+    /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — an alternative to `imageUrls` that
+     * skips that fetch hop entirely. WORK-BACKLOG.md Packet 9 (fast identify). Either `imageUrls` or
+     * `inlineImages` must be present (validated in the route handler); a caller should not mix both
+     * in one request. */
+    inlineImages: z.array(z.string()).optional(),
     taxonomyAspects: z.array(TaxonomyAspectSchema).optional(),
     imageHash: z.string().optional(),
     /** Seller-confirmed game (chooser flow) — fixes classification instead of auto-detecting. */

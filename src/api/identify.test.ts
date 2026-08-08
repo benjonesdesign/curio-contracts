@@ -7,8 +7,19 @@ describe("IdentifyRequestSchema", () => {
     expect(r.imageUrls).toHaveLength(2);
   });
 
-  it("rejects an empty imageUrls array", () => {
-    expect(() => IdentifyRequestSchema.parse({ imageUrls: [] })).toThrow();
+  it("accepts an empty imageUrls array (the 'at least one image' rule is route-level, not schema-level)", () => {
+    const r = IdentifyRequestSchema.parse({ imageUrls: [] });
+    expect(r.imageUrls).toEqual([]);
+  });
+
+  it("accepts a request with neither imageUrls nor inlineImages (schema is shape-only)", () => {
+    expect(() => IdentifyRequestSchema.parse({})).not.toThrow();
+  });
+
+  it("accepts inlineImages alone (no imageUrls)", () => {
+    const r = IdentifyRequestSchema.parse({ inlineImages: ["data:image/jpeg;base64,/9j/xyz"] });
+    expect(r.inlineImages).toHaveLength(1);
+    expect(r.imageUrls).toBeUndefined();
   });
 });
 
