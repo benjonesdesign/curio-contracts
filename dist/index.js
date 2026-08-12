@@ -9,3 +9,4 @@ export * from "./api/cert-lookup.js";
 export * from "./api/channel-listing.js";
 export * from "./api/reprice.js";
 export * from "./api/catalogue-lookup.js";
+export * from "./api/entitlement.js";

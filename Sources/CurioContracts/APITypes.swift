@@ -892,3 +892,46 @@ public struct CatalogueLookupResponse: Codable, Sendable {
         self.confidence = confidence
     }
 }
+
+public struct Entitlement: Codable, Sendable {
+    public let userId: String
+    public let tier: Tier
+    public let status: Status2
+    public let source: Source2
+    public let currentPeriodEnd: String
+    public let cancelAtPeriodEnd: Bool
+    public let trialEnd: String?
+    public let updatedAt: String
+
+    public init(userId: String, tier: Tier, status: Status2, source: Source2, currentPeriodEnd: String, cancelAtPeriodEnd: Bool, trialEnd: String?, updatedAt: String) {
+        self.userId = userId
+        self.tier = tier
+        self.status = status
+        self.source = source
+        self.currentPeriodEnd = currentPeriodEnd
+        self.cancelAtPeriodEnd = cancelAtPeriodEnd
+        self.trialEnd = trialEnd
+        self.updatedAt = updatedAt
+    }
+}
+
+public enum Tier: String, Codable, Sendable {
+    case free = "free"
+    case starter = "starter"
+    case growth = "growth"
+    case pro = "pro"
+}
+
+public enum Status2: String, Codable, Sendable {
+    case active = "active"
+    case trialing = "trialing"
+    case pastDue = "past_due"
+    case grace = "grace"
+    case canceled = "canceled"
+    case expired = "expired"
+}
+
+public enum Source2: String, Codable, Sendable {
+    case stripe = "stripe"
+    case apple = "apple"
+}
