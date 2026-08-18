@@ -1,4 +1,47 @@
 import { z } from "zod";
+export declare const ShotQualityDescriptorSchema: z.ZodObject<{
+    side: z.ZodOptional<z.ZodEnum<["front", "back"]>>;
+    corner: z.ZodOptional<z.ZodString>;
+    region: z.ZodOptional<z.ZodString>;
+    /** 0–1 overall sharpness read (e.g. a device-side variance-of-Laplacian style signal) — higher
+     * is sharper. */
+    sharpness: z.ZodOptional<z.ZodNumber>;
+    glare: z.ZodOptional<z.ZodBoolean>;
+    cropped: z.ZodOptional<z.ZodBoolean>;
+    skewDegrees: z.ZodOptional<z.ZodNumber>;
+    orientation: z.ZodOptional<z.ZodEnum<["correct", "rotated_90", "rotated_180", "rotated_270", "unknown"]>>;
+    exposure: z.ZodOptional<z.ZodEnum<["under", "over", "ok", "unknown"]>>;
+    /** Border/centring offsets measured from the detected card quad, roughly -1..1 (negative = off
+     * toward one edge) — device-side geometry, not a grade. Present only when the quad was
+     * measurable. */
+    centeringLR: z.ZodOptional<z.ZodNumber>;
+    centeringTB: z.ZodOptional<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    region?: string | undefined;
+    side?: "front" | "back" | undefined;
+    corner?: string | undefined;
+    sharpness?: number | undefined;
+    glare?: boolean | undefined;
+    cropped?: boolean | undefined;
+    skewDegrees?: number | undefined;
+    orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+    exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+    centeringLR?: number | undefined;
+    centeringTB?: number | undefined;
+}, {
+    region?: string | undefined;
+    side?: "front" | "back" | undefined;
+    corner?: string | undefined;
+    sharpness?: number | undefined;
+    glare?: boolean | undefined;
+    cropped?: boolean | undefined;
+    skewDegrees?: number | undefined;
+    orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+    exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+    centeringLR?: number | undefined;
+    centeringTB?: number | undefined;
+}>;
+export type ShotQualityDescriptor = z.infer<typeof ShotQualityDescriptorSchema>;
 export declare const CaptureCommitRequestSchema: z.ZodObject<{
     /** Public URLs (Supabase Storage) — the original path. */
     imageUrls: z.ZodOptional<z.ZodObject<{
@@ -124,6 +167,50 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     }>>;
     purchaseCost: z.ZodOptional<z.ZodNumber>;
     collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
+    /** Per-shot capture-quality signals — see ShotQualityDescriptorSchema's doc comment. Optional;
+     * older clients simply omit it. */
+    shotQuality: z.ZodOptional<z.ZodArray<z.ZodObject<{
+        side: z.ZodOptional<z.ZodEnum<["front", "back"]>>;
+        corner: z.ZodOptional<z.ZodString>;
+        region: z.ZodOptional<z.ZodString>;
+        /** 0–1 overall sharpness read (e.g. a device-side variance-of-Laplacian style signal) — higher
+         * is sharper. */
+        sharpness: z.ZodOptional<z.ZodNumber>;
+        glare: z.ZodOptional<z.ZodBoolean>;
+        cropped: z.ZodOptional<z.ZodBoolean>;
+        skewDegrees: z.ZodOptional<z.ZodNumber>;
+        orientation: z.ZodOptional<z.ZodEnum<["correct", "rotated_90", "rotated_180", "rotated_270", "unknown"]>>;
+        exposure: z.ZodOptional<z.ZodEnum<["under", "over", "ok", "unknown"]>>;
+        /** Border/centring offsets measured from the detected card quad, roughly -1..1 (negative = off
+         * toward one edge) — device-side geometry, not a grade. Present only when the quad was
+         * measurable. */
+        centeringLR: z.ZodOptional<z.ZodNumber>;
+        centeringTB: z.ZodOptional<z.ZodNumber>;
+    }, "strip", z.ZodTypeAny, {
+        region?: string | undefined;
+        side?: "front" | "back" | undefined;
+        corner?: string | undefined;
+        sharpness?: number | undefined;
+        glare?: boolean | undefined;
+        cropped?: boolean | undefined;
+        skewDegrees?: number | undefined;
+        orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+        exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+        centeringLR?: number | undefined;
+        centeringTB?: number | undefined;
+    }, {
+        region?: string | undefined;
+        side?: "front" | "back" | undefined;
+        corner?: string | undefined;
+        sharpness?: number | undefined;
+        glare?: boolean | undefined;
+        cropped?: boolean | undefined;
+        skewDegrees?: number | undefined;
+        orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+        exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+        centeringLR?: number | undefined;
+        centeringTB?: number | undefined;
+    }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     imageUrls?: {
@@ -159,6 +246,19 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     } | undefined;
     purchaseCost?: number | undefined;
     collectionType?: "personal" | "resale" | undefined;
+    shotQuality?: {
+        region?: string | undefined;
+        side?: "front" | "back" | undefined;
+        corner?: string | undefined;
+        sharpness?: number | undefined;
+        glare?: boolean | undefined;
+        cropped?: boolean | undefined;
+        skewDegrees?: number | undefined;
+        orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+        exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+        centeringLR?: number | undefined;
+        centeringTB?: number | undefined;
+    }[] | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     imageUrls?: {
@@ -194,6 +294,19 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     } | undefined;
     purchaseCost?: number | undefined;
     collectionType?: "personal" | "resale" | undefined;
+    shotQuality?: {
+        region?: string | undefined;
+        side?: "front" | "back" | undefined;
+        corner?: string | undefined;
+        sharpness?: number | undefined;
+        glare?: boolean | undefined;
+        cropped?: boolean | undefined;
+        skewDegrees?: number | undefined;
+        orientation?: "unknown" | "correct" | "rotated_90" | "rotated_180" | "rotated_270" | undefined;
+        exposure?: "unknown" | "under" | "over" | "ok" | undefined;
+        centeringLR?: number | undefined;
+        centeringTB?: number | undefined;
+    }[] | undefined;
 }>;
 export type CaptureCommitRequest = z.infer<typeof CaptureCommitRequestSchema>;
 export declare const CaptureCommitResponseSchema: z.ZodObject<{

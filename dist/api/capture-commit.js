@@ -16,6 +16,33 @@ const InlineDetailImageSchema = z.object({
     corner: z.string().optional(),
     dataUrl: z.string(),
 });
+// STRATEGIC-ROADMAP.md W2 §5.1 / curio-shared iOS ticket "iOS-W2-A" — a per-shot device-side
+// signal (sharpness/glare/crop/skew/orientation/exposure + border-centring offsets where the quad
+// was measurable), carried alongside the shot it describes. Shape-only, additive, and NOT keyed
+// into imageUrls/inlineImages' existing front/back string fields (that would be a breaking
+// reshape) — instead a flat array identifying its shot the same way DetailImageSchema does
+// (side for front/back, corner/region for detail shots). Server authority: the server decides any
+// grade/confidence weighting from this data — iOS only emits the descriptor, no grade computed on
+// device. Today (2026-08) pokemon-tool stores this transport-only; no interpretation logic exists
+// yet — see NEEDS-BEN.md / WORK-BACKLOG.md for status.
+export const ShotQualityDescriptorSchema = z.object({
+    side: z.enum(["front", "back"]).optional(),
+    corner: z.string().optional(),
+    region: z.string().optional(),
+    /** 0–1 overall sharpness read (e.g. a device-side variance-of-Laplacian style signal) — higher
+     * is sharper. */
+    sharpness: z.number().min(0).max(1).optional(),
+    glare: z.boolean().optional(),
+    cropped: z.boolean().optional(),
+    skewDegrees: z.number().optional(),
+    orientation: z.enum(["correct", "rotated_90", "rotated_180", "rotated_270", "unknown"]).optional(),
+    exposure: z.enum(["under", "over", "ok", "unknown"]).optional(),
+    /** Border/centring offsets measured from the detected card quad, roughly -1..1 (negative = off
+     * toward one edge) — device-side geometry, not a grade. Present only when the quad was
+     * measurable. */
+    centeringLR: z.number().optional(),
+    centeringTB: z.number().optional(),
+});
 // NOTE: at least one of imageUrls/inlineImages must be present — enforced by the route handler
 // (app/api/capture-commit/route.ts), not a schema-level .refine(). Keep this schema shape-only —
 // see identify.ts's IdentifyRequestSchema comment for why (Swift codegen has no ZodEffects case).
@@ -52,6 +79,9 @@ export const CaptureCommitRequestSchema = z.object({
     ocr: z.object({ name: z.string().optional(), number: z.string().optional() }).optional(),
     purchaseCost: z.number().optional(),
     collectionType: z.enum(["personal", "resale"]).optional(),
+    /** Per-shot capture-quality signals — see ShotQualityDescriptorSchema's doc comment. Optional;
+     * older clients simply omit it. */
+    shotQuality: z.array(ShotQualityDescriptorSchema).optional(),
 });
 const EbaySchema = z.object({
     low: z.number().nullable(),

@@ -227,8 +227,9 @@ public struct CaptureCommitRequest: Codable, Sendable {
     public let ocr: Ocr?
     public let purchaseCost: Double?
     public let collectionType: CollectionType?
+    public let shotQuality: [ShotQualityDescriptor]?
 
-    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, game: Game?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?) {
+    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, game: Game?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?, shotQuality: [ShotQualityDescriptor]?) {
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
         self.resolvedMatch = resolvedMatch
@@ -236,6 +237,7 @@ public struct CaptureCommitRequest: Codable, Sendable {
         self.ocr = ocr
         self.purchaseCost = purchaseCost
         self.collectionType = collectionType
+        self.shotQuality = shotQuality
     }
 }
 
@@ -341,6 +343,54 @@ public struct Ocr: Codable, Sendable {
 public enum CollectionType: String, Codable, Sendable {
     case personal = "personal"
     case resale = "resale"
+}
+
+public struct ShotQualityDescriptor: Codable, Sendable {
+    public let side: Side4?
+    public let corner: String?
+    public let region: String?
+    public let sharpness: Double?
+    public let glare: Bool?
+    public let cropped: Bool?
+    public let skewDegrees: Double?
+    public let orientation: Orientation?
+    public let exposure: Exposure?
+    public let centeringLR: Double?
+    public let centeringTB: Double?
+
+    public init(side: Side4?, corner: String?, region: String?, sharpness: Double?, glare: Bool?, cropped: Bool?, skewDegrees: Double?, orientation: Orientation?, exposure: Exposure?, centeringLR: Double?, centeringTB: Double?) {
+        self.side = side
+        self.corner = corner
+        self.region = region
+        self.sharpness = sharpness
+        self.glare = glare
+        self.cropped = cropped
+        self.skewDegrees = skewDegrees
+        self.orientation = orientation
+        self.exposure = exposure
+        self.centeringLR = centeringLR
+        self.centeringTB = centeringTB
+    }
+}
+
+public enum Side4: String, Codable, Sendable {
+    case front = "front"
+    case back = "back"
+}
+
+public enum Orientation: String, Codable, Sendable {
+    case correct = "correct"
+    case rotated90 = "rotated_90"
+    case rotated180 = "rotated_180"
+    case rotated270 = "rotated_270"
+    case unknown = "unknown"
+}
+
+public enum Exposure: String, Codable, Sendable {
+    case under = "under"
+    case over = "over"
+    case ok = "ok"
+    case unknown = "unknown"
 }
 
 public struct CaptureCommitResponse: Codable, Sendable {
@@ -934,4 +984,92 @@ public enum Status2: String, Codable, Sendable {
 public enum Source2: String, Codable, Sendable {
     case stripe = "stripe"
     case apple = "apple"
+}
+
+public struct VerificationEventRequest: Codable, Sendable {
+    public let physicalCardId: String
+    public let kind: Kind
+    public let field: String
+    public let verdict: Verdict?
+    public let previousValue: String?
+    public let correctedValue: String?
+    public let source: Source3?
+
+    public init(physicalCardId: String, kind: Kind, field: String, verdict: Verdict?, previousValue: String?, correctedValue: String?, source: Source3?) {
+        self.physicalCardId = physicalCardId
+        self.kind = kind
+        self.field = field
+        self.verdict = verdict
+        self.previousValue = previousValue
+        self.correctedValue = correctedValue
+        self.source = source
+    }
+}
+
+public enum Kind: String, Codable, Sendable {
+    case identity = "identity"
+    case condition = "condition"
+}
+
+public enum Verdict: String, Codable, Sendable {
+    case confirmed = "confirmed"
+    case notPresent = "not_present"
+    case unsure = "unsure"
+    case corrected = "corrected"
+}
+
+public enum Source3: String, Codable, Sendable {
+    case iosCapture = "ios_capture"
+    case webAddFlow = "web_add_flow"
+    case other = "other"
+}
+
+public struct VerificationEventResponse: Codable, Sendable {
+    public let recorded: Bool
+    public let id: String?
+
+    public init(recorded: Bool, id: String?) {
+        self.recorded = recorded
+        self.id = id
+    }
+}
+
+public struct InspectionDepthHintRequest: Codable, Sendable {
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let game: Game?
+    public let tcgId: String?
+
+    public init(name: String, setName: String?, cardNumber: String?, game: Game?, tcgId: String?) {
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.game = game
+        self.tcgId = tcgId
+    }
+}
+
+public struct InspectionDepthHintResponse: Codable, Sendable {
+    public let depthTier: DepthTier
+    public let rationale: String
+    public let confidence: Confidence
+
+    public init(depthTier: DepthTier, rationale: String, confidence: Confidence) {
+        self.depthTier = depthTier
+        self.rationale = rationale
+        self.confidence = confidence
+    }
+}
+
+public enum DepthTier: String, Codable, Sendable {
+    case minimal = "minimal"
+    case standard = "standard"
+    case thorough = "thorough"
+}
+
+public enum Confidence: String, Codable, Sendable {
+    case high = "high"
+    case medium = "medium"
+    case low = "low"
 }

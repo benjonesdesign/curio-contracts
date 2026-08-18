@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.14
+- STRATEGIC-ROADMAP.md W2 server-route groundwork (contract-first per decisions/0012) — the three
+  CODE-owned routes iOS's tickets A/C/D depend on:
+  - `capture-commit` gains an optional `shotQuality: ShotQualityDescriptorSchema[]` field — a
+    per-shot device-side signal (sharpness/glare/crop/skew/orientation/exposure + border-centring
+    offsets where measurable). Additive; older clients simply omit it.
+  - New `verification-event` contract (`VerificationEventRequestSchema`/`ResponseSchema`) for the
+    in-flow identity/condition correction signal iOS's ticket C emits (feeds W4/W8).
+  - New `inspection-depth` contract (`InspectionDepthHintRequestSchema`/`ResponseSchema`,
+    `InspectionDepthTierSchema`) for the fast value/stakes → capture-depth hint iOS's ticket D
+    needs. pokemon-tool's implementation is a stub (fixed default tier) — the real value-based
+    policy needs a product decision + Ticket 1's unified observation model, deliberately not built
+    yet; the contract exists so iOS can integrate the plumbing now.
+  All three route implementations are flag-gated scaffolding (accept + persist/stub only, no
+  grading/calibration/pricing-policy logic) — see pokemon-tool's `lib/features.ts`.
+
 ## v0.1.12
 - `capture-commit` gains `game: GameIdSchema` (optional; required alongside `resolvedMatch` —
   enforced in the route handler). `CatalogueLookupMatchSchema` deliberately carries no `game` (it's

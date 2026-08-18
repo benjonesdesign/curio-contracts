@@ -10,3 +10,5 @@ export * from "./api/channel-listing.js";
 export * from "./api/reprice.js";
 export * from "./api/catalogue-lookup.js";
 export * from "./api/entitlement.js";
+export * from "./api/verification-event.js";
+export * from "./api/inspection-depth.js";
