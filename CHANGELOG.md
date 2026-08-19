@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.15
+- `verification-event`: removed `"corrected"` from `VerificationEventRequestSchema.verdict` — per
+  COORD (2026-08-18), a text correction is a separate dimension from the verdict, not a 4th case.
+  `verdict` now stays a closed 3-way `confirmed | not_present | unsure` (STRATEGIC-ROADMAP.md §5.8);
+  `previousValue`/`correctedValue` already carry the correction independently. No consumer (web or
+  iOS) ever sent `"corrected"` as a verdict, so this narrows dead schema surface rather than
+  breaking a real caller.
+
 ## v0.1.14
 - STRATEGIC-ROADMAP.md W2 server-route groundwork (contract-first per decisions/0012) — the three
   CODE-owned routes iOS's tickets A/C/D depend on:

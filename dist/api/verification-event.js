@@ -14,10 +14,12 @@ export const VerificationEventRequestSchema = z.object({
      * a defect id/region for a condition finding. Free text — the taxonomy isn't fixed yet (see
      * ROADMAP-COORDINATION.md's §5.8 reconcile note on the 3-way verdict question). */
     field: z.string(),
-    /** Free-text 3-way-ish verdict a client may send alongside the raw before/after values — kept
-     * loose (not a closed enum) since the roadmap's Confirm/Not present/Unsure vocabulary and the
-     * web app's existing artwork/dust/lighting/confirmed reasons haven't been reconciled yet. */
-    verdict: z.enum(["confirmed", "not_present", "unsure", "corrected"]).optional(),
+    /** The roadmap's 3-way verdict vocabulary (§5.8: Confirm / Not present / Unsure) — a closed
+     * dimension separate from `previousValue`/`correctedValue` below. A text correction is NOT a
+     * 4th verdict case: `verdict` answers "was the AI's finding right?", while `previousValue`/
+     * `correctedValue` carry what changed, if anything, independent of the verdict itself (COORD
+     * 2026-08-18: "corrected is a separate dimension, not a 4th verdict"). */
+    verdict: z.enum(["confirmed", "not_present", "unsure"]).optional(),
     previousValue: z.string().nullable().optional(),
     correctedValue: z.string().nullable().optional(),
     /** Which client emitted this — lets W4/W8 distinguish mobile capture-flow corrections from the

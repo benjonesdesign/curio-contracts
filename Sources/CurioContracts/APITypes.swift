@@ -1015,7 +1015,6 @@ public enum Verdict: String, Codable, Sendable {
     case confirmed = "confirmed"
     case notPresent = "not_present"
     case unsure = "unsure"
-    case corrected = "corrected"
 }
 
 public enum Source3: String, Codable, Sendable {
