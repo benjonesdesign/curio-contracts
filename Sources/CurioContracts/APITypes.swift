@@ -473,10 +473,34 @@ public struct Ebay: Codable, Sendable {
 public struct RecommendRequest: Codable, Sendable {
     public let physicalCardId: String
     public let isVintage: Bool?
+    public let pricingSettings: PricingSettings?
 
-    public init(physicalCardId: String, isVintage: Bool?) {
+    public init(physicalCardId: String, isVintage: Bool?, pricingSettings: PricingSettings?) {
         self.physicalCardId = physicalCardId
         self.isVintage = isVintage
+        self.pricingSettings = pricingSettings
+    }
+}
+
+public struct PricingSettings: Codable, Sendable {
+    public let ebayFeeRate: Double
+    public let ebayFeeFixed: Double
+    public let packagingCost: Double
+    public let shippingCost: Double
+    public let taxRate: Double
+    public let minProfitPct: Double
+    public let minSaleValue: Double
+    public let postageCost: Double
+
+    public init(ebayFeeRate: Double, ebayFeeFixed: Double, packagingCost: Double, shippingCost: Double, taxRate: Double, minProfitPct: Double, minSaleValue: Double, postageCost: Double) {
+        self.ebayFeeRate = ebayFeeRate
+        self.ebayFeeFixed = ebayFeeFixed
+        self.packagingCost = packagingCost
+        self.shippingCost = shippingCost
+        self.taxRate = taxRate
+        self.minProfitPct = minProfitPct
+        self.minSaleValue = minSaleValue
+        self.postageCost = postageCost
     }
 }
 
@@ -614,9 +638,11 @@ public enum GradeEVConfidence: String, Codable, Sendable {
 
 public struct RecommendBatchRequest: Codable, Sendable {
     public let cards: [RecommendBatchCardInput]
+    public let pricingSettings: PricingSettings?
 
-    public init(cards: [RecommendBatchCardInput]) {
+    public init(cards: [RecommendBatchCardInput], pricingSettings: PricingSettings?) {
         self.cards = cards
+        self.pricingSettings = pricingSettings
     }
 }
 

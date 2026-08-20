@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.18
+- `recommend`/`recommend` (batch) gain an optional `pricingSettings` field (STRATEGIC-ROADMAP.md
+  W3 §6.4 "seller preference profile") — the recommendation engine's fee/cost/tax/margin
+  assumptions were a dead field on `lib/recommendation.ts`'s own `Inputs` type that no caller had
+  ever wired up; the engine's `DEFAULT_SETTINGS` applied unconditionally regardless of what a
+  seller had actually configured in Settings → Pricing. New shared `PricingSettingsSchema`
+  (mirrors pokemon-tool's `lib/pricing.ts` `PricingSettings` verbatim), registered once and
+  reused by both `RecommendRequestSchema` (single-card) and `RecommendBatchRequestSchema` (one
+  settings object per batch, not per-card — it's an account-wide preference). Additive and
+  non-breaking — omitting the field keeps today's default-settings behavior exactly as before.
+
 ## v0.1.17
 - `identify`/`capture-commit` gain `imagePaths` (decisions/0018 revision, ROADMAP-COORDINATION.md
   "iOS-W2-H"/COORD 2026-08-19): Supabase Storage object paths, not client-minted URLs. The client

@@ -12,6 +12,7 @@ import { CaptureCommitRequestSchema, CaptureCommitResponseSchema, ShotQualityDes
 import {
   RecommendRequestSchema, RecommendResponseSchema, RecommendedRouteSchema,
   RecommendBatchRequestSchema, RecommendBatchResponseSchema, RecommendBatchCardInputSchema, RecommendBatchResultSchema,
+  PricingSettingsSchema,
 } from "../src/api/recommend.js";
 import { CardSearchRequestSchema, CardSearchResponseSchema, CardSearchResultSchema } from "../src/api/card-search.js";
 import { PriceRequestSchema, PriceResponseSchema } from "../src/api/price.js";
@@ -35,6 +36,8 @@ registerName(RecommendedRouteSchema, "RecommendedRoute");
 registerName(CardSearchResultSchema, "CardSearchResult");
 registerName(RecommendBatchCardInputSchema, "RecommendBatchCardInput");
 registerName(RecommendBatchResultSchema, "RecommendBatchResult");
+// Shared by RecommendRequest and RecommendBatchRequest — one PricingSettings struct, not two.
+registerName(PricingSettingsSchema, "PricingSettings");
 // Registered before any emitSwift call so it comes out as one shared `CatalogueLookupMatch`
 // struct wherever it's referenced — both CatalogueLookupResponse.match and
 // CaptureCommitRequest.resolvedMatch point at this same schema object.
