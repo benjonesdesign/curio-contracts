@@ -12,6 +12,7 @@ public struct ApiError: Codable, Sendable {
 }
 
 public struct IdentifyRequest: Codable, Sendable {
+    public let imagePaths: [String]?
     public let imageUrls: [String]?
     public let inlineImages: [String]?
     public let taxonomyAspects: [TaxonomyAspect]?
@@ -19,7 +20,8 @@ public struct IdentifyRequest: Codable, Sendable {
     public let game: String?
     public let games: [String]?
 
-    public init(imageUrls: [String]?, inlineImages: [String]?, taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?) {
+    public init(imagePaths: [String]?, imageUrls: [String]?, inlineImages: [String]?, taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?) {
+        self.imagePaths = imagePaths
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
         self.taxonomyAspects = taxonomyAspects
@@ -220,6 +222,7 @@ public enum Model: String, Codable, Sendable {
 }
 
 public struct CaptureCommitRequest: Codable, Sendable {
+    public let imagePaths: ImagePaths?
     public let imageUrls: ImageUrls?
     public let inlineImages: InlineImages?
     public let resolvedMatch: CatalogueLookupMatch?
@@ -229,7 +232,8 @@ public struct CaptureCommitRequest: Codable, Sendable {
     public let collectionType: CollectionType?
     public let shotQuality: [ShotQualityDescriptor]?
 
-    public init(imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, game: Game?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?, shotQuality: [ShotQualityDescriptor]?) {
+    public init(imagePaths: ImagePaths?, imageUrls: ImageUrls?, inlineImages: InlineImages?, resolvedMatch: CatalogueLookupMatch?, game: Game?, ocr: Ocr?, purchaseCost: Double?, collectionType: CollectionType?, shotQuality: [ShotQualityDescriptor]?) {
+        self.imagePaths = imagePaths
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
         self.resolvedMatch = resolvedMatch
@@ -241,7 +245,7 @@ public struct CaptureCommitRequest: Codable, Sendable {
     }
 }
 
-public struct ImageUrls: Codable, Sendable {
+public struct ImagePaths: Codable, Sendable {
     public let front: String
     public let back: String
     public let details: [Detail]?
@@ -257,13 +261,13 @@ public struct Detail: Codable, Sendable {
     public let side: Side2?
     public let corner: String?
     public let region: String?
-    public let url: String
+    public let path: String
 
-    public init(side: Side2?, corner: String?, region: String?, url: String) {
+    public init(side: Side2?, corner: String?, region: String?, path: String) {
         self.side = side
         self.corner = corner
         self.region = region
-        self.url = url
+        self.path = path
     }
 }
 
@@ -272,7 +276,7 @@ public enum Side2: String, Codable, Sendable {
     case back = "back"
 }
 
-public struct InlineImages: Codable, Sendable {
+public struct ImageUrls: Codable, Sendable {
     public let front: String
     public let back: String
     public let details: [Detail2]?
@@ -287,16 +291,47 @@ public struct InlineImages: Codable, Sendable {
 public struct Detail2: Codable, Sendable {
     public let side: Side3?
     public let corner: String?
+    public let region: String?
+    public let url: String
+
+    public init(side: Side3?, corner: String?, region: String?, url: String) {
+        self.side = side
+        self.corner = corner
+        self.region = region
+        self.url = url
+    }
+}
+
+public enum Side3: String, Codable, Sendable {
+    case front = "front"
+    case back = "back"
+}
+
+public struct InlineImages: Codable, Sendable {
+    public let front: String
+    public let back: String
+    public let details: [Detail3]?
+
+    public init(front: String, back: String, details: [Detail3]?) {
+        self.front = front
+        self.back = back
+        self.details = details
+    }
+}
+
+public struct Detail3: Codable, Sendable {
+    public let side: Side4?
+    public let corner: String?
     public let dataUrl: String
 
-    public init(side: Side3?, corner: String?, dataUrl: String) {
+    public init(side: Side4?, corner: String?, dataUrl: String) {
         self.side = side
         self.corner = corner
         self.dataUrl = dataUrl
     }
 }
 
-public enum Side3: String, Codable, Sendable {
+public enum Side4: String, Codable, Sendable {
     case front = "front"
     case back = "back"
 }
@@ -346,7 +381,7 @@ public enum CollectionType: String, Codable, Sendable {
 }
 
 public struct ShotQualityDescriptor: Codable, Sendable {
-    public let side: Side4?
+    public let side: Side5?
     public let corner: String?
     public let region: String?
     public let sharpness: Double?
@@ -358,7 +393,7 @@ public struct ShotQualityDescriptor: Codable, Sendable {
     public let centeringLR: Double?
     public let centeringTB: Double?
 
-    public init(side: Side4?, corner: String?, region: String?, sharpness: Double?, glare: Bool?, cropped: Bool?, skewDegrees: Double?, orientation: Orientation?, exposure: Exposure?, centeringLR: Double?, centeringTB: Double?) {
+    public init(side: Side5?, corner: String?, region: String?, sharpness: Double?, glare: Bool?, cropped: Bool?, skewDegrees: Double?, orientation: Orientation?, exposure: Exposure?, centeringLR: Double?, centeringTB: Double?) {
         self.side = side
         self.corner = corner
         self.region = region
@@ -373,7 +408,7 @@ public struct ShotQualityDescriptor: Codable, Sendable {
     }
 }
 
-public enum Side4: String, Codable, Sendable {
+public enum Side5: String, Codable, Sendable {
     case front = "front"
     case back = "back"
 }
