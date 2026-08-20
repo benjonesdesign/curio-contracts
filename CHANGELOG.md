@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.16
+- New `signed-photo-url` contract (`POST /api/signed-photo-url`) — curio-shared WORK-BACKLOG.md
+  Packet 10 / decisions/0018 (private card-photos storage). Batched request/response: given
+  stored `photo_urls` public-URL strings, returns owner-scoped signed URLs (with per-URL error
+  handling, not all-or-nothing). Contract-first substrate for making the `card-photos` bucket
+  private without a breaking DB-shape change — `photo_urls` keeps storing the same public-URL
+  strings it always has; only the *display/distribution* layer switches to request a signed URL
+  before use. Web backend + UI land behind `NEXT_PUBLIC_FEATURE_SIGNED_PHOTO_URLS` (off by
+  default); iOS lands its consumption in parallel per the packet. The bucket itself is NOT flipped
+  private by this contract alone — that's gated on both platforms actually consuming signed URLs
+  (see the ADR).
+
 ## v0.1.15
 - `verification-event`: removed `"corrected"` from `VerificationEventRequestSchema.verdict` — per
   COORD (2026-08-18), a text correction is a separate dimension from the verdict, not a 4th case.

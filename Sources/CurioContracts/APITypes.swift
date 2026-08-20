@@ -1072,3 +1072,33 @@ public enum Confidence: String, Codable, Sendable {
     case medium = "medium"
     case low = "low"
 }
+
+public struct SignedPhotoUrlRequest: Codable, Sendable {
+    public let urls: [String]
+    public let ttlSeconds: Int?
+
+    public init(urls: [String], ttlSeconds: Int?) {
+        self.urls = urls
+        self.ttlSeconds = ttlSeconds
+    }
+}
+
+public struct SignedPhotoUrlResponse: Codable, Sendable {
+    public let results: [SignedPhotoUrlResult]
+
+    public init(results: [SignedPhotoUrlResult]) {
+        self.results = results
+    }
+}
+
+public struct SignedPhotoUrlResult: Codable, Sendable {
+    public let url: String
+    public let signedUrl: String?
+    public let error: String?
+
+    public init(url: String, signedUrl: String?, error: String?) {
+        self.url = url
+        self.signedUrl = signedUrl
+        self.error = error
+    }
+}
