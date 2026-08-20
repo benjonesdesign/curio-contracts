@@ -1,11 +1,51 @@
 import { describe, it, expect } from "vitest";
-import { RecommendRequestSchema, RecommendResponseSchema } from "./recommend.js";
+import { RecommendRequestSchema, RecommendResponseSchema, RecommendBatchRequestSchema, PricingSettingsSchema } from "./recommend.js";
+
+const PRICING_SETTINGS = {
+  ebayFeeRate: 0.128, ebayFeeFixed: 0.30, packagingCost: 0.10, shippingCost: 0,
+  taxRate: 0.20, minProfitPct: 0.25, minSaleValue: 2.50, postageCost: 1.55,
+};
 
 describe("RecommendRequestSchema", () => {
   it("accepts a bare physicalCardId", () => {
     expect(RecommendRequestSchema.parse({ physicalCardId: "abc-123" })).toEqual({
       physicalCardId: "abc-123",
     });
+  });
+
+  it("accepts an optional pricingSettings", () => {
+    const parsed = RecommendRequestSchema.parse({ physicalCardId: "abc-123", pricingSettings: PRICING_SETTINGS });
+    expect(parsed.pricingSettings).toEqual(PRICING_SETTINGS);
+  });
+});
+
+describe("RecommendBatchRequestSchema", () => {
+  it("accepts a batch with an optional top-level pricingSettings (not per-card)", () => {
+    const parsed = RecommendBatchRequestSchema.parse({
+      cards: [{
+        id: "1", avgGbp: 10, lowGbp: 8, topGbp: 12, priceSource: "ebay-uk-sold",
+        saleCount: 3, approxSaleCount: false, condition: "NM", costBasis: 2, collectionType: "resale",
+      }],
+      pricingSettings: PRICING_SETTINGS,
+    });
+    expect(parsed.pricingSettings).toEqual(PRICING_SETTINGS);
+  });
+
+  it("works without pricingSettings (defaults apply server-side)", () => {
+    const parsed = RecommendBatchRequestSchema.parse({
+      cards: [{
+        id: "1", avgGbp: 10, lowGbp: 8, topGbp: 12, priceSource: "ebay-uk-sold",
+        saleCount: 3, approxSaleCount: false, condition: "NM", costBasis: 2, collectionType: "resale",
+      }],
+    });
+    expect(parsed.pricingSettings).toBeUndefined();
+  });
+});
+
+describe("PricingSettingsSchema", () => {
+  it("rejects a missing field", () => {
+    const { taxRate: _taxRate, ...incomplete } = PRICING_SETTINGS;
+    expect(PricingSettingsSchema.safeParse(incomplete).success).toBe(false);
   });
 });
 

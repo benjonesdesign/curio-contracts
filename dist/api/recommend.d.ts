@@ -1,14 +1,91 @@
 import { z } from "zod";
+export declare const PricingSettingsSchema: z.ZodObject<{
+    ebayFeeRate: z.ZodNumber;
+    ebayFeeFixed: z.ZodNumber;
+    packagingCost: z.ZodNumber;
+    shippingCost: z.ZodNumber;
+    taxRate: z.ZodNumber;
+    minProfitPct: z.ZodNumber;
+    minSaleValue: z.ZodNumber;
+    postageCost: z.ZodNumber;
+}, "strip", z.ZodTypeAny, {
+    ebayFeeRate: number;
+    ebayFeeFixed: number;
+    packagingCost: number;
+    shippingCost: number;
+    taxRate: number;
+    minProfitPct: number;
+    minSaleValue: number;
+    postageCost: number;
+}, {
+    ebayFeeRate: number;
+    ebayFeeFixed: number;
+    packagingCost: number;
+    shippingCost: number;
+    taxRate: number;
+    minProfitPct: number;
+    minSaleValue: number;
+    postageCost: number;
+}>;
+export type PricingSettings = z.infer<typeof PricingSettingsSchema>;
 export declare const RecommendRequestSchema: z.ZodObject<{
     physicalCardId: z.ZodString;
     /** Explicit override; otherwise derived server-side from the card's set name. */
     isVintage: z.ZodOptional<z.ZodBoolean>;
+    pricingSettings: z.ZodOptional<z.ZodObject<{
+        ebayFeeRate: z.ZodNumber;
+        ebayFeeFixed: z.ZodNumber;
+        packagingCost: z.ZodNumber;
+        shippingCost: z.ZodNumber;
+        taxRate: z.ZodNumber;
+        minProfitPct: z.ZodNumber;
+        minSaleValue: z.ZodNumber;
+        postageCost: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     physicalCardId: string;
     isVintage?: boolean | undefined;
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
 }, {
     physicalCardId: string;
     isVintage?: boolean | undefined;
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
 }>;
 export type RecommendRequest = z.infer<typeof RecommendRequestSchema>;
 export declare const RecommendedRouteSchema: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
@@ -244,6 +321,36 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         costBasis: number | null;
         isVintage?: boolean | undefined;
     }>, "many">;
+    /** One seller's settings apply to the whole batch — not per-card, it's an account-wide
+     *  preference, not something that varies card-to-card within one review session. */
+    pricingSettings: z.ZodOptional<z.ZodObject<{
+        ebayFeeRate: z.ZodNumber;
+        ebayFeeFixed: z.ZodNumber;
+        packagingCost: z.ZodNumber;
+        shippingCost: z.ZodNumber;
+        taxRate: z.ZodNumber;
+        minProfitPct: z.ZodNumber;
+        minSaleValue: z.ZodNumber;
+        postageCost: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     cards: {
         id: string;
@@ -258,6 +365,16 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         costBasis: number | null;
         isVintage?: boolean | undefined;
     }[];
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
 }, {
     cards: {
         id: string;
@@ -272,6 +389,16 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         costBasis: number | null;
         isVintage?: boolean | undefined;
     }[];
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
 }>;
 export type RecommendBatchRequest = z.infer<typeof RecommendBatchRequestSchema>;
 export declare const RecommendBatchResultSchema: z.ZodObject<{

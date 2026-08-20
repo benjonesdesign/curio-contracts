@@ -4,11 +4,28 @@
 // lib/types.ts (RouteRecommendation family).
 import { z } from "zod";
 import { ConfidenceSchema } from "./common.js";
+// The seller's own pricing preferences (fee/cost/tax/margin assumptions the recommendation
+// engine's economics are computed against) — mirrors pokemon-tool's lib/pricing.ts
+// PricingSettings verbatim. Optional everywhere it's used: omitting it means the engine's own
+// DEFAULT_SETTINGS apply, exactly as before this field existed (W3, STRATEGIC-ROADMAP.md §6.4
+// "seller preference profile" — wiring the account's real settings into recommend, previously a
+// dead field on the engine's own Inputs type that no caller ever populated).
+export const PricingSettingsSchema = z.object({
+    ebayFeeRate: z.number(),
+    ebayFeeFixed: z.number(),
+    packagingCost: z.number(),
+    shippingCost: z.number(),
+    taxRate: z.number(),
+    minProfitPct: z.number(),
+    minSaleValue: z.number(),
+    postageCost: z.number(),
+});
 // ── Single card (an already-saved physical_cards row) ───────────────────────────────────────
 export const RecommendRequestSchema = z.object({
     physicalCardId: z.string(),
     /** Explicit override; otherwise derived server-side from the card's set name. */
     isVintage: z.boolean().optional(),
+    pricingSettings: PricingSettingsSchema.optional(),
 });
 export const RecommendedRouteSchema = z.enum([
     "list_single",
@@ -93,6 +110,9 @@ export const RecommendBatchCardInputSchema = z.object({
 });
 export const RecommendBatchRequestSchema = z.object({
     cards: z.array(RecommendBatchCardInputSchema).min(1).max(200),
+    /** One seller's settings apply to the whole batch — not per-card, it's an account-wide
+     *  preference, not something that varies card-to-card within one review session. */
+    pricingSettings: PricingSettingsSchema.optional(),
 });
 export const RecommendBatchResultSchema = z.object({
     id: z.string(),
