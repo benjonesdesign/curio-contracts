@@ -13,6 +13,14 @@ const DetailImageSchema = z.object({
   url: z.string(),
 });
 
+const DetailImagePathSchema = z.object({
+  side: z.enum(["front", "back"]).optional(),
+  corner: z.string().optional(),
+  region: z.string().optional(),
+  /** Supabase Storage object path (bucket-relative), not a URL — see imagePaths below. */
+  path: z.string(),
+});
+
 const InlineDetailImageSchema = z.object({
   side: z.enum(["front", "back"]).optional(),
   corner: z.string().optional(),
@@ -52,7 +60,23 @@ export type ShotQualityDescriptor = z.infer<typeof ShotQualityDescriptorSchema>;
 // (app/api/capture-commit/route.ts), not a schema-level .refine(). Keep this schema shape-only —
 // see identify.ts's IdentifyRequestSchema comment for why (Swift codegen has no ZodEffects case).
 export const CaptureCommitRequestSchema = z.object({
-  /** Public URLs (Supabase Storage) — the original path. */
+  /** Supabase Storage object paths (bucket-relative) — the preferred shape (decisions/0018
+   * revision, ROADMAP-COORDINATION.md "iOS-W2-H"/COORD 2026-08-19: capture-commit moves to
+   * object paths, not client-minted URLs — the client never mints or signs anything; the server
+   * decides how each path is read/served per consumer: a service-role direct read for internal
+   * AI processing, a short-TTL signed URL for display, and either a longer-TTL signed URL or an
+   * eBay-hosted copy for eBay publish — see lib/storage/signedPhotoUrl.ts and
+   * lib/ebay-media.ts). The server converts these to the same public-URL-shaped strings already
+   * stored in cards.photo_urls/physical_cards.photo_urls (no DB-shape change) — see
+   * lib/storage/photoPath.ts's publicUrlFromPath(). Prefer this over `imageUrls` for any new
+   * caller. */
+  imagePaths: z.object({
+    front: z.string(),
+    back: z.string(),
+    details: z.array(DetailImagePathSchema).optional(),
+  }).optional(),
+  /** Legacy: public URLs (Supabase Storage) — the original path. Superseded by `imagePaths`;
+   * kept only for callers that haven't migrated yet (decisions/0018 revision). */
   imageUrls: z.object({
     front: z.string(),
     back: z.string(),

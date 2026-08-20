@@ -37,6 +37,21 @@ describe("CaptureCommitRequestSchema", () => {
     expect(() => CaptureCommitRequestSchema.parse({})).not.toThrow();
   });
 
+  // decisions/0018 revision — capture-commit moves to object paths, not client-minted URLs.
+  it("accepts imagePaths with the same front/back/details shape as imageUrls", () => {
+    const r = CaptureCommitRequestSchema.parse({
+      imagePaths: {
+        front: "a1b2c3_master.webp",
+        back: "a1b2c3_back.webp",
+        details: [{ side: "front", corner: "tl", path: "a1b2c3_d1.webp" }],
+      },
+    });
+    expect(r.imageUrls).toBeUndefined();
+    expect(r.imagePaths?.front).toBe("a1b2c3_master.webp");
+    expect(r.imagePaths?.details).toHaveLength(1);
+    expect(r.imagePaths?.details?.[0].path).toBe("a1b2c3_d1.webp");
+  });
+
   it("accepts a resolvedMatch (on-device OCR + catalogue-lookup hit) alongside inlineImages and game", () => {
     const r = CaptureCommitRequestSchema.parse({
       inlineImages: { front: "data:image/jpeg;base64,f", back: "data:image/jpeg;base64,b" },

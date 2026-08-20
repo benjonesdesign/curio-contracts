@@ -10,18 +10,26 @@ const TaxonomyAspectSchema = z.object({
   aspectValues: z.array(z.object({ localizedValue: z.string() })).optional(),
 });
 
-// NOTE: at least one of imageUrls/inlineImages must be non-empty — enforced by the route handler
-// (app/api/identify/route.ts), not a schema-level .refine(). The Swift codegen (scripts/
-// zod-to-swift.ts) has no ZodEffects handling, so a top-level .refine() here would break the
-// Swift build; keep this schema shape-only, like every other contract in this package.
+// NOTE: at least one of imagePaths/imageUrls/inlineImages must be non-empty — enforced by the
+// route handler (app/api/identify/route.ts), not a schema-level .refine(). The Swift codegen
+// (scripts/zod-to-swift.ts) has no ZodEffects handling, so a top-level .refine() here would break
+// the Swift build; keep this schema shape-only, like every other contract in this package.
 export const IdentifyRequestSchema = z.object({
-  /** Public URLs (Supabase Storage) — the original path. OpenAI fetches each URL itself before
-   * inference, an extra network hop. */
+  /** Supabase Storage object paths (bucket-relative, e.g. "a1b2c3_master.webp") — the preferred
+   * shape (decisions/0018 revision, ROADMAP-COORDINATION.md "iOS-W2-H"/COORD 2026-08-19: capture
+   * analysis moves to object paths, not client-minted URLs, so the server decides how each image
+   * is read — no client-side signature to go stale). The server reads these directly with the
+   * service role (never a signed URL, since OpenAI itself never sees the path — the server
+   * downloads the bytes and sends them inline) and treats them exactly like `inlineImages` from
+   * that point on. Prefer this over `imageUrls` for any new caller. */
+  imagePaths: z.array(z.string()).optional(),
+  /** Legacy: public URLs (Supabase Storage). OpenAI fetches each URL itself before inference, an
+   * extra network hop — and depends on the bucket staying public. Superseded by `imagePaths`;
+   * kept only for callers that haven't migrated yet (decisions/0018 revision). */
   imageUrls: z.array(z.string()).optional(),
-  /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — an alternative to `imageUrls` that
-   * skips that fetch hop entirely. WORK-BACKLOG.md Packet 9 (fast identify). Either `imageUrls` or
-   * `inlineImages` must be present (validated in the route handler); a caller should not mix both
-   * in one request. */
+  /** Inline base64 data URLs (`data:image/jpeg;base64,...`) — skips both the fetch hop and the
+   * service-role read. WORK-BACKLOG.md Packet 9 (fast identify). Exactly one of `imagePaths`/
+   * `imageUrls`/`inlineImages` should be present per request (validated in the route handler). */
   inlineImages: z.array(z.string()).optional(),
   taxonomyAspects: z.array(TaxonomyAspectSchema).optional(),
   imageHash: z.string().optional(),

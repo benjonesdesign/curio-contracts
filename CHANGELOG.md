@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.17
+- `identify`/`capture-commit` gain `imagePaths` (decisions/0018 revision, ROADMAP-COORDINATION.md
+  "iOS-W2-H"/COORD 2026-08-19): Supabase Storage object paths, not client-minted URLs. The client
+  never mints or signs anything; the server decides how each path is read per consumer — a
+  service-role direct read for internal AI processing (identify/condition/slab-OCR), a short-TTL
+  signed URL for display, and a longer-TTL/eBay-hosted-copy path for eBay publish. Additive and
+  non-breaking — `imageUrls`/`inlineImages` are unchanged and still accepted (now documented as
+  legacy, superseded by `imagePaths`); a caller migrates whenever it's ready.
+
 ## v0.1.16
 - New `signed-photo-url` contract (`POST /api/signed-photo-url`) — curio-shared WORK-BACKLOG.md
   Packet 10 / decisions/0018 (private card-photos storage). Batched request/response: given

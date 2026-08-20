@@ -21,6 +21,13 @@ describe("IdentifyRequestSchema", () => {
     expect(r.inlineImages).toHaveLength(1);
     expect(r.imageUrls).toBeUndefined();
   });
+
+  // decisions/0018 revision — capture-commit/identify move to object paths, not client-minted URLs.
+  it("accepts imagePaths alone (no imageUrls/inlineImages)", () => {
+    const r = IdentifyRequestSchema.parse({ imagePaths: ["a1b2c3_master.webp", "a1b2c3_back.webp"] });
+    expect(r.imagePaths).toHaveLength(2);
+    expect(r.imageUrls).toBeUndefined();
+  });
 });
 
 describe("IdentifyResponseSchema", () => {

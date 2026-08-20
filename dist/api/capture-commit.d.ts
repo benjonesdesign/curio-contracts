@@ -43,7 +43,57 @@ export declare const ShotQualityDescriptorSchema: z.ZodObject<{
 }>;
 export type ShotQualityDescriptor = z.infer<typeof ShotQualityDescriptorSchema>;
 export declare const CaptureCommitRequestSchema: z.ZodObject<{
-    /** Public URLs (Supabase Storage) — the original path. */
+    /** Supabase Storage object paths (bucket-relative) — the preferred shape (decisions/0018
+     * revision, ROADMAP-COORDINATION.md "iOS-W2-H"/COORD 2026-08-19: capture-commit moves to
+     * object paths, not client-minted URLs — the client never mints or signs anything; the server
+     * decides how each path is read/served per consumer: a service-role direct read for internal
+     * AI processing, a short-TTL signed URL for display, and either a longer-TTL signed URL or an
+     * eBay-hosted copy for eBay publish — see lib/storage/signedPhotoUrl.ts and
+     * lib/ebay-media.ts). The server converts these to the same public-URL-shaped strings already
+     * stored in cards.photo_urls/physical_cards.photo_urls (no DB-shape change) — see
+     * lib/storage/photoPath.ts's publicUrlFromPath(). Prefer this over `imageUrls` for any new
+     * caller. */
+    imagePaths: z.ZodOptional<z.ZodObject<{
+        front: z.ZodString;
+        back: z.ZodString;
+        details: z.ZodOptional<z.ZodArray<z.ZodObject<{
+            side: z.ZodOptional<z.ZodEnum<["front", "back"]>>;
+            corner: z.ZodOptional<z.ZodString>;
+            region: z.ZodOptional<z.ZodString>;
+            /** Supabase Storage object path (bucket-relative), not a URL — see imagePaths below. */
+            path: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }, {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        front: string;
+        back: string;
+        details?: {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    }, {
+        front: string;
+        back: string;
+        details?: {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    }>>;
+    /** Legacy: public URLs (Supabase Storage) — the original path. Superseded by `imagePaths`;
+     * kept only for callers that haven't migrated yet (decisions/0018 revision). */
     imageUrls: z.ZodOptional<z.ZodObject<{
         front: z.ZodString;
         back: z.ZodString;
@@ -213,6 +263,16 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
+    imagePaths?: {
+        front: string;
+        back: string;
+        details?: {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    } | undefined;
     imageUrls?: {
         front: string;
         back: string;
@@ -261,6 +321,16 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
     }[] | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
+    imagePaths?: {
+        front: string;
+        back: string;
+        details?: {
+            path: string;
+            region?: string | undefined;
+            side?: "front" | "back" | undefined;
+            corner?: string | undefined;
+        }[] | undefined;
+    } | undefined;
     imageUrls?: {
         front: string;
         back: string;
