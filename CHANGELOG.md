@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.1.19
+- `catalogue-lookup`/`capture-commit` gain an optional `image` field — a reference image URL for
+  the matched catalogue card, mirroring `card-search`'s existing `image` precedent. Confirm's
+  approved layout A (curio-shared canon/design/design-reference/confirm-step.html) needs this to
+  render the captured⇄matched side-by-side pair; it was missing from the identify-skip fast-path
+  (`catalogue-lookup` + `resolvedMatch`-driven `capture-commit`) even though `card-search` already
+  carried it. Display-only by design (see curio-shared/decisions/ ADR added alongside this
+  release): callers hotlink the URL, never download/cache/re-host/store the artwork. Additive and
+  non-breaking — omitting the field keeps today's behaviour exactly as before.
+
 ## v0.1.18
 - `recommend`/`recommend` (batch) gain an optional `pricingSettings` field (STRATEGIC-ROADMAP.md
   W3 §6.4 "seller preference profile") — the recommendation engine's fee/cost/tax/margin

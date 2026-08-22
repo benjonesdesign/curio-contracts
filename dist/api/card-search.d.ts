@@ -35,15 +35,15 @@ export declare const CardSearchResultSchema: z.ZodObject<{
         number: string | null;
         rarity: string | null;
         setName: string | null;
-        tcgId: string;
         image: string | null;
+        tcgId: string;
         marketGbp: number | null;
     }, {
         number: string | null;
         rarity: string | null;
         setName: string | null;
-        tcgId: string;
         image: string | null;
+        tcgId: string;
         marketGbp: number | null;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
@@ -52,17 +52,17 @@ export declare const CardSearchResultSchema: z.ZodObject<{
     name: string;
     rarity: string | null;
     setName: string | null;
+    image: string | null;
     gameDisplayName: string | null;
     tcgId: string;
-    image: string | null;
     marketGbp: number | null;
     printingCount: number | null;
     printings: {
         number: string | null;
         rarity: string | null;
         setName: string | null;
-        tcgId: string;
         image: string | null;
+        tcgId: string;
         marketGbp: number | null;
     }[] | null;
 }, {
@@ -71,17 +71,17 @@ export declare const CardSearchResultSchema: z.ZodObject<{
     name: string;
     rarity: string | null;
     setName: string | null;
+    image: string | null;
     gameDisplayName: string | null;
     tcgId: string;
-    image: string | null;
     marketGbp: number | null;
     printingCount: number | null;
     printings: {
         number: string | null;
         rarity: string | null;
         setName: string | null;
-        tcgId: string;
         image: string | null;
+        tcgId: string;
         marketGbp: number | null;
     }[] | null;
 }>;
@@ -112,15 +112,15 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }, {
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
@@ -129,17 +129,17 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         name: string;
         rarity: string | null;
         setName: string | null;
+        image: string | null;
         gameDisplayName: string | null;
         tcgId: string;
-        image: string | null;
         marketGbp: number | null;
         printingCount: number | null;
         printings: {
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }[] | null;
     }, {
@@ -148,17 +148,17 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         name: string;
         rarity: string | null;
         setName: string | null;
+        image: string | null;
         gameDisplayName: string | null;
         tcgId: string;
-        image: string | null;
         marketGbp: number | null;
         printingCount: number | null;
         printings: {
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }[] | null;
     }>, "many">;
@@ -169,17 +169,17 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         name: string;
         rarity: string | null;
         setName: string | null;
+        image: string | null;
         gameDisplayName: string | null;
         tcgId: string;
-        image: string | null;
         marketGbp: number | null;
         printingCount: number | null;
         printings: {
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }[] | null;
     }[];
@@ -190,17 +190,17 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         name: string;
         rarity: string | null;
         setName: string | null;
+        image: string | null;
         gameDisplayName: string | null;
         tcgId: string;
-        image: string | null;
         marketGbp: number | null;
         printingCount: number | null;
         printings: {
             number: string | null;
             rarity: string | null;
             setName: string | null;
-            tcgId: string;
             image: string | null;
+            tcgId: string;
             marketGbp: number | null;
         }[] | null;
     }[];

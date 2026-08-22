@@ -184,6 +184,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         cardNumber: z.ZodNullable<z.ZodString>;
         rarity: z.ZodNullable<z.ZodString>;
         language: z.ZodString;
+        image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
         language: string;
@@ -191,6 +192,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     }, {
         name: string;
         language: string;
@@ -198,6 +200,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     }>>;
     /** Required alongside `resolvedMatch` — the match itself carries no game (it's already scoped to
      * one game by the catalogue-lookup call that produced it), but the server needs it to route
@@ -299,6 +302,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     } | undefined;
     ocr?: {
         number?: string | undefined;
@@ -357,6 +361,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     } | undefined;
     ocr?: {
         number?: string | undefined;
@@ -404,6 +409,12 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
         top: number | null;
     }>>;
     subGrades: z.ZodNullable<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+    /** The matched catalogue card's reference image (see CatalogueLookupMatchSchema.image) —
+     * surfaced through commit so a client that skipped straight to commit (e.g. via
+     * `resolvedMatch`) still gets the image needed for Confirm's captured⇄matched pair, without a
+     * second round trip back through catalogue-lookup. Same display-only constraint: hotlink, never
+     * store. Optional/nullable — additive. */
+    image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     game: string;
     name: string;
@@ -421,6 +432,7 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
         top: number | null;
     } | null;
     subGrades: Record<string, unknown> | null;
+    image?: string | null | undefined;
 }, {
     game: string;
     name: string;
@@ -438,5 +450,6 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
         top: number | null;
     } | null;
     subGrades: Record<string, unknown> | null;
+    image?: string | null | undefined;
 }>;
 export type CaptureCommitResponse = z.infer<typeof CaptureCommitResponseSchema>;

@@ -30,4 +30,20 @@ describe("CatalogueLookupResponseSchema", () => {
     const res = CatalogueLookupResponseSchema.parse({ match: null, confidence: null });
     expect(res.match).toBeNull();
   });
+
+  it("carries the catalogue image when the provider has one", () => {
+    const res = CatalogueLookupResponseSchema.parse({
+      match: { nativeId: "base1-4", name: "Charizard", setName: "Base Set", cardNumber: "4/102", rarity: "Rare Holo", language: "English", image: "https://images.pokemontcg.io/base1/4.png" },
+      confidence: "high",
+    });
+    expect(res.match?.image).toBe("https://images.pokemontcg.io/base1/4.png");
+  });
+
+  it("accepts a match with no image field at all — additive, older callers still validate", () => {
+    const res = CatalogueLookupResponseSchema.parse({
+      match: { nativeId: "base1-4", name: "Charizard", setName: "Base Set", cardNumber: "4/102", rarity: "Rare Holo", language: "English" },
+      confidence: "high",
+    });
+    expect(res.match?.image).toBeUndefined();
+  });
 });
