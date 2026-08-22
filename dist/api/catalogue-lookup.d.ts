@@ -22,6 +22,15 @@ export declare const CatalogueLookupMatchSchema: z.ZodObject<{
     cardNumber: z.ZodNullable<z.ZodString>;
     rarity: z.ZodNullable<z.ZodString>;
     language: z.ZodString;
+    /** Reference image URL for the matched catalogue card (small/display size), sourced from the
+     * catalogue provider (e.g. pokemontcg.io) that produced this match — see card-search.ts's
+     * `image` field for the existing precedent. Display-only: callers must hotlink this URL, never
+     * download/cache/re-host/store the artwork in our own storage (curio-shared/decisions/ ADR on
+     * catalogue image display). Optional/nullable — additive, so older callers and matches without
+     * a known image keep working. Confirm layout A (curio-shared canon/design/design-reference/
+     * confirm-step.html) needs this to render the captured⇄matched side-by-side pair on both web
+     * and iOS. */
+    image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     language: string;
@@ -29,6 +38,7 @@ export declare const CatalogueLookupMatchSchema: z.ZodObject<{
     nativeId: string;
     setName: string | null;
     cardNumber: string | null;
+    image?: string | null | undefined;
 }, {
     name: string;
     language: string;
@@ -36,6 +46,7 @@ export declare const CatalogueLookupMatchSchema: z.ZodObject<{
     nativeId: string;
     setName: string | null;
     cardNumber: string | null;
+    image?: string | null | undefined;
 }>;
 export type CatalogueLookupMatch = z.infer<typeof CatalogueLookupMatchSchema>;
 export declare const CatalogueLookupResponseSchema: z.ZodObject<{
@@ -46,6 +57,15 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         cardNumber: z.ZodNullable<z.ZodString>;
         rarity: z.ZodNullable<z.ZodString>;
         language: z.ZodString;
+        /** Reference image URL for the matched catalogue card (small/display size), sourced from the
+         * catalogue provider (e.g. pokemontcg.io) that produced this match — see card-search.ts's
+         * `image` field for the existing precedent. Display-only: callers must hotlink this URL, never
+         * download/cache/re-host/store the artwork in our own storage (curio-shared/decisions/ ADR on
+         * catalogue image display). Optional/nullable — additive, so older callers and matches without
+         * a known image keep working. Confirm layout A (curio-shared canon/design/design-reference/
+         * confirm-step.html) needs this to render the captured⇄matched side-by-side pair on both web
+         * and iOS. */
+        image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
         language: string;
@@ -53,6 +73,7 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     }, {
         name: string;
         language: string;
@@ -60,6 +81,7 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     }>>;
     /** Null when there's no match at all. Mirrors the resolver's own tier confidence (high = number
      * + name both agree; medium = number+set or name-alone; low = fuzzy). A caller deciding whether
@@ -74,6 +96,7 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     } | null;
 }, {
     confidence: "high" | "medium" | "low" | null;
@@ -84,6 +107,7 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        image?: string | null | undefined;
     } | null;
 }>;
 export type CatalogueLookupResponse = z.infer<typeof CatalogueLookupResponseSchema>;

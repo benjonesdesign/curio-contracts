@@ -124,4 +124,10 @@ export const CaptureCommitResponseSchema = z.object({
     suggestedPrice: z.number().nullable(),
     ebay: EbaySchema.nullable(),
     subGrades: z.record(z.string(), z.unknown()).nullable(),
+    /** The matched catalogue card's reference image (see CatalogueLookupMatchSchema.image) —
+     * surfaced through commit so a client that skipped straight to commit (e.g. via
+     * `resolvedMatch`) still gets the image needed for Confirm's captured⇄matched pair, without a
+     * second round trip back through catalogue-lookup. Same display-only constraint: hotlink, never
+     * store. Optional/nullable — additive. */
+    image: z.string().nullable().optional(),
 });

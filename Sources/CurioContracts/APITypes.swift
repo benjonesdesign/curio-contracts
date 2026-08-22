@@ -343,14 +343,16 @@ public struct CatalogueLookupMatch: Codable, Sendable {
     public let cardNumber: String?
     public let rarity: String?
     public let language: String
+    public let image: String?
 
-    public init(nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String) {
+    public init(nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String, image: String?) {
         self.nativeId = nativeId
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
         self.rarity = rarity
         self.language = language
+        self.image = image
     }
 }
 
@@ -441,8 +443,9 @@ public struct CaptureCommitResponse: Codable, Sendable {
     public let suggestedPrice: Double?
     public let ebay: Ebay?
     public let subGrades: [String: JSONValue]?
+    public let image: String?
 
-    public init(physicalCardId: String, legacyCardId: String?, game: String, gameDisplayName: String, name: String, setName: String?, cardNumber: String?, condition: String?, rarity: String?, suggestedPrice: Double?, ebay: Ebay?, subGrades: [String: JSONValue]?) {
+    public init(physicalCardId: String, legacyCardId: String?, game: String, gameDisplayName: String, name: String, setName: String?, cardNumber: String?, condition: String?, rarity: String?, suggestedPrice: Double?, ebay: Ebay?, subGrades: [String: JSONValue]?, image: String?) {
         self.physicalCardId = physicalCardId
         self.legacyCardId = legacyCardId
         self.game = game
@@ -455,6 +458,7 @@ public struct CaptureCommitResponse: Codable, Sendable {
         self.suggestedPrice = suggestedPrice
         self.ebay = ebay
         self.subGrades = subGrades
+        self.image = image
     }
 }
 

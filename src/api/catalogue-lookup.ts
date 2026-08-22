@@ -27,6 +27,15 @@ export const CatalogueLookupMatchSchema = z.object({
   cardNumber: z.string().nullable(),
   rarity: z.string().nullable(),
   language: z.string(),
+  /** Reference image URL for the matched catalogue card (small/display size), sourced from the
+   * catalogue provider (e.g. pokemontcg.io) that produced this match — see card-search.ts's
+   * `image` field for the existing precedent. Display-only: callers must hotlink this URL, never
+   * download/cache/re-host/store the artwork in our own storage (curio-shared/decisions/ ADR on
+   * catalogue image display). Optional/nullable — additive, so older callers and matches without
+   * a known image keep working. Confirm layout A (curio-shared canon/design/design-reference/
+   * confirm-step.html) needs this to render the captured⇄matched side-by-side pair on both web
+   * and iOS. */
+  image: z.string().nullable().optional(),
 });
 export type CatalogueLookupMatch = z.infer<typeof CatalogueLookupMatchSchema>;
 

@@ -88,4 +88,41 @@ describe("CaptureCommitResponseSchema", () => {
     });
     expect(res.physicalCardId).toBe("abc-123");
   });
+
+  it("accepts a response with no image field at all — additive, older callers still validate", () => {
+    const res = CaptureCommitResponseSchema.parse({
+      physicalCardId: "abc-123",
+      legacyCardId: null,
+      game: "pokemon",
+      gameDisplayName: "Pokémon",
+      name: "Charizard",
+      setName: "Base Set",
+      cardNumber: "4/102",
+      condition: "NM",
+      rarity: "Rare Holo",
+      suggestedPrice: 120.5,
+      ebay: { low: 90, avg: 120.5, top: 180 },
+      subGrades: null,
+    });
+    expect(res.image).toBeUndefined();
+  });
+
+  it("carries the catalogue match image through commit", () => {
+    const res = CaptureCommitResponseSchema.parse({
+      physicalCardId: "abc-123",
+      legacyCardId: null,
+      game: "pokemon",
+      gameDisplayName: "Pokémon",
+      name: "Charizard",
+      setName: "Base Set",
+      cardNumber: "4/102",
+      condition: "NM",
+      rarity: "Rare Holo",
+      suggestedPrice: 120.5,
+      ebay: { low: 90, avg: 120.5, top: 180 },
+      subGrades: null,
+      image: "https://images.pokemontcg.io/base1/4.png",
+    });
+    expect(res.image).toBe("https://images.pokemontcg.io/base1/4.png");
+  });
 });
