@@ -19,8 +19,12 @@ public struct IdentifyRequest: Codable, Sendable {
     public let imageHash: String?
     public let game: String?
     public let games: [String]?
+    public let ocrCardNumber: String?
+    public let ocrSetCode: String?
+    public let ocrSetName: String?
+    public let ocrName: String?
 
-    public init(imagePaths: [String]?, imageUrls: [String]?, inlineImages: [String]?, taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?) {
+    public init(imagePaths: [String]?, imageUrls: [String]?, inlineImages: [String]?, taxonomyAspects: [TaxonomyAspect]?, imageHash: String?, game: String?, games: [String]?, ocrCardNumber: String?, ocrSetCode: String?, ocrSetName: String?, ocrName: String?) {
         self.imagePaths = imagePaths
         self.imageUrls = imageUrls
         self.inlineImages = inlineImages
@@ -28,6 +32,10 @@ public struct IdentifyRequest: Codable, Sendable {
         self.imageHash = imageHash
         self.game = game
         self.games = games
+        self.ocrCardNumber = ocrCardNumber
+        self.ocrSetCode = ocrSetCode
+        self.ocrSetName = ocrSetName
+        self.ocrName = ocrName
     }
 }
 
@@ -78,6 +86,8 @@ public struct IdentifyResponse: Codable, Sendable {
     public let fieldSources: [String: FieldSources]?
     public let apiUsage: ApiUsage?
     public let cached: Bool?
+    public let tier: Tier?
+    public let aiCallAvoided: Bool?
 
     enum CodingKeys: String, CodingKey {
         case game
@@ -98,9 +108,11 @@ public struct IdentifyResponse: Codable, Sendable {
         case fieldSources = "field_sources"
         case apiUsage = "_api_usage"
         case cached
+        case tier
+        case aiCallAvoided = "ai_call_avoided"
     }
 
-    public init(game: String, gameConfidence: GameConfidence, gameLowConfidence: Bool, name: String, setName: String?, cardNumber: String?, cardType: String?, estimatedGrade: String, confidence: GameConfidence, attributes: [String], isPromo: Bool, language: String, rarity: String?, imageRoles: ImageRoles, flaws: [Flaw], fieldSources: [String: FieldSources]?, apiUsage: ApiUsage?, cached: Bool?) {
+    public init(game: String, gameConfidence: GameConfidence, gameLowConfidence: Bool, name: String, setName: String?, cardNumber: String?, cardType: String?, estimatedGrade: String, confidence: GameConfidence, attributes: [String], isPromo: Bool, language: String, rarity: String?, imageRoles: ImageRoles, flaws: [Flaw], fieldSources: [String: FieldSources]?, apiUsage: ApiUsage?, cached: Bool?, tier: Tier?, aiCallAvoided: Bool?) {
         self.game = game
         self.gameConfidence = gameConfidence
         self.gameLowConfidence = gameLowConfidence
@@ -119,6 +131,8 @@ public struct IdentifyResponse: Codable, Sendable {
         self.fieldSources = fieldSources
         self.apiUsage = apiUsage
         self.cached = cached
+        self.tier = tier
+        self.aiCallAvoided = aiCallAvoided
     }
 }
 
@@ -219,6 +233,41 @@ public struct ApiUsage: Codable, Sendable {
 public enum Model: String, Codable, Sendable {
     case gpt4o = "gpt-4o"
     case gpt4oMini = "gpt-4o-mini"
+}
+
+public enum Tier: String, Codable, Sendable {
+    case tier0 = "tier0"
+    case vision = "vision"
+}
+
+public struct IdentifyAmbiguousResponse: Codable, Sendable {
+    public let tier: IdentifyAmbiguousTier
+    public let candidates: [IdentifyCandidate]
+
+    public init(tier: IdentifyAmbiguousTier, candidates: [IdentifyCandidate]) {
+        self.tier = tier
+        self.candidates = candidates
+    }
+}
+
+public enum IdentifyAmbiguousTier: String, Codable, Sendable {
+    case ambiguous = "ambiguous"
+}
+
+public struct IdentifyCandidate: Codable, Sendable {
+    public let game: String
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let nativeId: String
+
+    public init(game: String, name: String, setName: String?, cardNumber: String?, nativeId: String) {
+        self.game = game
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.nativeId = nativeId
+    }
 }
 
 public struct CaptureCommitRequest: Codable, Sendable {
@@ -1010,7 +1059,7 @@ public struct CatalogueLookupResponse: Codable, Sendable {
 
 public struct Entitlement: Codable, Sendable {
     public let userId: String
-    public let tier: Tier
+    public let tier: Tier2
     public let status: Status2
     public let source: Source2
     public let currentPeriodEnd: String
@@ -1018,7 +1067,7 @@ public struct Entitlement: Codable, Sendable {
     public let trialEnd: String?
     public let updatedAt: String
 
-    public init(userId: String, tier: Tier, status: Status2, source: Source2, currentPeriodEnd: String, cancelAtPeriodEnd: Bool, trialEnd: String?, updatedAt: String) {
+    public init(userId: String, tier: Tier2, status: Status2, source: Source2, currentPeriodEnd: String, cancelAtPeriodEnd: Bool, trialEnd: String?, updatedAt: String) {
         self.userId = userId
         self.tier = tier
         self.status = status
@@ -1030,7 +1079,7 @@ public struct Entitlement: Codable, Sendable {
     }
 }
 
-public enum Tier: String, Codable, Sendable {
+public enum Tier2: String, Codable, Sendable {
     case free = "free"
     case starter = "starter"
     case growth = "growth"

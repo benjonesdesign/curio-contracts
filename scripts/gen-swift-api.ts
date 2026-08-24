@@ -7,7 +7,10 @@ import { dirname, join } from "node:path";
 import { registerName, emitSwift, flush } from "./zod-to-swift.js";
 
 import { ApiErrorSchema } from "../src/api/common.js";
-import { IdentifyRequestSchema, IdentifyResponseSchema } from "../src/api/identify.js";
+import {
+  IdentifyRequestSchema, IdentifyResponseSchema, IdentifyAmbiguousResponseSchema,
+  IdentifyCandidateSchema, IdentifyAmbiguousTierSchema,
+} from "../src/api/identify.js";
 import { CaptureCommitRequestSchema, CaptureCommitResponseSchema, ShotQualityDescriptorSchema } from "../src/api/capture-commit.js";
 import {
   RecommendRequestSchema, RecommendResponseSchema, RecommendedRouteSchema,
@@ -48,10 +51,13 @@ registerName(CatalogueLookupMatchSchema, "CatalogueLookupMatch");
 // it's nested inside CaptureCommitRequest.shotQuality.
 registerName(ShotQualityDescriptorSchema, "ShotQualityDescriptor");
 registerName(SignedPhotoUrlResultSchema, "SignedPhotoUrlResult");
+registerName(IdentifyCandidateSchema, "IdentifyCandidate");
+registerName(IdentifyAmbiguousTierSchema, "IdentifyAmbiguousTier");
 
 emitSwift(ApiErrorSchema, "ApiError");
 emitSwift(IdentifyRequestSchema, "IdentifyRequest");
 emitSwift(IdentifyResponseSchema, "IdentifyResponse");
+emitSwift(IdentifyAmbiguousResponseSchema, "IdentifyAmbiguousResponse");
 emitSwift(CaptureCommitRequestSchema, "CaptureCommitRequest");
 emitSwift(CaptureCommitResponseSchema, "CaptureCommitResponse");
 emitSwift(RecommendRequestSchema, "RecommendRequest");

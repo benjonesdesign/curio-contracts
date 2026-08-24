@@ -189,17 +189,17 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     }, {
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     }>>;
     /** Required alongside `resolvedMatch` — the match itself carries no game (it's already scoped to
@@ -299,9 +299,9 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     } | undefined;
     ocr?: {
@@ -358,9 +358,9 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     } | undefined;
     ocr?: {

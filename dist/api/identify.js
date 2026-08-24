@@ -35,6 +35,21 @@ export const IdentifyRequestSchema = z.object({
     game: z.string().optional(),
     /** Narrows auto-detection to the seller's enabled games. */
     games: z.array(z.string()).optional(),
+    // W15 Tier 0 (curio-shared/canon/discovery/W15-identification-engine-discovery.md): OCR'd text
+    // read off the card BEFORE any vision call, enabling a deterministic catalogue lookup
+    // (pokemon-tool's lib/catalogue/resolve-by-number.ts) ahead of the AI tier. All optional — a
+    // caller with no OCR capability (or an unread card) simply omits these and the route falls
+    // through to vision exactly as today. None of these are trusted as ground truth: they are
+    // catalogue-lookup keys only, matched against real rows or discarded, never persisted as-is.
+    /** OCR'd collector number, e.g. "025/165" or "RA04-EN053". Required for Tier 0 to run at all. */
+    ocrCardNumber: z.string().optional(),
+    /** OCR'd set code printed on the card (e.g. "OTJ", "OBF") — the strongest set signal OCR can
+     * read; matched against catalogue_sets.printed_code first, then set_code. */
+    ocrSetCode: z.string().optional(),
+    /** OCR'd set name, when legible. */
+    ocrSetName: z.string().optional(),
+    /** OCR'd card name, when legible — used only to break ties within Tier 0, never required. */
+    ocrName: z.string().optional(),
 });
 const FlawSchema = z.object({
     description: z.string(),
@@ -83,4 +98,32 @@ export const IdentifyResponseSchema = z.object({
     _api_usage: ApiUsageSchema.optional(),
     /** Present + true only on a process-cache hit (same image URLs + game seen before). */
     cached: z.boolean().optional(),
+    /** How this result was produced. "tier0" = deterministic catalogue lookup
+     * (lib/catalogue/resolve-by-number.ts), no model call, no possibility of a fabricated identity.
+     * "vision" = the existing AI path. Absent on responses from before this field existed. */
+    tier: z.enum(["tier0", "vision"]).optional(),
+    /** True when this result was produced without calling the AI vision model — the business
+     * metric W15 exists to move. Always true when tier === "tier0"; present so a caller doesn't
+     * need to know the tier enum to report the number that matters. */
+    ai_call_avoided: z.boolean().optional(),
+});
+// W15 Tier 0 — a bounded, ambiguous catalogue match. Deliberately NOT a variant of
+// IdentifyResponseSchema: an ambiguous result has no definitive name/game/set to report, and
+// forcing one into IdentifyResponseSchema's required fields would mean inventing a guess to
+// satisfy the schema — the exact failure mode Tier 0 exists to prevent. The route returns this
+// shape instead and the caller renders a one-tap picker; it must never trigger a model call to
+// break the tie (cheaper, faster and more honest than AI disambiguation).
+export const IdentifyCandidateSchema = z.object({
+    game: GameIdSchema.or(z.string()),
+    name: z.string(),
+    setName: z.string().nullable(),
+    cardNumber: z.string().nullable(),
+    /** Catalogue row id — pass back verbatim when the seller taps a candidate, to resolve without
+     * re-querying. */
+    nativeId: z.string(),
+});
+export const IdentifyAmbiguousTierSchema = z.enum(["ambiguous"]);
+export const IdentifyAmbiguousResponseSchema = z.object({
+    tier: IdentifyAmbiguousTierSchema,
+    candidates: z.array(IdentifyCandidateSchema),
 });

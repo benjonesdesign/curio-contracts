@@ -35,17 +35,17 @@ export declare const CatalogueLookupMatchSchema: z.ZodObject<{
     name: string;
     language: string;
     rarity: string | null;
-    nativeId: string;
     setName: string | null;
     cardNumber: string | null;
+    nativeId: string;
     image?: string | null | undefined;
 }, {
     name: string;
     language: string;
     rarity: string | null;
-    nativeId: string;
     setName: string | null;
     cardNumber: string | null;
+    nativeId: string;
     image?: string | null | undefined;
 }>;
 export type CatalogueLookupMatch = z.infer<typeof CatalogueLookupMatchSchema>;
@@ -70,17 +70,17 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     }, {
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     }>>;
     /** Null when there's no match at all. Mirrors the resolver's own tier confidence (high = number
@@ -93,9 +93,9 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     } | null;
 }, {
@@ -104,9 +104,9 @@ export declare const CatalogueLookupResponseSchema: z.ZodObject<{
         name: string;
         language: string;
         rarity: string | null;
-        nativeId: string;
         setName: string | null;
         cardNumber: string | null;
+        nativeId: string;
         image?: string | null | undefined;
     } | null;
 }>;

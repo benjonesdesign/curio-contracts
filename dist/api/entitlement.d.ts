@@ -19,8 +19,8 @@ export declare const EntitlementSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     status: "active" | "trialing" | "past_due" | "grace" | "canceled" | "expired";
     source: "stripe" | "apple";
-    userId: string;
     tier: "free" | "starter" | "growth" | "pro";
+    userId: string;
     currentPeriodEnd: string;
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
@@ -28,8 +28,8 @@ export declare const EntitlementSchema: z.ZodObject<{
 }, {
     status: "active" | "trialing" | "past_due" | "grace" | "canceled" | "expired";
     source: "stripe" | "apple";
-    userId: string;
     tier: "free" | "starter" | "growth" | "pro";
+    userId: string;
     currentPeriodEnd: string;
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;

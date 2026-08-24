@@ -54,6 +54,15 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     game: z.ZodOptional<z.ZodString>;
     /** Narrows auto-detection to the seller's enabled games. */
     games: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
+    /** OCR'd collector number, e.g. "025/165" or "RA04-EN053". Required for Tier 0 to run at all. */
+    ocrCardNumber: z.ZodOptional<z.ZodString>;
+    /** OCR'd set code printed on the card (e.g. "OTJ", "OBF") — the strongest set signal OCR can
+     * read; matched against catalogue_sets.printed_code first, then set_code. */
+    ocrSetCode: z.ZodOptional<z.ZodString>;
+    /** OCR'd set name, when legible. */
+    ocrSetName: z.ZodOptional<z.ZodString>;
+    /** OCR'd card name, when legible — used only to break ties within Tier 0, never required. */
+    ocrName: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     game?: string | undefined;
     imagePaths?: string[] | undefined;
@@ -70,6 +79,10 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     }[] | undefined;
     imageHash?: string | undefined;
     games?: string[] | undefined;
+    ocrCardNumber?: string | undefined;
+    ocrSetCode?: string | undefined;
+    ocrSetName?: string | undefined;
+    ocrName?: string | undefined;
 }, {
     game?: string | undefined;
     imagePaths?: string[] | undefined;
@@ -86,6 +99,10 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     }[] | undefined;
     imageHash?: string | undefined;
     games?: string[] | undefined;
+    ocrCardNumber?: string | undefined;
+    ocrSetCode?: string | undefined;
+    ocrSetName?: string | undefined;
+    ocrName?: string | undefined;
 }>;
 export type IdentifyRequest = z.infer<typeof IdentifyRequestSchema>;
 export declare const IdentifyResponseSchema: z.ZodObject<{
@@ -177,6 +194,14 @@ export declare const IdentifyResponseSchema: z.ZodObject<{
     }>>;
     /** Present + true only on a process-cache hit (same image URLs + game seen before). */
     cached: z.ZodOptional<z.ZodBoolean>;
+    /** How this result was produced. "tier0" = deterministic catalogue lookup
+     * (lib/catalogue/resolve-by-number.ts), no model call, no possibility of a fabricated identity.
+     * "vision" = the existing AI path. Absent on responses from before this field existed. */
+    tier: z.ZodOptional<z.ZodEnum<["tier0", "vision"]>>;
+    /** True when this result was produced without calling the AI vision model — the business
+     * metric W15 exists to move. Always true when tier === "tier0"; present so a caller doesn't
+     * need to know the tier enum to report the number that matters. */
+    ai_call_avoided: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     game: string;
     confidence: "high" | "medium" | "low";
@@ -219,6 +244,8 @@ export declare const IdentifyResponseSchema: z.ZodObject<{
         estimated_cost_usd: number;
         cached: boolean;
     } | undefined;
+    tier?: "vision" | "tier0" | undefined;
+    ai_call_avoided?: boolean | undefined;
 }, {
     game: string;
     confidence: "high" | "medium" | "low";
@@ -261,5 +288,72 @@ export declare const IdentifyResponseSchema: z.ZodObject<{
         estimated_cost_usd: number;
         cached: boolean;
     } | undefined;
+    tier?: "vision" | "tier0" | undefined;
+    ai_call_avoided?: boolean | undefined;
 }>;
 export type IdentifyResponse = z.infer<typeof IdentifyResponseSchema>;
+export declare const IdentifyCandidateSchema: z.ZodObject<{
+    game: z.ZodUnion<[z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>, z.ZodString]>;
+    name: z.ZodString;
+    setName: z.ZodNullable<z.ZodString>;
+    cardNumber: z.ZodNullable<z.ZodString>;
+    /** Catalogue row id — pass back verbatim when the seller taps a candidate, to resolve without
+     * re-querying. */
+    nativeId: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    game: string;
+    name: string;
+    setName: string | null;
+    cardNumber: string | null;
+    nativeId: string;
+}, {
+    game: string;
+    name: string;
+    setName: string | null;
+    cardNumber: string | null;
+    nativeId: string;
+}>;
+export declare const IdentifyAmbiguousTierSchema: z.ZodEnum<["ambiguous"]>;
+export declare const IdentifyAmbiguousResponseSchema: z.ZodObject<{
+    tier: z.ZodEnum<["ambiguous"]>;
+    candidates: z.ZodArray<z.ZodObject<{
+        game: z.ZodUnion<[z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>, z.ZodString]>;
+        name: z.ZodString;
+        setName: z.ZodNullable<z.ZodString>;
+        cardNumber: z.ZodNullable<z.ZodString>;
+        /** Catalogue row id — pass back verbatim when the seller taps a candidate, to resolve without
+         * re-querying. */
+        nativeId: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        game: string;
+        name: string;
+        setName: string | null;
+        cardNumber: string | null;
+        nativeId: string;
+    }, {
+        game: string;
+        name: string;
+        setName: string | null;
+        cardNumber: string | null;
+        nativeId: string;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    tier: "ambiguous";
+    candidates: {
+        game: string;
+        name: string;
+        setName: string | null;
+        cardNumber: string | null;
+        nativeId: string;
+    }[];
+}, {
+    tier: "ambiguous";
+    candidates: {
+        game: string;
+        name: string;
+        setName: string | null;
+        cardNumber: string | null;
+        nativeId: string;
+    }[];
+}>;
+export type IdentifyAmbiguousResponse = z.infer<typeof IdentifyAmbiguousResponseSchema>;

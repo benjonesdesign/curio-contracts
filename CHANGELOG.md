@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.1.21
+- `identify` gains W15 Tier 0 support (curio-shared/canon/discovery/W15-identification-engine-discovery.md)
+  — a deterministic catalogue lookup ahead of the AI vision call, at ~3ms/£0 with no possibility
+  of a hallucinated identity. `IdentifyRequestSchema` gains four optional OCR-hint fields
+  (`ocrCardNumber`, `ocrSetCode`, `ocrSetName`, `ocrName`) — all optional, so a caller with no OCR
+  capability is unaffected. `IdentifyResponseSchema` gains optional `tier` ("tier0" | "vision")
+  and `ai_call_avoided` so callers can report Tier 0 hit-rate without special-casing. New
+  `IdentifyAmbiguousResponseSchema` — a bounded candidate list for a one-tap picker, kept
+  deliberately separate from `IdentifyResponseSchema` rather than forcing an ambiguous result into
+  that schema's required name/game/set fields, which would mean inventing a guess to satisfy the
+  shape. Fully additive; no existing field changed or removed.
+
 ## v0.1.20
 - New `PricingRule` and `ListingTemplate` shapes — WORK-BACKLOG.md Packet 6 (bulk actions +
   templates/pricing-rule authoring). T3 web (`pokemon-tool`) owns authoring (CRUD); iOS's slice is

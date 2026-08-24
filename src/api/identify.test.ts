@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { IdentifyRequestSchema, IdentifyResponseSchema } from "./identify.js";
+import { IdentifyRequestSchema, IdentifyResponseSchema, IdentifyAmbiguousResponseSchema } from "./identify.js";
 
 describe("IdentifyRequestSchema", () => {
   it("accepts a minimal real request", () => {
@@ -27,6 +27,22 @@ describe("IdentifyRequestSchema", () => {
     const r = IdentifyRequestSchema.parse({ imagePaths: ["a1b2c3_master.webp", "a1b2c3_back.webp"] });
     expect(r.imagePaths).toHaveLength(2);
     expect(r.imageUrls).toBeUndefined();
+  });
+
+  // W15 Tier 0 — OCR hints are optional and independent of the image transport.
+  it("accepts OCR hints alongside imagePaths", () => {
+    const r = IdentifyRequestSchema.parse({
+      imagePaths: ["a1b2c3_master.webp"],
+      ocrCardNumber: "025/165",
+      ocrSetCode: "OBF",
+    });
+    expect(r.ocrCardNumber).toBe("025/165");
+    expect(r.ocrSetCode).toBe("OBF");
+  });
+
+  it("accepts a request with no OCR hints at all (vision-only callers are unaffected)", () => {
+    const r = IdentifyRequestSchema.parse({ imagePaths: ["a1b2c3_master.webp"] });
+    expect(r.ocrCardNumber).toBeUndefined();
   });
 });
 
@@ -84,5 +100,46 @@ describe("IdentifyResponseSchema", () => {
         flaws: [],
       }),
     ).toThrow();
+  });
+
+  it("accepts a Tier 0 result with tier + ai_call_avoided", () => {
+    const res = IdentifyResponseSchema.parse({
+      game: "yugioh",
+      game_confidence: "high",
+      game_low_confidence: false,
+      name: "Ash Blossom & Joyous Spring",
+      set_name: "Rising Rampage",
+      card_number: "RA04-EN053",
+      card_type: null,
+      estimated_grade: "NM",
+      confidence: "high",
+      attributes: [],
+      is_promo: false,
+      language: "English",
+      rarity: null,
+      image_roles: { front: 0, back: null, details: [] },
+      flaws: [],
+      tier: "tier0",
+      ai_call_avoided: true,
+    });
+    expect(res.tier).toBe("tier0");
+    expect(res.ai_call_avoided).toBe(true);
+  });
+});
+
+describe("IdentifyAmbiguousResponseSchema", () => {
+  it("parses a bounded candidate list with no definitive identity", () => {
+    const res = IdentifyAmbiguousResponseSchema.parse({
+      tier: "ambiguous",
+      candidates: [
+        { game: "pokemon", name: "Pikachu", setName: "Base Set", cardNumber: "58/102", nativeId: "base1-58" },
+        { game: "pokemon", name: "Pikachu", setName: "Jungle", cardNumber: "60/64", nativeId: "base2-60" },
+      ],
+    });
+    expect(res.candidates).toHaveLength(2);
+  });
+
+  it("rejects a tier value other than 'ambiguous'", () => {
+    expect(() => IdentifyAmbiguousResponseSchema.parse({ tier: "tier0", candidates: [] })).toThrow();
   });
 });
