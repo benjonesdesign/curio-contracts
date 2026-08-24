@@ -1167,3 +1167,123 @@ public struct SignedPhotoUrlResult: Codable, Sendable {
         self.error = error
     }
 }
+
+public struct PricingRule: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let active: Bool
+    public let scopeGame: [String]
+    public let scopeSet: [String]
+    public let scopeCondition: [String]
+    public let conditionMultipliers: [String: Double]
+    public let rounding: Rounding
+    public let minPriceGbp: Double?
+    public let maxPriceGbp: Double?
+    public let createdAt: String
+    public let updatedAt: String
+
+    public init(id: String, name: String, active: Bool, scopeGame: [String], scopeSet: [String], scopeCondition: [String], conditionMultipliers: [String: Double], rounding: Rounding, minPriceGbp: Double?, maxPriceGbp: Double?, createdAt: String, updatedAt: String) {
+        self.id = id
+        self.name = name
+        self.active = active
+        self.scopeGame = scopeGame
+        self.scopeSet = scopeSet
+        self.scopeCondition = scopeCondition
+        self.conditionMultipliers = conditionMultipliers
+        self.rounding = rounding
+        self.minPriceGbp = minPriceGbp
+        self.maxPriceGbp = maxPriceGbp
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+public enum Rounding: String, Codable, Sendable {
+    case none = "none"
+    case nearest10p = "nearest_10p"
+    case nearest50p = "nearest_50p"
+    case nearestPound = "nearest_pound"
+    case charm99 = "charm_99"
+}
+
+public struct PricingRuleInput: Codable, Sendable {
+    public let name: String
+    public let active: Bool?
+    public let scopeGame: [String]
+    public let scopeSet: [String]
+    public let scopeCondition: [String]
+    public let conditionMultipliers: [String: Double]
+    public let rounding: Rounding
+    public let minPriceGbp: Double?
+    public let maxPriceGbp: Double?
+
+    public init(name: String, active: Bool?, scopeGame: [String], scopeSet: [String], scopeCondition: [String], conditionMultipliers: [String: Double], rounding: Rounding, minPriceGbp: Double?, maxPriceGbp: Double?) {
+        self.name = name
+        self.active = active
+        self.scopeGame = scopeGame
+        self.scopeSet = scopeSet
+        self.scopeCondition = scopeCondition
+        self.conditionMultipliers = conditionMultipliers
+        self.rounding = rounding
+        self.minPriceGbp = minPriceGbp
+        self.maxPriceGbp = maxPriceGbp
+    }
+}
+
+public struct PricingRuleListResponse: Codable, Sendable {
+    public let rules: [PricingRule]
+
+    public init(rules: [PricingRule]) {
+        self.rules = rules
+    }
+}
+
+public struct ListingTemplate: Codable, Sendable {
+    public let id: String
+    public let name: String
+    public let active: Bool
+    public let scopeGame: [String]
+    public let scopeSet: [String]
+    public let titlePattern: String
+    public let descriptionPattern: String?
+    public let createdAt: String
+    public let updatedAt: String
+
+    public init(id: String, name: String, active: Bool, scopeGame: [String], scopeSet: [String], titlePattern: String, descriptionPattern: String?, createdAt: String, updatedAt: String) {
+        self.id = id
+        self.name = name
+        self.active = active
+        self.scopeGame = scopeGame
+        self.scopeSet = scopeSet
+        self.titlePattern = titlePattern
+        self.descriptionPattern = descriptionPattern
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct ListingTemplateInput: Codable, Sendable {
+    public let name: String
+    public let active: Bool?
+    public let scopeGame: [String]
+    public let scopeSet: [String]
+    public let titlePattern: String
+    public let descriptionPattern: String?
+
+    public init(name: String, active: Bool?, scopeGame: [String], scopeSet: [String], titlePattern: String, descriptionPattern: String?) {
+        self.name = name
+        self.active = active
+        self.scopeGame = scopeGame
+        self.scopeSet = scopeSet
+        self.titlePattern = titlePattern
+        self.descriptionPattern = descriptionPattern
+    }
+}
+
+public struct ListingTemplateListResponse: Codable, Sendable {
+    public let templates: [ListingTemplate]
+
+    public init(templates: [ListingTemplate]) {
+        self.templates = templates
+    }
+}

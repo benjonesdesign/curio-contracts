@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.20
+- New `PricingRule` and `ListingTemplate` shapes — WORK-BACKLOG.md Packet 6 (bulk actions +
+  templates/pricing-rule authoring). T3 web (`pokemon-tool`) owns authoring (CRUD); iOS's slice is
+  applying a saved rule/template to a card + per-card override, per `decisions/0011` — the shared
+  shape is the coordination boundary for that, even though iOS hasn't picked up its slice yet.
+  Both use the same "empty scope array = matches everything" convention `pokemon-tool`'s Inventory
+  facet-filter system (v0.1.19-era web work, not itself a contract change) already established for
+  scoping. Genuinely new — no prior "rule"/"template" contract shape existed to extend.
+
 ## v0.1.19
 - `catalogue-lookup`/`capture-commit` gain an optional `image` field — a reference image URL for
   the matched catalogue card, mirroring `card-search`'s existing `image` precedent. Confirm's
