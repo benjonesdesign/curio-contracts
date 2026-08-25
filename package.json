@@ -1,6 +1,6 @@
 {
   "name": "@curio/contracts",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "description": "Curio shared API/DB contracts \u2014 generated TS types + a Swift package, from one Zod/schema source. Consumed by pokemon-tool (web) and curio-capture-ios.",
   "license": "UNLICENSED",
   "private": false,

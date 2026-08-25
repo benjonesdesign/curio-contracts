@@ -15,6 +15,18 @@ describe("CatalogueLookupRequestSchema", () => {
   it("rejects an empty name", () => {
     expect(() => CatalogueLookupRequestSchema.parse({ game: "pokemon", name: "" })).toThrow();
   });
+
+  // W15 Tier 0 — a number+setCode lookup with no name at all (the case Tier 0 exists for: a
+  // legible collector number but an unreadable name).
+  it("accepts collectorNumber + setCode with no name", () => {
+    const r = CatalogueLookupRequestSchema.parse({ game: "yugioh", collectorNumber: "RA04-EN053", setCode: "RA04" });
+    expect(r.name).toBeUndefined();
+    expect(r.setCode).toBe("RA04");
+  });
+
+  it("accepts a request with none of name/collectorNumber/setCode ('at least one' is route-level)", () => {
+    expect(() => CatalogueLookupRequestSchema.parse({ game: "pokemon" })).not.toThrow();
+  });
 });
 
 describe("CatalogueLookupResponseSchema", () => {

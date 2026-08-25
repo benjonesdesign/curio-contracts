@@ -1,18 +1,26 @@
 import { z } from "zod";
 export declare const CatalogueLookupRequestSchema: z.ZodObject<{
     game: z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>;
-    name: z.ZodString;
+    /** Optional as of W15 — a card whose collector number OCR'd cleanly but whose name did not
+     * (stylised type, holo glare, foreign printing) can still resolve via Tier 0's number+setCode
+     * path with no name at all. A caller with only a name keeps working exactly as before. */
+    name: z.ZodOptional<z.ZodString>;
     /** As printed, e.g. "4/102" — optional because a name-only lookup is still meaningful (lower
      * confidence tier), just never the highest-confidence exact tier. */
     collectorNumber: z.ZodOptional<z.ZodString>;
+    /** OCR'd set code printed on the card (e.g. "OTJ", "OBF") — W15 Tier 0's strongest set signal.
+     * Tried ahead of the name-first resolver when `collectorNumber` is present. */
+    setCode: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     game: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion";
-    name: string;
+    name?: string | undefined;
     collectorNumber?: string | undefined;
+    setCode?: string | undefined;
 }, {
     game: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion";
-    name: string;
+    name?: string | undefined;
     collectorNumber?: string | undefined;
+    setCode?: string | undefined;
 }>;
 export type CatalogueLookupRequest = z.infer<typeof CatalogueLookupRequestSchema>;
 export declare const CatalogueLookupMatchSchema: z.ZodObject<{

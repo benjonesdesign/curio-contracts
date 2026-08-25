@@ -1037,13 +1037,15 @@ public enum Status: String, Codable, Sendable {
 
 public struct CatalogueLookupRequest: Codable, Sendable {
     public let game: Game
-    public let name: String
+    public let name: String?
     public let collectorNumber: String?
+    public let setCode: String?
 
-    public init(game: Game, name: String, collectorNumber: String?) {
+    public init(game: Game, name: String?, collectorNumber: String?, setCode: String?) {
         self.game = game
         self.name = name
         self.collectorNumber = collectorNumber
+        self.setCode = setCode
     }
 }
 

@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.22
+- `catalogue-lookup` (`/api/catalogue-lookup`, iOS's pre-upload fast-identify pre-check): `name`
+  becomes optional and gains `setCode`. Before this, a lookup required a name — but W15 Tier 0
+  exists precisely for the case where the collector number OCR'd cleanly and the name did not
+  (stylised type, holo glare, foreign printing). The route now tries the number-first resolver
+  (`resolveByNumber`, W15 Tier 0) ahead of the existing name-first `resolveCatalogueMatch` whenever
+  `collectorNumber` is present, using `setCode` when available — the strongest single signal per
+  curio-shared/canon/discovery/W15-identification-engine-discovery.md's addenda 2/3 (number+set
+  code resolves 100.0% of the catalogue). A name-only caller is unaffected. Additive; no field
+  removed.
+
 ## v0.1.21
 - `identify` gains W15 Tier 0 support (curio-shared/canon/discovery/W15-identification-engine-discovery.md)
   — a deterministic catalogue lookup ahead of the AI vision call, at ~3ms/£0 with no possibility
