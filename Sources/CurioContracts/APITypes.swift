@@ -1338,3 +1338,65 @@ public struct ListingTemplateListResponse: Codable, Sendable {
         self.templates = templates
     }
 }
+
+public struct PricingBreakdownRequest: Codable, Sendable {
+    public let price: Double
+    public let purchaseCost: Double
+    public let marketMedian: Double
+    public let collectionType: CollectionType3?
+    public let priceSource: String?
+    public let settings: PricingSettings?
+
+    public init(price: Double, purchaseCost: Double, marketMedian: Double, collectionType: CollectionType3?, priceSource: String?, settings: PricingSettings?) {
+        self.price = price
+        self.purchaseCost = purchaseCost
+        self.marketMedian = marketMedian
+        self.collectionType = collectionType
+        self.priceSource = priceSource
+        self.settings = settings
+    }
+}
+
+public enum CollectionType3: String, Codable, Sendable {
+    case personal = "personal"
+    case resale = "resale"
+}
+
+public struct PricingBreakdownResponse: Codable, Sendable {
+    public let purchaseCost: Double
+    public let marketMedian: Double
+    public let suggestedPrice: Double
+    public let ebayFee: Double
+    public let packagingCost: Double
+    public let shippingCost: Double
+    public let grossProfit: Double
+    public let taxProvision: Double
+    public let netProfit: Double
+    public let netMarginPct: Double
+    public let minViablePrice: Double
+    public let isMarketBelowMin: Bool
+    public let warningMsg: String?
+    public let priceKind: PriceKind
+
+    public init(purchaseCost: Double, marketMedian: Double, suggestedPrice: Double, ebayFee: Double, packagingCost: Double, shippingCost: Double, grossProfit: Double, taxProvision: Double, netProfit: Double, netMarginPct: Double, minViablePrice: Double, isMarketBelowMin: Bool, warningMsg: String?, priceKind: PriceKind) {
+        self.purchaseCost = purchaseCost
+        self.marketMedian = marketMedian
+        self.suggestedPrice = suggestedPrice
+        self.ebayFee = ebayFee
+        self.packagingCost = packagingCost
+        self.shippingCost = shippingCost
+        self.grossProfit = grossProfit
+        self.taxProvision = taxProvision
+        self.netProfit = netProfit
+        self.netMarginPct = netMarginPct
+        self.minViablePrice = minViablePrice
+        self.isMarketBelowMin = isMarketBelowMin
+        self.warningMsg = warningMsg
+        self.priceKind = priceKind
+    }
+}
+
+public enum PriceKind: String, Codable, Sendable {
+    case realised = "realised"
+    case asking = "asking"
+}

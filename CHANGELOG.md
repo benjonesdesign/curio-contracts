@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.1.23
+- New `pricing-breakdown` contract (`POST /api/pricing/breakdown`) — Design Spec 06 §2 "live
+  profit feedback as the seller edits a price field". `lib/pricing.ts`'s `computeBreakdownForPrice`
+  has existed since W3, documented for exactly this use, but nothing exposed it as a route: web
+  called it in-process, iOS couldn't reach it at all — routed to CODE by the iOS lane
+  (`curio-shared/ROADMAP-COORDINATION.md`, 2026-08-25) as the one route blocking Spec 06's
+  headline feature. `PricingBreakdownRequestSchema` reuses the existing `PricingSettingsSchema`
+  (from `recommend.ts`) for an optional settings override, and gains `priceSource` so the response
+  can derive machine-readable provenance without the caller string-matching source ids.
+  `PricingBreakdownResponseSchema` mirrors `PriceBreakdown` (including the previously-unexposed
+  `minViablePrice`, Spec 06 §4) and adds `priceKind: "realised" | "asking"` (Spec 06 §6) — "realised"
+  only for a confirmed UK-sold source, "asking" for everything else (cross-region reference
+  prices, asking listings, catalogue baselines), derived server-side from the same classification
+  `lib/price-confidence.ts` already encodes as human-readable caveat text.
+
 ## v0.1.22
 - `catalogue-lookup` (`/api/catalogue-lookup`, iOS's pre-upload fast-identify pre-check): `name`
   becomes optional and gains `setCode`. Before this, a lookup required a name — but W15 Tier 0
