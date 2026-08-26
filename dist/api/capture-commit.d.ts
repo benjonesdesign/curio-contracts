@@ -178,6 +178,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
      * latency on the ones that still happen). Reuses CatalogueLookupMatchSchema rather than a
      * parallel identity shape, since it's exactly a resolved catalogue match. */
     resolvedMatch: z.ZodOptional<z.ZodObject<{
+        game: z.ZodOptional<z.ZodNullable<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>>;
         nativeId: z.ZodString;
         name: z.ZodString;
         setName: z.ZodNullable<z.ZodString>;
@@ -192,6 +193,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         setName: string | null;
         cardNumber: string | null;
         nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         image?: string | null | undefined;
     }, {
         name: string;
@@ -200,6 +202,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         setName: string | null;
         cardNumber: string | null;
         nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         image?: string | null | undefined;
     }>>;
     /** Required alongside `resolvedMatch` — the match itself carries no game (it's already scoped to
@@ -302,6 +305,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         setName: string | null;
         cardNumber: string | null;
         nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         image?: string | null | undefined;
     } | undefined;
     ocr?: {
@@ -361,6 +365,7 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
         setName: string | null;
         cardNumber: string | null;
         nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         image?: string | null | undefined;
     } | undefined;
     ocr?: {

@@ -27,6 +27,14 @@ describe("CatalogueLookupRequestSchema", () => {
   it("accepts a request with none of name/collectorNumber/setCode ('at least one' is route-level)", () => {
     expect(() => CatalogueLookupRequestSchema.parse({ game: "pokemon" })).not.toThrow();
   });
+
+  // ROADMAP-COORDINATION.md "Tier 0 returns a confident WRONG match" (2026-08-26) — iOS sends no
+  // game at all; requiring it blocked scanning outright.
+  it("accepts a request with no game at all — game is a narrowing hint, never a precondition", () => {
+    const r = CatalogueLookupRequestSchema.parse({ collectorNumber: "138/221", setCode: "SFD" });
+    expect(r.game).toBeUndefined();
+    expect(r.collectorNumber).toBe("138/221");
+  });
 });
 
 describe("CatalogueLookupResponseSchema", () => {
@@ -57,5 +65,30 @@ describe("CatalogueLookupResponseSchema", () => {
       confidence: "high",
     });
     expect(res.match?.image).toBeUndefined();
+  });
+
+  it("defaults candidates to an empty array when the response predates the field", () => {
+    const res = CatalogueLookupResponseSchema.parse({ match: null, confidence: null });
+    expect(res.candidates).toEqual([]);
+  });
+
+  it("carries a match's game, and every cross-game candidate's game, on a genuine tie", () => {
+    const res = CatalogueLookupResponseSchema.parse({
+      match: null,
+      confidence: "low",
+      candidates: [
+        { game: "mtg", nativeId: "mtg-1", name: "Windsinger", setName: "Some MTG Set", cardNumber: "138", rarity: null, language: "English" },
+        { game: "lorcana", nativeId: "lor-1", name: "Windsinger", setName: "Some Lorcana Set", cardNumber: "138", rarity: null, language: "English" },
+      ],
+    });
+    expect(res.candidates.map((c) => c.game)).toEqual(["mtg", "lorcana"]);
+  });
+
+  it("carries the matched game so a follow-up call doesn't have to guess it", () => {
+    const res = CatalogueLookupResponseSchema.parse({
+      match: { game: "yugioh", nativeId: "ra04-en053", name: "Ash Blossom & Joyous Spring", setName: "Rising Rampage", cardNumber: "RA04-EN053", rarity: "Secret Rare", language: "English" },
+      confidence: "high",
+    });
+    expect(res.match?.game).toBe("yugioh");
   });
 });

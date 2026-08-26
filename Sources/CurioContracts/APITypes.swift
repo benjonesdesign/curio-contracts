@@ -386,6 +386,7 @@ public enum Side4: String, Codable, Sendable {
 }
 
 public struct CatalogueLookupMatch: Codable, Sendable {
+    public let game: Game?
     public let nativeId: String
     public let name: String
     public let setName: String?
@@ -394,7 +395,8 @@ public struct CatalogueLookupMatch: Codable, Sendable {
     public let language: String
     public let image: String?
 
-    public init(nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String, image: String?) {
+    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String, image: String?) {
+        self.game = game
         self.nativeId = nativeId
         self.name = name
         self.setName = setName
@@ -1036,12 +1038,12 @@ public enum Status: String, Codable, Sendable {
 }
 
 public struct CatalogueLookupRequest: Codable, Sendable {
-    public let game: Game
+    public let game: Game?
     public let name: String?
     public let collectorNumber: String?
     public let setCode: String?
 
-    public init(game: Game, name: String?, collectorNumber: String?, setCode: String?) {
+    public init(game: Game?, name: String?, collectorNumber: String?, setCode: String?) {
         self.game = game
         self.name = name
         self.collectorNumber = collectorNumber
@@ -1052,10 +1054,12 @@ public struct CatalogueLookupRequest: Codable, Sendable {
 public struct CatalogueLookupResponse: Codable, Sendable {
     public let match: CatalogueLookupMatch?
     public let confidence: GameConfidence?
+    public let candidates: [CatalogueLookupMatch]
 
-    public init(match: CatalogueLookupMatch?, confidence: GameConfidence?) {
+    public init(match: CatalogueLookupMatch?, confidence: GameConfidence?, candidates: [CatalogueLookupMatch]) {
         self.match = match
         self.confidence = confidence
+        self.candidates = candidates
     }
 }
 

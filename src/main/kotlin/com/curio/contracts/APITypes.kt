@@ -239,6 +239,7 @@ public enum class Side4 {
 
 @Serializable
 public data class CatalogueLookupMatch(
+    val game: Game? = null,
     val nativeId: String,
     val name: String,
     val setName: String? = null,
@@ -599,7 +600,7 @@ public enum class Status {
 
 @Serializable
 public data class CatalogueLookupRequest(
-    val game: Game,
+    val game: Game? = null,
     val name: String? = null,
     val collectorNumber: String? = null,
     val setCode: String? = null,
@@ -609,6 +610,7 @@ public data class CatalogueLookupRequest(
 public data class CatalogueLookupResponse(
     val match: CatalogueLookupMatch? = null,
     val confidence: GameConfidence? = null,
+    val candidates: List<CatalogueLookupMatch>,
 )
 
 @Serializable

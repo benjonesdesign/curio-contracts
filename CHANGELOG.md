@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.25
+`catalogue-lookup` (`/api/catalogue-lookup`) — closes the three iOS asks from
+ROADMAP-COORDINATION.md's "Tier 0 returns a confident WRONG match" note (2026-08-26, the
+SFD/138/221/"Windsinger" repro):
+1. **`game` optional on `CatalogueLookupRequestSchema`** — was required, so iOS's own no-game
+   scan requests (printed number+set is 99.31% unique across all games combined, so iOS stopped
+   asking which game before scanning) were rejected before ever reaching a resolver that could
+   have answered them. Now a narrowing hint, never a precondition.
+2. **`candidates` on `CatalogueLookupResponseSchema`** — the resolver already computed
+   `candidates`/`candidateCount` internally; the response dropped them on the floor. Defaults to
+   `[]` so a response built before this field existed still validates, and a caller never needs a
+   null check to distinguish "no candidates" from "field omitted."
+3. **`game` on `CatalogueLookupMatchSchema`** — additive, nullable, same shape as `image` — so a
+   follow-up call can price/route against the catalogue the resolver actually matched, not
+   whatever the client happened to guess going in.
+
 ## v0.1.24
 - **Kotlin codegen — the Android lane's contracts dependency.** Adds a third generated platform
   alongside TS and Swift: `scripts/zod-to-kotlin.ts` is a structural mirror of `zod-to-swift.ts`
