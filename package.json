@@ -1,7 +1,7 @@
 {
   "name": "@curio/contracts",
-  "version": "0.1.23",
-  "description": "Curio shared API/DB contracts \u2014 generated TS types + a Swift package, from one Zod/schema source. Consumed by pokemon-tool (web) and curio-capture-ios.",
+  "version": "0.1.24",
+  "description": "Curio shared API/DB contracts \u2014 generated TS types + a Swift package + a Kotlin library, from one Zod/schema source. Consumed by pokemon-tool (web), curio-capture-ios, and the Android lane.",
   "license": "UNLICENSED",
   "private": false,
   "type": "module",
@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "gen:db": "tsx scripts/gen-db-types.ts",
-    "build": "tsc -p tsconfig.build.json && tsx scripts/gen-swift-db.ts && tsx scripts/gen-swift-api.ts",
+    "build": "tsc -p tsconfig.build.json && tsx scripts/gen-swift-db.ts && tsx scripts/gen-swift-api.ts && tsx scripts/gen-kotlin-db.ts && tsx scripts/gen-kotlin-api.ts",
     "check": "tsx scripts/check-drift.ts",
     "test": "vitest run"
   },

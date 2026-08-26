@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.1.24
+- **Kotlin codegen — the Android lane's contracts dependency.** Adds a third generated platform
+  alongside TS and Swift: `scripts/zod-to-kotlin.ts` is a structural mirror of `zod-to-swift.ts`
+  (same node coverage, same identity-tracked type reuse, same `registerName()` override), emitting
+  `kotlinx.serialization` data/enum classes to `src/main/kotlin/com/curio/contracts/{DBTypes,
+  APITypes}.kt`. `scripts/gen-kotlin-db.ts`/`gen-kotlin-api.ts` mirror `gen-swift-db.ts`/
+  `gen-swift-api.ts` line-for-line (same imports, same `registerName`/`emit*` calls, same order) so
+  the two can be diffed against each other to catch a forgotten platform when a new contract is
+  added — see "Adding a new API contract" in README.md. Row-block parsing (which fields a shared
+  DB table has) is factored out to `scripts/db-types-parser.ts`, now shared by both the Swift and
+  Kotlin DB generators rather than living as two independently-drifting copies.
+- New root-level Gradle project (`build.gradle.kts`, `settings.gradle.kts`, Gradle 8.10 wrapper) —
+  a pure `kotlin("jvm")` library, not an Android Library module: there's nothing Android-specific
+  in the generated types (plain data classes + kotlinx.serialization), so building this module
+  needs only a JDK, no Android SDK/licenses. Targets JVM 11 bytecode for broad Android
+  compatibility. Consumed via **JitPack** (`com.github.benjonesdesign:curio-contracts:vX.Y.Z`) —
+  the direct Android-Gradle equivalent of web's `github:` npm dependency and iOS's SwiftPM git-tag
+  pin: no publishing credentials, no `NEEDS-BEN.md` item, Android pins an exact tag the same way
+  the other two platforms already do.
+- `npm run check` (the drift guard) now regenerates and diffs BOTH Swift and Kotlin output, not
+  just Swift — `scripts/check-drift.ts`'s single check became a small `checkPlatform()` helper
+  called once per platform.
+- `src/test/kotlin/com/curio/contracts/RoundTripTest.kt` — unlike `zod-to-kotlin.test.ts` (which
+  locks the generator's string output), this exercises the generated code's actual runtime
+  behaviour: decoding a real `IdentifyResponse`/`IdentifyAmbiguousResponse` payload and round-
+  tripping a DB row through `kotlinx.serialization.json.Json`, catching a wrong `@SerialName` or
+  nullability default that a string-diff test wouldn't.
+
 ## v0.1.23
 - New `pricing-breakdown` contract (`POST /api/pricing/breakdown`) — Design Spec 06 §2 "live
   profit feedback as the seller edits a price field". `lib/pricing.ts`'s `computeBreakdownForPrice`
