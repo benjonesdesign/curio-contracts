@@ -16,7 +16,7 @@ interface DataClassField {
 }
 
 interface EmittedType {
-  kind: "data class" | "enum class";
+  kind: "data class" | "enum class" | "sealed enum";
   name: string;
   code: string;
 }
@@ -60,6 +60,60 @@ function kotlinEnumConstName(value: string): string {
   return /^[0-9]/.test(snake) ? `V${snake}` : snake;
 }
 
+// ── Forward-compatible enums (decisions/0027) ─────────────────────────────────────────────
+//
+// A plain `enum class` THROWS on an unrecognised raw value, and kotlinx propagates that throw to
+// the ENCLOSING object — so one unknown value anywhere in a response fails the whole decode. A
+// ninth game would break every pinned client's catalogue lookup.
+//
+// Two things make this worse than it first looks, both corrections from the Android lane:
+//   - Decoding CONSTRUCTS the enum. The exposure is every decode of a containing response, not
+//     every call site, so "no code switches on it" is not evidence of safety.
+//   - Nullability is not protection. `game: GameId?` handles ABSENT, never UNRECOGNISED.
+//
+// Kotlin has no enum-with-payload, so the equivalent of Swift's `case unknown(String)` is a sealed
+// interface plus a hand-rolled KSerializer. Different emitted shape, same guarantee: an unknown
+// value arrives as DATA the caller can reason about, and the decision about what to do with it
+// belongs to the caller — not to the decoder, which cannot make it visibly.
+function forwardCompatibleEnum(name: string, values: string[]): string {
+  const objects = values
+    .map((v) => `    public object ${kotlinEnumConstName(v)} : ${name} {\n` +
+                `        override val rawValue: String get() = "${v}"\n    }`)
+    .join("\n");
+  const branches = values
+    .map((v) => `            "${v}" -> ${kotlinEnumConstName(v)}`)
+    .join("\n");
+  return [
+    `@Serializable(with = ${name}Serializer::class)`,
+    `public sealed interface ${name} {`,
+    `    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does`,
+    `     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */`,
+    `    public val rawValue: String`,
+    ``,
+    objects,
+    ``,
+    `    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */`,
+    `    public data class Unknown(override val rawValue: String) : ${name}`,
+    ``,
+    `    public companion object {`,
+    `        public fun from(raw: String): ${name} = when (raw) {`,
+    branches,
+    `            else -> Unknown(raw)`,
+    `        }`,
+    `    }`,
+    `}`,
+    ``,
+    `public object ${name}Serializer : KSerializer<${name}> {`,
+    `    override val descriptor: SerialDescriptor =`,
+    `        PrimitiveSerialDescriptor("${name}", PrimitiveKind.STRING)`,
+    `    override fun deserialize(decoder: Decoder): ${name} = ${name}.from(decoder.decodeString())`,
+    `    override fun serialize(encoder: Encoder, value: ${name}) {`,
+    `        encoder.encodeString(value.rawValue)`,
+    `    }`,
+    `}`,
+  ].join("\n");
+}
+
 function uniqueTypeName(base: string): string {
   if (!emitted.has(base)) return base;
   let i = 2;
@@ -98,13 +152,10 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     const enumName = uniqueTypeName(className ?? pascalCase(hintName));
     schemaToName.set(schema, enumName);
     const values = schema._def.values as string[];
-    const cases = values
-      .map((v) => `    @SerialName("${v}") ${kotlinEnumConstName(v)}`)
-      .join(",\n");
     emitted.set(enumName, {
-      kind: "enum class",
+      kind: "sealed enum",
       name: enumName,
-      code: `@Serializable\npublic enum class ${enumName} {\n${cases};\n}`,
+      code: forwardCompatibleEnum(enumName, values),
     });
     return enumName;
   }
