@@ -13,6 +13,8 @@ import { z } from "zod";
 interface DataClassField {
   name: string;
   kotlinType: string;
+  /** Kotlin literal for a Zod .default(), or null when the field has none. */
+  zodDefault?: string | null;
 }
 
 interface EmittedType {
@@ -114,6 +116,29 @@ function forwardCompatibleEnum(name: string, values: string[]): string {
   ].join("\n");
 }
 
+// ── Zod defaults are a SERVER-PARSE behaviour, never a wire guarantee (decisions/0027) ─────
+//
+// `z.array(X).default([])` means "if the server's own parse sees no key, substitute []". It says
+// nothing about what the server EMITS, so the key can legitimately be absent on the wire. Emitting
+// it as a required field makes an absent key a decode failure that takes the whole response down —
+// the same shape as the unknown-enum bug above, one level lower.
+//
+// Two couplings that creates, neither written down anywhere before 2026-08-27:
+//   FORWARD  — a client build consuming the field REQUIRES the server deployment that emits it.
+//   ROLLBACK — roll the server back to a build that omits it and EVERY deployed client breaks.
+//              App Store latency means clients cannot be rolled back in step with a server.
+//
+// So a defaulted field emits with a Kotlin default, which kotlinx uses when the key is absent.
+// Absent and empty both decode, the property stays non-null, and no call site changes.
+function kotlinDefaultLiteral(value: unknown): string | null {
+  if (Array.isArray(value)) return value.length === 0 ? "emptyList()" : null;
+  if (value === null) return "null";
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "number") return String(value);
+  return null; // an object/non-empty-array default would need a real constructor call — refuse
+}
+
 function uniqueTypeName(base: string): string {
   if (!emitted.has(base)) return base;
   let i = 2;
@@ -189,10 +214,12 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     // Reserve the slot before recursing so a self/mutually-referential shape can't recurse
     // infinitely — none of our schemas are recursive today, but this is cheap insurance.
     emitted.set(name, { kind: "data class", name, code: "" });
-    const fields: DataClassField[] = Object.entries(shape).map(([key, val]) => ({
-      name: key,
-      kotlinType: resolve(val, key),
-    }));
+    const fields: DataClassField[] = Object.entries(shape).map(([key, val]) => {
+      const zodDefault = val instanceof z.ZodDefault
+        ? kotlinDefaultLiteral((val._def.defaultValue as () => unknown)())
+        : null;
+      return { name: key, kotlinType: resolve(val, key), zodDefault };
+    });
     const propLines = fields
       .map((f) => {
         const kName = kotlinFieldName(f.name);
@@ -200,7 +227,10 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
         // Every nullable field gets a `= null` default — kotlinx.serialization otherwise requires
         // the key to be present (even as `null`) on every decode, which a real API response won't
         // always guarantee (e.g. an omitted optional field, not an explicit `null` value).
-        const default_ = f.kotlinType.endsWith("?") ? " = null" : "";
+        // A Zod .default() emits as a Kotlin default so an ABSENT key decodes (see
+        // kotlinDefaultLiteral). Nullable wins if both apply — `= null` already handles absence.
+        const default_ = f.kotlinType.endsWith("?") ? " = null"
+          : f.zodDefault ? ` = ${f.zodDefault}` : "";
         return `    ${serialName}val ${kName}: ${f.kotlinType}${default_},`;
       })
       .join("\n");

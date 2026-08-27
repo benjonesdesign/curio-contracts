@@ -10,6 +10,8 @@ import { z } from "zod";
 interface StructField {
   name: string;
   swiftType: string;
+  /** Swift literal for a Zod .default(), or null when the field has none. */
+  zodDefault?: string | null;
 }
 
 interface EmittedType {
@@ -70,6 +72,20 @@ function swiftEnumCaseName(value: string): string {
   const camel = swiftFieldName(value);
   if (!camel) return "unknown";
   return escapeSwiftIdentifier(/^[0-9]/.test(camel) ? `v${camel}` : camel);
+}
+
+// ── Zod defaults are a SERVER-PARSE behaviour, never a wire guarantee (decisions/0027) ─────
+// See the matching comment in zod-to-kotlin.ts for the full reasoning. Short version: a defaulted
+// field's key can legitimately be absent on the wire, and Swift's SYNTHESISED init(from:) ignores
+// a property's default value entirely — it calls decode() and throws keyNotFound, taking the whole
+// response with it. A property default is not enough; the struct needs a real init(from:).
+function swiftDefaultLiteral(value: unknown): string | null {
+  if (Array.isArray(value)) return value.length === 0 ? "[]" : null;
+  if (value === null) return "nil";
+  if (typeof value === "string") return JSON.stringify(value);
+  if (typeof value === "boolean") return String(value);
+  if (typeof value === "number") return String(value);
+  return null;
 }
 
 function uniqueTypeName(base: string): string {
@@ -150,17 +166,22 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     // Reserve the slot before recursing so a self/mutually-referential shape can't recurse
     // infinitely — none of our schemas are recursive today, but this is cheap insurance.
     emitted.set(name, { kind: "struct", name, code: "" });
-    const fields: StructField[] = Object.entries(shape).map(([key, val]) => ({
-      name: key,
-      swiftType: resolve(val, key),
-    }));
+    const fields: StructField[] = Object.entries(shape).map(([key, val]) => {
+      const zodDefault = val instanceof z.ZodDefault
+        ? swiftDefaultLiteral((val._def.defaultValue as () => unknown)())
+        : null;
+      return { name: key, swiftType: resolve(val, key), zodDefault };
+    });
+    const hasDefaults = fields.some((f) => f.zodDefault != null && !f.swiftType.endsWith("?"));
     // `swiftFieldName` stays unescaped so the renamed-vs-not comparison below still compares
     // like with like; the backticks go on at each emission site (including the CodingKeys case,
     // which needs them too — an escaped case name still maps to its unescaped string value).
     const prop = (f: StructField) => escapeSwiftIdentifier(swiftFieldName(f.name));
     const propLines = fields.map((f) => `    public let ${prop(f)}: ${f.swiftType}`).join("\n");
     const renamed = fields.filter((f) => swiftFieldName(f.name) !== f.name);
-    const codingKeys = renamed.length
+    // A defaulted field needs a hand-written init(from:), which needs CodingKeys to exist even
+    // when no field was renamed.
+    const codingKeys = (renamed.length || hasDefaults)
       ? `\n\n    enum CodingKeys: String, CodingKey {\n${fields
           .map((f) =>
             swiftFieldName(f.name) === f.name
@@ -171,7 +192,25 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
       : "";
     const initArgs = fields.map((f) => `${prop(f)}: ${f.swiftType}`).join(", ");
     const initBody = fields.map((f) => `        self.${prop(f)} = ${prop(f)}`).join("\n");
-    const code = `public struct ${name}: Codable, Sendable {\n${propLines}${codingKeys}\n\n    public init(${initArgs}) {\n${initBody}\n    }\n}`;
+    // Swift's SYNTHESISED init(from:) ignores property defaults — it calls decode() and throws
+    // keyNotFound on an absent key, taking the whole response down. So a struct carrying a Zod
+    // default gets a real decoder that treats absent as the default. Emitted ONLY for such
+    // structs, so every other type keeps synthesised Codable exactly as before.
+    const decodeInit = hasDefaults
+      ? `\n\n    public init(from decoder: Decoder) throws {\n        let c = try decoder.container(keyedBy: CodingKeys.self)\n` +
+        fields.map((f) => {
+          const bare = f.swiftType.endsWith("?") ? f.swiftType.slice(0, -1) : f.swiftType;
+          if (f.swiftType.endsWith("?")) {
+            return `        self.${prop(f)} = try c.decodeIfPresent(${bare}.self, forKey: .${prop(f)})`;
+          }
+          if (f.zodDefault != null) {
+            return `        self.${prop(f)} = try c.decodeIfPresent(${bare}.self, forKey: .${prop(f)}) ?? ${f.zodDefault}`;
+          }
+          return `        self.${prop(f)} = try c.decode(${bare}.self, forKey: .${prop(f)})`;
+        }).join("\n") +
+        `\n    }`
+      : "";
+    const code = `public struct ${name}: Codable, Sendable {\n${propLines}${codingKeys}\n\n    public init(${initArgs}) {\n${initBody}\n    }${decodeInit}\n}`;
     emitted.set(name, { kind: "struct", name, code });
     return name;
   }

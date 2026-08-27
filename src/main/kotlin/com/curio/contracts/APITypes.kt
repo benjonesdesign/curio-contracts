@@ -1308,7 +1308,7 @@ public data class CatalogueLookupRequest(
 public data class CatalogueLookupResponse(
     val match: CatalogueLookupMatch? = null,
     val confidence: GameConfidence? = null,
-    val candidates: List<CatalogueLookupMatch>,
+    val candidates: List<CatalogueLookupMatch> = emptyList(),
 )
 
 @Serializable

@@ -1056,10 +1056,23 @@ public struct CatalogueLookupResponse: Codable, Sendable {
     public let confidence: GameConfidence?
     public let candidates: [CatalogueLookupMatch]
 
+    enum CodingKeys: String, CodingKey {
+        case match
+        case confidence
+        case candidates
+    }
+
     public init(match: CatalogueLookupMatch?, confidence: GameConfidence?, candidates: [CatalogueLookupMatch]) {
         self.match = match
         self.confidence = confidence
         self.candidates = candidates
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.match = try c.decodeIfPresent(CatalogueLookupMatch.self, forKey: .match)
+        self.confidence = try c.decodeIfPresent(GameConfidence.self, forKey: .confidence)
+        self.candidates = try c.decodeIfPresent([CatalogueLookupMatch].self, forKey: .candidates) ?? []
     }
 }
 

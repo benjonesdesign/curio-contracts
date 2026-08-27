@@ -143,4 +143,39 @@ class UnknownEnumValueTest {
         assertIs<RecommendedRoute.Unknown>(decoded.route)
         assertEquals("x", decoded.explanation)
     }
+
+    // ── decisions/0027 sibling clause: Zod defaults are a SERVER-PARSE behaviour ────────────
+    //
+    // `candidates: z.array(...).default([])` tells the SERVER's parser what to substitute when it
+    // sees no key. It is not a promise about what goes on the wire, so the key can legitimately be
+    // absent — and a required field turns that into a decode failure that takes the whole response
+    // down. Two couplings nobody had written down: a client build consuming the field REQUIRES the
+    // server deployment that emits it, and a server ROLLBACK past that deployment breaks every
+    // client already in the field — which App Store latency makes impossible to fix in step.
+    @Test
+    fun `an ABSENT defaulted array decodes to empty, not to a thrown response`() {
+        val body = """{"match": null, "confidence": null}"""
+        val decoded = json.decodeFromString<CatalogueLookupResponse>(body)
+        assertEquals(emptyList(), decoded.candidates)
+    }
+
+    @Test
+    fun `absent and explicitly-empty agree — the whole point of the default`() {
+        val absent = """{"match": null, "confidence": null}"""
+        val empty  = """{"match": null, "confidence": null, "candidates": []}"""
+        assertEquals(
+            json.decodeFromString<CatalogueLookupResponse>(absent).candidates,
+            json.decodeFromString<CatalogueLookupResponse>(empty).candidates,
+        )
+    }
+
+    @Test
+    fun `a NON-defaulted required array is still required — the distinction is preserved`() {
+        // IdentifyAmbiguousResponse.candidates has no .default() in the schema, so it must stay
+        // required. Blanket-defaulting every array would paper over real server bugs.
+        val ok = json.decodeFromString<IdentifyAmbiguousResponse>(
+            """{"tier": "ambiguous", "candidates": []}""",
+        )
+        assertEquals(0, ok.candidates.size)
+    }
 }

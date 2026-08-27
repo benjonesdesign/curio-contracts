@@ -81,4 +81,17 @@ describe("zod-to-kotlin", () => {
     expect(out).toMatch(/val name: String,?\n/);
     expect(out).not.toContain("val name: String = null");
   });
+
+  // ── decisions/0027 sibling clause — Zod defaults are a server-parse behaviour ─────────────
+  it("emits a Zod .default([]) as a Kotlin default, so an ABSENT key still decodes", () => {
+    emitKotlin(z.object({ candidates: z.array(z.string()).default([]) }), "Resp");
+    const out = flush();
+    expect(out).toContain("val candidates: List<String> = emptyList()");
+  });
+
+  it("does not invent a default for a plain required array", () => {
+    // The distinction under test: .default([]) is a wire-absence guarantee, a bare array is not.
+    emitKotlin(z.object({ candidates: z.array(z.string()) }), "Resp");
+    expect(flush()).toContain("val candidates: List<String>,");
+  });
 });
