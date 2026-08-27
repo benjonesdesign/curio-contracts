@@ -439,6 +439,14 @@ export interface Database {
           dispatch_address_postcode: string | null
           id: string
           is_admin: boolean
+          pricing_ebay_fee_fixed: number | null
+          pricing_ebay_fee_rate: number | null
+          pricing_min_profit_pct: number
+          pricing_min_sale_value: number
+          pricing_packaging_cost: number
+          pricing_postage_cost: number
+          pricing_shipping_cost: number
+          pricing_tax_rate: number
           seller_type: string
           seller_type_source: string
         }
@@ -451,6 +459,14 @@ export interface Database {
           dispatch_address_postcode?: string | null
           id: string
           is_admin?: boolean
+          pricing_ebay_fee_fixed?: number | null
+          pricing_ebay_fee_rate?: number | null
+          pricing_min_profit_pct?: number
+          pricing_min_sale_value?: number
+          pricing_packaging_cost?: number
+          pricing_postage_cost?: number
+          pricing_shipping_cost?: number
+          pricing_tax_rate?: number
           seller_type?: string
           seller_type_source?: string
         }
@@ -463,6 +479,14 @@ export interface Database {
           dispatch_address_postcode?: string | null
           id?: string
           is_admin?: boolean
+          pricing_ebay_fee_fixed?: number | null
+          pricing_ebay_fee_rate?: number | null
+          pricing_min_profit_pct?: number
+          pricing_min_sale_value?: number
+          pricing_packaging_cost?: number
+          pricing_postage_cost?: number
+          pricing_shipping_cost?: number
+          pricing_tax_rate?: number
           seller_type?: string
           seller_type_source?: string
         }

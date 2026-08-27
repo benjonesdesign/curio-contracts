@@ -414,6 +414,14 @@ public struct ProfilesRow: Codable, Sendable, Identifiable {
     public let dispatchAddressPostcode: String?
     public let id: String
     public let isAdmin: Bool
+    public let pricingEbayFeeFixed: Double?
+    public let pricingEbayFeeRate: Double?
+    public let pricingMinProfitPct: Double
+    public let pricingMinSaleValue: Double
+    public let pricingPackagingCost: Double
+    public let pricingPostageCost: Double
+    public let pricingShippingCost: Double
+    public let pricingTaxRate: Double
     public let sellerType: String
     public let sellerTypeSource: String
 
@@ -426,11 +434,19 @@ public struct ProfilesRow: Codable, Sendable, Identifiable {
         case dispatchAddressPostcode = "dispatch_address_postcode"
         case id
         case isAdmin = "is_admin"
+        case pricingEbayFeeFixed = "pricing_ebay_fee_fixed"
+        case pricingEbayFeeRate = "pricing_ebay_fee_rate"
+        case pricingMinProfitPct = "pricing_min_profit_pct"
+        case pricingMinSaleValue = "pricing_min_sale_value"
+        case pricingPackagingCost = "pricing_packaging_cost"
+        case pricingPostageCost = "pricing_postage_cost"
+        case pricingShippingCost = "pricing_shipping_cost"
+        case pricingTaxRate = "pricing_tax_rate"
         case sellerType = "seller_type"
         case sellerTypeSource = "seller_type_source"
     }
 
-    public init(agedInventoryDays: Int, createdAt: String?, dispatchAddressCity: String?, dispatchAddressCountry: String, dispatchAddressLine1: String?, dispatchAddressPostcode: String?, id: String, isAdmin: Bool, sellerType: String, sellerTypeSource: String) {
+    public init(agedInventoryDays: Int, createdAt: String?, dispatchAddressCity: String?, dispatchAddressCountry: String, dispatchAddressLine1: String?, dispatchAddressPostcode: String?, id: String, isAdmin: Bool, pricingEbayFeeFixed: Double?, pricingEbayFeeRate: Double?, pricingMinProfitPct: Double, pricingMinSaleValue: Double, pricingPackagingCost: Double, pricingPostageCost: Double, pricingShippingCost: Double, pricingTaxRate: Double, sellerType: String, sellerTypeSource: String) {
         self.agedInventoryDays = agedInventoryDays
         self.createdAt = createdAt
         self.dispatchAddressCity = dispatchAddressCity
@@ -439,6 +455,14 @@ public struct ProfilesRow: Codable, Sendable, Identifiable {
         self.dispatchAddressPostcode = dispatchAddressPostcode
         self.id = id
         self.isAdmin = isAdmin
+        self.pricingEbayFeeFixed = pricingEbayFeeFixed
+        self.pricingEbayFeeRate = pricingEbayFeeRate
+        self.pricingMinProfitPct = pricingMinProfitPct
+        self.pricingMinSaleValue = pricingMinSaleValue
+        self.pricingPackagingCost = pricingPackagingCost
+        self.pricingPostageCost = pricingPostageCost
+        self.pricingShippingCost = pricingShippingCost
+        self.pricingTaxRate = pricingTaxRate
         self.sellerType = sellerType
         self.sellerTypeSource = sellerTypeSource
     }

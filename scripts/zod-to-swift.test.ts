@@ -41,6 +41,28 @@ describe("zod-to-swift", () => {
     expect(out).not.toContain("struct Comp");
   });
 
+  // Caught by inspecting generated output while adding profile.ts's SellerTypeSchema
+  // (["private","business"]) — `case private = "private"` is not valid Swift and would have
+  // broken the iOS build at the next contracts bump.
+  it("backtick-escapes an enum case that collides with a Swift keyword", () => {
+    emitSwift(z.object({ sellerType: z.enum(["private", "business"]) }), "Req");
+    const out = flush();
+    expect(out).toContain('case `private` = "private"');
+    expect(out).not.toMatch(/case private = /);
+    // A non-keyword case in the same enum is left unescaped.
+    expect(out).toContain('case business = "business"');
+  });
+
+  it("backtick-escapes a property name that collides with a Swift keyword, and its CodingKey", () => {
+    emitSwift(z.object({ default: z.string(), repeat: z.number().int().optional() }), "Req");
+    const out = flush();
+    expect(out).toContain("public let `default`: String");
+    expect(out).toContain("public let `repeat`: Int?");
+    // Names match their JSON keys, so CodingKeys needs no explicit string mapping — but the
+    // case identifiers still have to be escaped.
+    expect(out).not.toMatch(/case default\b(?!`)/);
+  });
+
   it("maps z.number().int() to Int and a plain z.number() to Double", () => {
     emitSwift(z.object({ count: z.number().int(), price: z.number() }), "Req");
     const out = flush();

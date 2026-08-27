@@ -1404,3 +1404,119 @@ public enum PriceKind: String, Codable, Sendable {
     case realised = "realised"
     case asking = "asking"
 }
+
+public struct ProfileResponse: Codable, Sendable {
+    public let sellerType: SellerType
+    public let sellerTypeSource: SellerTypeSource
+    public let dispatchAddress: DispatchAddress
+    public let agedInventoryDays: Int
+    public let pricingSettings: StoredPricingSettings
+    public let effectivePricingSettings: PricingSettings
+    public let isAdmin: Bool
+
+    public init(sellerType: SellerType, sellerTypeSource: SellerTypeSource, dispatchAddress: DispatchAddress, agedInventoryDays: Int, pricingSettings: StoredPricingSettings, effectivePricingSettings: PricingSettings, isAdmin: Bool) {
+        self.sellerType = sellerType
+        self.sellerTypeSource = sellerTypeSource
+        self.dispatchAddress = dispatchAddress
+        self.agedInventoryDays = agedInventoryDays
+        self.pricingSettings = pricingSettings
+        self.effectivePricingSettings = effectivePricingSettings
+        self.isAdmin = isAdmin
+    }
+}
+
+public enum SellerType: String, Codable, Sendable {
+    case `private` = "private"
+    case business = "business"
+}
+
+public enum SellerTypeSource: String, Codable, Sendable {
+    case manual = "manual"
+    case auto = "auto"
+}
+
+public struct DispatchAddress: Codable, Sendable {
+    public let line1: String?
+    public let city: String?
+    public let postcode: String?
+    public let country: String
+
+    public init(line1: String?, city: String?, postcode: String?, country: String) {
+        self.line1 = line1
+        self.city = city
+        self.postcode = postcode
+        self.country = country
+    }
+}
+
+public struct StoredPricingSettings: Codable, Sendable {
+    public let ebayFeeRate: Double?
+    public let ebayFeeFixed: Double?
+    public let packagingCost: Double
+    public let shippingCost: Double
+    public let taxRate: Double
+    public let minProfitPct: Double
+    public let minSaleValue: Double
+    public let postageCost: Double
+
+    public init(ebayFeeRate: Double?, ebayFeeFixed: Double?, packagingCost: Double, shippingCost: Double, taxRate: Double, minProfitPct: Double, minSaleValue: Double, postageCost: Double) {
+        self.ebayFeeRate = ebayFeeRate
+        self.ebayFeeFixed = ebayFeeFixed
+        self.packagingCost = packagingCost
+        self.shippingCost = shippingCost
+        self.taxRate = taxRate
+        self.minProfitPct = minProfitPct
+        self.minSaleValue = minSaleValue
+        self.postageCost = postageCost
+    }
+}
+
+public struct ProfilePatch: Codable, Sendable {
+    public let sellerType: SellerType?
+    public let dispatchAddress: DispatchAddressPatch?
+    public let agedInventoryDays: Int?
+    public let pricingSettings: StoredPricingSettingsPatch?
+
+    public init(sellerType: SellerType?, dispatchAddress: DispatchAddressPatch?, agedInventoryDays: Int?, pricingSettings: StoredPricingSettingsPatch?) {
+        self.sellerType = sellerType
+        self.dispatchAddress = dispatchAddress
+        self.agedInventoryDays = agedInventoryDays
+        self.pricingSettings = pricingSettings
+    }
+}
+
+public struct DispatchAddressPatch: Codable, Sendable {
+    public let line1: String?
+    public let city: String?
+    public let postcode: String?
+    public let country: String?
+
+    public init(line1: String?, city: String?, postcode: String?, country: String?) {
+        self.line1 = line1
+        self.city = city
+        self.postcode = postcode
+        self.country = country
+    }
+}
+
+public struct StoredPricingSettingsPatch: Codable, Sendable {
+    public let ebayFeeRate: Double?
+    public let ebayFeeFixed: Double?
+    public let packagingCost: Double?
+    public let shippingCost: Double?
+    public let taxRate: Double?
+    public let minProfitPct: Double?
+    public let minSaleValue: Double?
+    public let postageCost: Double?
+
+    public init(ebayFeeRate: Double?, ebayFeeFixed: Double?, packagingCost: Double?, shippingCost: Double?, taxRate: Double?, minProfitPct: Double?, minSaleValue: Double?, postageCost: Double?) {
+        self.ebayFeeRate = ebayFeeRate
+        self.ebayFeeFixed = ebayFeeFixed
+        self.packagingCost = packagingCost
+        self.shippingCost = shippingCost
+        self.taxRate = taxRate
+        self.minProfitPct = minProfitPct
+        self.minSaleValue = minSaleValue
+        self.postageCost = postageCost
+    }
+}

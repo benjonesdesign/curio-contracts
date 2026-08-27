@@ -43,13 +43,33 @@ function swiftFieldName(name: string): string {
   return pascal ? pascal[0].toLowerCase() + pascal.slice(1) : pascal;
 }
 
+// Swift keywords that cannot appear bare as a declaration name. A schema value like "private"
+// (profile.ts's SellerTypeSchema) would otherwise emit `case private = "private"`, which does not
+// compile — caught by inspecting the generated output, 2026-08-27. Backticks make any of these
+// legal, and are harmless on a name that didn't need them, so escaping is applied by lookup
+// rather than by trying to detect a compile failure. Not exhaustive over every Swift contextual
+// keyword (most of those ARE legal bare); this is the set that genuinely can't be used raw.
+const SWIFT_RESERVED = new Set([
+  "associatedtype", "borrowing", "case", "catch", "class", "consuming", "continue", "default",
+  "defer", "deinit", "do", "else", "enum", "extension", "fallthrough", "false", "fileprivate",
+  "for", "func", "guard", "if", "import", "in", "init", "inout", "internal", "is", "let",
+  "nil", "operator", "precedencegroup", "private", "protocol", "public", "repeat", "rethrows",
+  "return", "self", "Self", "static", "struct", "subscript", "super", "switch", "throw",
+  "throws", "true", "try", "typealias", "var", "where", "while",
+]);
+
+/** Backtick-escape an identifier that collides with a Swift keyword. */
+function escapeSwiftIdentifier(name: string): string {
+  return SWIFT_RESERVED.has(name) ? `\`${name}\`` : name;
+}
+
 // Swift enum case identifier from a raw string value that may contain characters Swift
 // identifiers can't (e.g. "gpt-4o-mini", "1st Edition"). Falls back to a `v`-prefixed form if the
 // sanitised result would start with a digit or be empty.
 function swiftEnumCaseName(value: string): string {
   const camel = swiftFieldName(value);
   if (!camel) return "unknown";
-  return /^[0-9]/.test(camel) ? `v${camel}` : camel;
+  return escapeSwiftIdentifier(/^[0-9]/.test(camel) ? `v${camel}` : camel);
 }
 
 function uniqueTypeName(base: string): string {
@@ -134,19 +154,23 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
       name: key,
       swiftType: resolve(val, key),
     }));
-    const propLines = fields.map((f) => `    public let ${swiftFieldName(f.name)}: ${f.swiftType}`).join("\n");
+    // `swiftFieldName` stays unescaped so the renamed-vs-not comparison below still compares
+    // like with like; the backticks go on at each emission site (including the CodingKeys case,
+    // which needs them too — an escaped case name still maps to its unescaped string value).
+    const prop = (f: StructField) => escapeSwiftIdentifier(swiftFieldName(f.name));
+    const propLines = fields.map((f) => `    public let ${prop(f)}: ${f.swiftType}`).join("\n");
     const renamed = fields.filter((f) => swiftFieldName(f.name) !== f.name);
     const codingKeys = renamed.length
       ? `\n\n    enum CodingKeys: String, CodingKey {\n${fields
           .map((f) =>
             swiftFieldName(f.name) === f.name
-              ? `        case ${f.name}`
-              : `        case ${swiftFieldName(f.name)} = "${f.name}"`
+              ? `        case ${prop(f)}`
+              : `        case ${prop(f)} = "${f.name}"`
           )
           .join("\n")}\n    }`
       : "";
-    const initArgs = fields.map((f) => `${swiftFieldName(f.name)}: ${f.swiftType}`).join(", ");
-    const initBody = fields.map((f) => `        self.${swiftFieldName(f.name)} = ${swiftFieldName(f.name)}`).join("\n");
+    const initArgs = fields.map((f) => `${prop(f)}: ${f.swiftType}`).join(", ");
+    const initBody = fields.map((f) => `        self.${prop(f)} = ${prop(f)}`).join("\n");
     const code = `public struct ${name}: Codable, Sendable {\n${propLines}${codingKeys}\n\n    public init(${initArgs}) {\n${initBody}\n    }\n}`;
     emitted.set(name, { kind: "struct", name, code });
     return name;

@@ -844,3 +844,74 @@ public enum class PriceKind {
     @SerialName("realised") REALISED,
     @SerialName("asking") ASKING;
 }
+
+@Serializable
+public data class ProfileResponse(
+    val sellerType: SellerType,
+    val sellerTypeSource: SellerTypeSource,
+    val dispatchAddress: DispatchAddress,
+    val agedInventoryDays: Int,
+    val pricingSettings: StoredPricingSettings,
+    val effectivePricingSettings: PricingSettings,
+    val isAdmin: Boolean,
+)
+
+@Serializable
+public enum class SellerType {
+    @SerialName("private") PRIVATE,
+    @SerialName("business") BUSINESS;
+}
+
+@Serializable
+public enum class SellerTypeSource {
+    @SerialName("manual") MANUAL,
+    @SerialName("auto") AUTO;
+}
+
+@Serializable
+public data class DispatchAddress(
+    val line1: String? = null,
+    val city: String? = null,
+    val postcode: String? = null,
+    val country: String,
+)
+
+@Serializable
+public data class StoredPricingSettings(
+    val ebayFeeRate: Double? = null,
+    val ebayFeeFixed: Double? = null,
+    val packagingCost: Double,
+    val shippingCost: Double,
+    val taxRate: Double,
+    val minProfitPct: Double,
+    val minSaleValue: Double,
+    val postageCost: Double,
+)
+
+@Serializable
+public data class ProfilePatch(
+    val sellerType: SellerType? = null,
+    val dispatchAddress: DispatchAddressPatch? = null,
+    val agedInventoryDays: Int? = null,
+    val pricingSettings: StoredPricingSettingsPatch? = null,
+)
+
+@Serializable
+public data class DispatchAddressPatch(
+    val line1: String? = null,
+    val city: String? = null,
+    val postcode: String? = null,
+    val country: String? = null,
+)
+
+@Serializable
+public data class StoredPricingSettingsPatch(
+    val ebayFeeRate: Double? = null,
+    val ebayFeeFixed: Double? = null,
+    val packagingCost: Double? = null,
+    val shippingCost: Double? = null,
+    val taxRate: Double? = null,
+    val minProfitPct: Double? = null,
+    val minSaleValue: Double? = null,
+    val postageCost: Double? = null,
+)

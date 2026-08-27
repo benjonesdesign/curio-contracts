@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.1.26
+- **New `profile` contract (`GET`/`PATCH /api/profile`)** — W18's P1
+  (`curio-shared/canon/discovery/W18-onboarding-and-profile-discovery.md` §5/§6). One
+  server-authoritative profile both platforms read and write identically; iOS had been writing the
+  `profiles` table directly as a documented stopgap. `ProfilePatchSchema` is fully partial so a
+  just-in-time prompt writes ONE field without round-tripping the whole object (§5 point 2) —
+  two prompts answered on different devices can't clobber each other.
+  - `isAdmin` and `sellerTypeSource` are deliberately absent from the PATCH shape: the first is a
+    privilege flag only the service role may flip (the DB enforces this independently — see
+    `20260711000003_profiles_is_admin.sql`'s granular UPDATE policy), the second is derived
+    server-side per ADR 0006 so a client never asserts it.
+  - `pricingSettings` (stored) vs `effectivePricingSettings` (resolved) is a deliberate pair: the
+    two eBay fee fields are **nullable in storage**, where null means "not configured — derive
+    from my seller type" rather than "zero". That's what ADR 0006 needs, since eBay's fee rate is
+    a fact about the seller's own registration (private £0 since Oct 2024; business 12.8% + fixed
+    + ~0.35%), not a preference a user should have to look up. `effectivePricingSettings` is what
+    the engine will actually use, so a business seller with a blank field sees the real number
+    instead of a £0 estimate they'd have to know was wrong.
+- **`database.types.ts`: profiles gains its 8 `pricing_*` columns.** Genuine drift — migration
+  `20260820000005_profiles_pricing_settings.sql` (W3 §6.4) landed in pokemon-tool without
+  `npm run gen:db` being re-run, so this package's DB snapshot has been missing them since. The
+  two fee columns are typed nullable, matching the migration that lands alongside this release.
+- **Swift codegen fix — reserved-word escaping.** `SellerTypeSchema`'s `"private"` case emitted
+  `case private = "private"`, which is not valid Swift and would have broken the iOS build at the
+  next bump. Caught by inspecting generated output, not by a test — so both a `SWIFT_RESERVED`
+  escape set and regression tests were added, covering enum cases AND property names (plus their
+  `CodingKeys`). The generated package is now compiled (`swift build`) as part of verifying a
+  release, which is what actually proves this. Kotlin was already safe: its enum constants are
+  SCREAMING_SNAKE_CASE and its keywords are lowercase.
+
 ## v0.1.25
 `catalogue-lookup` (`/api/catalogue-lookup`) — closes the three iOS asks from
 ROADMAP-COORDINATION.md's "Tier 0 returns a confident WRONG match" note (2026-08-26, the
