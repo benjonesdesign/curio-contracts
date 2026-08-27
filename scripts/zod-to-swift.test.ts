@@ -69,4 +69,19 @@ describe("zod-to-swift", () => {
     expect(out).toContain("public let count: Int");
     expect(out).toContain("public let price: Double");
   });
+
+  // ── decisions/0027 sibling clause — Zod defaults are a server-parse behaviour ─────────────
+  it("gives a struct with a Zod default a REAL init(from:), since synthesised Codable ignores defaults", () => {
+    emitSwift(z.object({ candidates: z.array(z.string()).default([]) }), "Resp");
+    const out = flush();
+    expect(out).toContain("public init(from decoder: Decoder) throws {");
+    expect(out).toContain("try c.decodeIfPresent([String].self, forKey: .candidates) ?? []");
+    // CodingKeys must exist for the decoder even though no field was renamed.
+    expect(out).toContain("enum CodingKeys: String, CodingKey {");
+  });
+
+  it("leaves a struct with no defaults on synthesised Codable, unchanged", () => {
+    emitSwift(z.object({ a: z.string(), b: z.string().optional() }), "Plain");
+    expect(flush()).not.toContain("public init(from decoder: Decoder)");
+  });
 });

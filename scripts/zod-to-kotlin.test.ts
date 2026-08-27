@@ -14,7 +14,7 @@ describe("zod-to-kotlin", () => {
     emitKotlin(A, "A");
     emitKotlin(B, "B");
     const out = flush();
-    const enumMatches = out.match(/public enum class \w+ \{\n {4}@SerialName\("high"\) HIGH/g) ?? [];
+    const enumMatches = out.match(/public sealed interface \w+ \{/g) ?? [];
     expect(enumMatches).toHaveLength(1);
   });
 
@@ -22,8 +22,31 @@ describe("zod-to-kotlin", () => {
     const Model = z.enum(["gpt-4o", "gpt-4o-mini"]);
     emitKotlin(z.object({ model: Model }), "Req");
     const out = flush();
-    expect(out).toContain('@SerialName("gpt-4o") GPT_4O,');
-    expect(out).toContain('@SerialName("gpt-4o-mini") GPT_4O_MINI');
+    // The raw wire value now lives on `rawValue` rather than in a @SerialName annotation, because
+    // the serializer is hand-rolled (decisions/0027) — but the sanitised identifier is unchanged.
+    expect(out).toContain('public object GPT_4O : Model {');
+    expect(out).toContain('override val rawValue: String get() = "gpt-4o"');
+    expect(out).toContain('public object GPT_4O_MINI : Model {');
+  });
+
+  // ── decisions/0027 — forward-compatible enum shape ────────────────────────────────────────
+  it("emits an Unknown case carrying the raw value, so an unrecognised value cannot throw", () => {
+    emitKotlin(z.object({ game: z.enum(["pokemon", "mtg"]) }), "Req");
+    const out = flush();
+    expect(out).toContain("public data class Unknown(override val rawValue: String) : Game");
+    expect(out).toContain("else -> Unknown(raw)");
+  });
+
+  it("routes the enum through a hand-rolled KSerializer, not kotlinx's enum handling", () => {
+    // A plain @Serializable enum class is what throws on an unknown value. Asserting the
+    // annotation names OUR serializer is what pins the fix in place: reverting to the old shape
+    // fails here, not six months later when a ninth game ships.
+    emitKotlin(z.object({ game: z.enum(["pokemon", "mtg"]) }), "Req");
+    const out = flush();
+    expect(out).toContain("@Serializable(with = GameSerializer::class)");
+    expect(out).toContain("public object GameSerializer : KSerializer<Game> {");
+    expect(out).toContain("PrimitiveSerialDescriptor(\"Game\", PrimitiveKind.STRING)");
+    expect(out).not.toContain("public enum class");
   });
 
   it("lowercases the first character of a property derived from a leading underscore and adds @SerialName", () => {
@@ -57,5 +80,18 @@ describe("zod-to-kotlin", () => {
     const out = flush();
     expect(out).toMatch(/val name: String,?\n/);
     expect(out).not.toContain("val name: String = null");
+  });
+
+  // ── decisions/0027 sibling clause — Zod defaults are a server-parse behaviour ─────────────
+  it("emits a Zod .default([]) as a Kotlin default, so an ABSENT key still decodes", () => {
+    emitKotlin(z.object({ candidates: z.array(z.string()).default([]) }), "Resp");
+    const out = flush();
+    expect(out).toContain("val candidates: List<String> = emptyList()");
+  });
+
+  it("does not invent a default for a plain required array", () => {
+    // The distinction under test: .default([]) is a wire-absence guarantee, a bare array is not.
+    emitKotlin(z.object({ candidates: z.array(z.string()) }), "Resp");
+    expect(flush()).toContain("val candidates: List<String>,");
   });
 });

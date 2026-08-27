@@ -1,0 +1,46 @@
+# CI for the contracts package.
+#
+# This did not exist until 2026-08-27, which matters more than a missing-workflow bug usually
+# would: curio-shared/decisions/0026 asserted that RoundTripTest.kt "runs in that repo's CI today"
+# and used that as the evidence that a Kotlin conformance suite is feasible. The test file was
+# real; the CI was not. decisions/0026's load-bearing rule is "any platform failing any vector
+# fails CI", and for Kotlin that rule had nothing behind it.
+#
+# That is precisely the failure mode 0026 itself warns about — a suite that looks like enforcement
+# and is not — so the fix is this file, not a softening of the rule.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+      # The generated Swift/Kotlin/dist output must match a fresh build of the schemas. Catches a
+      # generator change that was never regenerated, and a hand-edit of generated output.
+      - run: npm run check
+
+  kotlin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned. The Kotlin 2.0.20 compiler throws an internal error on JDK version strings it
+      # cannot parse, so "whatever JDK the runner defaults to" is not a safe input for this job.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      # RoundTripTest — the generated data classes really do decode real response shapes.
+      # UnknownEnumValueTest — decisions/0027: an unrecognised enum value decodes to Unknown
+      # THROUGH ITS CONTAINING RESPONSE TYPE rather than throwing and taking the response with it.
+      - run: ./gradlew test --no-daemon

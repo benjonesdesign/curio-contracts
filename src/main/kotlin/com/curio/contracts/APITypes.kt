@@ -3,8 +3,14 @@
 
 package com.curio.contracts
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
+import kotlinx.serialization.descriptors.PrimitiveKind
+import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonElement
 
 @Serializable
@@ -68,11 +74,42 @@ public data class IdentifyResponse(
     @SerialName("ai_call_avoided") val aiCallAvoided: Boolean? = null,
 )
 
-@Serializable
-public enum class GameConfidence {
-    @SerialName("high") HIGH,
-    @SerialName("medium") MEDIUM,
-    @SerialName("low") LOW;
+@Serializable(with = GameConfidenceSerializer::class)
+public sealed interface GameConfidence {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object HIGH : GameConfidence {
+        override val rawValue: String get() = "high"
+    }
+    public object MEDIUM : GameConfidence {
+        override val rawValue: String get() = "medium"
+    }
+    public object LOW : GameConfidence {
+        override val rawValue: String get() = "low"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : GameConfidence
+
+    public companion object {
+        public fun from(raw: String): GameConfidence = when (raw) {
+            "high" -> HIGH
+            "medium" -> MEDIUM
+            "low" -> LOW
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object GameConfidenceSerializer : KSerializer<GameConfidence> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("GameConfidence", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): GameConfidence = GameConfidence.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: GameConfidence) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -94,18 +131,80 @@ public data class Flaw(
     val severity: Severity,
 )
 
-@Serializable
-public enum class Side {
-    @SerialName("front") FRONT,
-    @SerialName("back") BACK,
-    @SerialName("unknown") UNKNOWN;
+@Serializable(with = SideSerializer::class)
+public sealed interface Side {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FRONT : Side {
+        override val rawValue: String get() = "front"
+    }
+    public object BACK : Side {
+        override val rawValue: String get() = "back"
+    }
+    public object UNKNOWN : Side {
+        override val rawValue: String get() = "unknown"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Side
+
+    public companion object {
+        public fun from(raw: String): Side = when (raw) {
+            "front" -> FRONT
+            "back" -> BACK
+            "unknown" -> UNKNOWN
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Severity {
-    @SerialName("minor") MINOR,
-    @SerialName("moderate") MODERATE,
-    @SerialName("major") MAJOR;
+public object SideSerializer : KSerializer<Side> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Side", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Side = Side.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Side) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = SeveritySerializer::class)
+public sealed interface Severity {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object MINOR : Severity {
+        override val rawValue: String get() = "minor"
+    }
+    public object MODERATE : Severity {
+        override val rawValue: String get() = "moderate"
+    }
+    public object MAJOR : Severity {
+        override val rawValue: String get() = "major"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Severity
+
+    public companion object {
+        public fun from(raw: String): Severity = when (raw) {
+            "minor" -> MINOR
+            "moderate" -> MODERATE
+            "major" -> MAJOR
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object SeveritySerializer : KSerializer<Severity> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Severity", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Severity = Severity.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Severity) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -114,10 +213,38 @@ public data class FieldSources(
     val confidence: String? = null,
 )
 
-@Serializable
-public enum class Source {
-    @SerialName("vision") VISION,
-    @SerialName("seller") SELLER;
+@Serializable(with = SourceSerializer::class)
+public sealed interface Source {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object VISION : Source {
+        override val rawValue: String get() = "vision"
+    }
+    public object SELLER : Source {
+        override val rawValue: String get() = "seller"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Source
+
+    public companion object {
+        public fun from(raw: String): Source = when (raw) {
+            "vision" -> VISION
+            "seller" -> SELLER
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object SourceSerializer : KSerializer<Source> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Source", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Source = Source.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Source) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -130,16 +257,72 @@ public data class ApiUsage(
     val cached: Boolean,
 )
 
-@Serializable
-public enum class Model {
-    @SerialName("gpt-4o") GPT_4O,
-    @SerialName("gpt-4o-mini") GPT_4O_MINI;
+@Serializable(with = ModelSerializer::class)
+public sealed interface Model {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object GPT_4O : Model {
+        override val rawValue: String get() = "gpt-4o"
+    }
+    public object GPT_4O_MINI : Model {
+        override val rawValue: String get() = "gpt-4o-mini"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Model
+
+    public companion object {
+        public fun from(raw: String): Model = when (raw) {
+            "gpt-4o" -> GPT_4O
+            "gpt-4o-mini" -> GPT_4O_MINI
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Tier {
-    @SerialName("tier0") TIER0,
-    @SerialName("vision") VISION;
+public object ModelSerializer : KSerializer<Model> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Model", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Model = Model.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Model) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = TierSerializer::class)
+public sealed interface Tier {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object TIER0 : Tier {
+        override val rawValue: String get() = "tier0"
+    }
+    public object VISION : Tier {
+        override val rawValue: String get() = "vision"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Tier
+
+    public companion object {
+        public fun from(raw: String): Tier = when (raw) {
+            "tier0" -> TIER0
+            "vision" -> VISION
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object TierSerializer : KSerializer<Tier> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Tier", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Tier = Tier.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Tier) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -148,9 +331,34 @@ public data class IdentifyAmbiguousResponse(
     val candidates: List<IdentifyCandidate>,
 )
 
-@Serializable
-public enum class IdentifyAmbiguousTier {
-    @SerialName("ambiguous") AMBIGUOUS;
+@Serializable(with = IdentifyAmbiguousTierSerializer::class)
+public sealed interface IdentifyAmbiguousTier {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object AMBIGUOUS : IdentifyAmbiguousTier {
+        override val rawValue: String get() = "ambiguous"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : IdentifyAmbiguousTier
+
+    public companion object {
+        public fun from(raw: String): IdentifyAmbiguousTier = when (raw) {
+            "ambiguous" -> AMBIGUOUS
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object IdentifyAmbiguousTierSerializer : KSerializer<IdentifyAmbiguousTier> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("IdentifyAmbiguousTier", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): IdentifyAmbiguousTier = IdentifyAmbiguousTier.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: IdentifyAmbiguousTier) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -190,10 +398,38 @@ public data class Detail(
     val path: String,
 )
 
-@Serializable
-public enum class Side2 {
-    @SerialName("front") FRONT,
-    @SerialName("back") BACK;
+@Serializable(with = Side2Serializer::class)
+public sealed interface Side2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FRONT : Side2 {
+        override val rawValue: String get() = "front"
+    }
+    public object BACK : Side2 {
+        override val rawValue: String get() = "back"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Side2
+
+    public companion object {
+        public fun from(raw: String): Side2 = when (raw) {
+            "front" -> FRONT
+            "back" -> BACK
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Side2Serializer : KSerializer<Side2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Side2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Side2 = Side2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Side2) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -211,10 +447,38 @@ public data class Detail2(
     val url: String,
 )
 
-@Serializable
-public enum class Side3 {
-    @SerialName("front") FRONT,
-    @SerialName("back") BACK;
+@Serializable(with = Side3Serializer::class)
+public sealed interface Side3 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FRONT : Side3 {
+        override val rawValue: String get() = "front"
+    }
+    public object BACK : Side3 {
+        override val rawValue: String get() = "back"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Side3
+
+    public companion object {
+        public fun from(raw: String): Side3 = when (raw) {
+            "front" -> FRONT
+            "back" -> BACK
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Side3Serializer : KSerializer<Side3> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Side3", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Side3 = Side3.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Side3) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -231,10 +495,38 @@ public data class Detail3(
     val dataUrl: String,
 )
 
-@Serializable
-public enum class Side4 {
-    @SerialName("front") FRONT,
-    @SerialName("back") BACK;
+@Serializable(with = Side4Serializer::class)
+public sealed interface Side4 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FRONT : Side4 {
+        override val rawValue: String get() = "front"
+    }
+    public object BACK : Side4 {
+        override val rawValue: String get() = "back"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Side4
+
+    public companion object {
+        public fun from(raw: String): Side4 = when (raw) {
+            "front" -> FRONT
+            "back" -> BACK
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Side4Serializer : KSerializer<Side4> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Side4", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Side4 = Side4.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Side4) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -249,16 +541,62 @@ public data class CatalogueLookupMatch(
     val image: String? = null,
 )
 
-@Serializable
-public enum class Game {
-    @SerialName("pokemon") POKEMON,
-    @SerialName("pokemon-jp") POKEMON_JP,
-    @SerialName("mtg") MTG,
-    @SerialName("yugioh") YUGIOH,
-    @SerialName("lorcana") LORCANA,
-    @SerialName("one-piece") ONE_PIECE,
-    @SerialName("digimon") DIGIMON,
-    @SerialName("dbs-fusion") DBS_FUSION;
+@Serializable(with = GameSerializer::class)
+public sealed interface Game {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object POKEMON : Game {
+        override val rawValue: String get() = "pokemon"
+    }
+    public object POKEMON_JP : Game {
+        override val rawValue: String get() = "pokemon-jp"
+    }
+    public object MTG : Game {
+        override val rawValue: String get() = "mtg"
+    }
+    public object YUGIOH : Game {
+        override val rawValue: String get() = "yugioh"
+    }
+    public object LORCANA : Game {
+        override val rawValue: String get() = "lorcana"
+    }
+    public object ONE_PIECE : Game {
+        override val rawValue: String get() = "one-piece"
+    }
+    public object DIGIMON : Game {
+        override val rawValue: String get() = "digimon"
+    }
+    public object DBS_FUSION : Game {
+        override val rawValue: String get() = "dbs-fusion"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Game
+
+    public companion object {
+        public fun from(raw: String): Game = when (raw) {
+            "pokemon" -> POKEMON
+            "pokemon-jp" -> POKEMON_JP
+            "mtg" -> MTG
+            "yugioh" -> YUGIOH
+            "lorcana" -> LORCANA
+            "one-piece" -> ONE_PIECE
+            "digimon" -> DIGIMON
+            "dbs-fusion" -> DBS_FUSION
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object GameSerializer : KSerializer<Game> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Game", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Game = Game.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Game) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -267,10 +605,38 @@ public data class Ocr(
     val number: String? = null,
 )
 
-@Serializable
-public enum class CollectionType {
-    @SerialName("personal") PERSONAL,
-    @SerialName("resale") RESALE;
+@Serializable(with = CollectionTypeSerializer::class)
+public sealed interface CollectionType {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PERSONAL : CollectionType {
+        override val rawValue: String get() = "personal"
+    }
+    public object RESALE : CollectionType {
+        override val rawValue: String get() = "resale"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : CollectionType
+
+    public companion object {
+        public fun from(raw: String): CollectionType = when (raw) {
+            "personal" -> PERSONAL
+            "resale" -> RESALE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CollectionTypeSerializer : KSerializer<CollectionType> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CollectionType", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): CollectionType = CollectionType.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: CollectionType) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -288,27 +654,126 @@ public data class ShotQualityDescriptor(
     val centeringTB: Double? = null,
 )
 
-@Serializable
-public enum class Side5 {
-    @SerialName("front") FRONT,
-    @SerialName("back") BACK;
+@Serializable(with = Side5Serializer::class)
+public sealed interface Side5 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FRONT : Side5 {
+        override val rawValue: String get() = "front"
+    }
+    public object BACK : Side5 {
+        override val rawValue: String get() = "back"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Side5
+
+    public companion object {
+        public fun from(raw: String): Side5 = when (raw) {
+            "front" -> FRONT
+            "back" -> BACK
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Orientation {
-    @SerialName("correct") CORRECT,
-    @SerialName("rotated_90") ROTATED_90,
-    @SerialName("rotated_180") ROTATED_180,
-    @SerialName("rotated_270") ROTATED_270,
-    @SerialName("unknown") UNKNOWN;
+public object Side5Serializer : KSerializer<Side5> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Side5", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Side5 = Side5.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Side5) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
-@Serializable
-public enum class Exposure {
-    @SerialName("under") UNDER,
-    @SerialName("over") OVER,
-    @SerialName("ok") OK,
-    @SerialName("unknown") UNKNOWN;
+@Serializable(with = OrientationSerializer::class)
+public sealed interface Orientation {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CORRECT : Orientation {
+        override val rawValue: String get() = "correct"
+    }
+    public object ROTATED_90 : Orientation {
+        override val rawValue: String get() = "rotated_90"
+    }
+    public object ROTATED_180 : Orientation {
+        override val rawValue: String get() = "rotated_180"
+    }
+    public object ROTATED_270 : Orientation {
+        override val rawValue: String get() = "rotated_270"
+    }
+    public object UNKNOWN : Orientation {
+        override val rawValue: String get() = "unknown"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Orientation
+
+    public companion object {
+        public fun from(raw: String): Orientation = when (raw) {
+            "correct" -> CORRECT
+            "rotated_90" -> ROTATED_90
+            "rotated_180" -> ROTATED_180
+            "rotated_270" -> ROTATED_270
+            "unknown" -> UNKNOWN
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object OrientationSerializer : KSerializer<Orientation> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Orientation", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Orientation = Orientation.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Orientation) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = ExposureSerializer::class)
+public sealed interface Exposure {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object UNDER : Exposure {
+        override val rawValue: String get() = "under"
+    }
+    public object OVER : Exposure {
+        override val rawValue: String get() = "over"
+    }
+    public object OK : Exposure {
+        override val rawValue: String get() = "ok"
+    }
+    public object UNKNOWN : Exposure {
+        override val rawValue: String get() = "unknown"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Exposure
+
+    public companion object {
+        public fun from(raw: String): Exposure = when (raw) {
+            "under" -> UNDER
+            "over" -> OVER
+            "ok" -> OK
+            "unknown" -> UNKNOWN
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ExposureSerializer : KSerializer<Exposure> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Exposure", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Exposure = Exposure.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Exposure) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -377,15 +842,58 @@ public data class RecommendResponse(
     val gradeEVConfidence: GradeEVConfidence? = null,
 )
 
-@Serializable
-public enum class RecommendedRoute {
-    @SerialName("list_single") LIST_SINGLE,
-    @SerialName("bundle") BUNDLE,
-    @SerialName("bulk") BULK,
-    @SerialName("hold") HOLD,
-    @SerialName("grade_review") GRADE_REVIEW,
-    @SerialName("restoration_review") RESTORATION_REVIEW,
-    @SerialName("do_not_list") DO_NOT_LIST;
+@Serializable(with = RecommendedRouteSerializer::class)
+public sealed interface RecommendedRoute {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object LIST_SINGLE : RecommendedRoute {
+        override val rawValue: String get() = "list_single"
+    }
+    public object BUNDLE : RecommendedRoute {
+        override val rawValue: String get() = "bundle"
+    }
+    public object BULK : RecommendedRoute {
+        override val rawValue: String get() = "bulk"
+    }
+    public object HOLD : RecommendedRoute {
+        override val rawValue: String get() = "hold"
+    }
+    public object GRADE_REVIEW : RecommendedRoute {
+        override val rawValue: String get() = "grade_review"
+    }
+    public object RESTORATION_REVIEW : RecommendedRoute {
+        override val rawValue: String get() = "restoration_review"
+    }
+    public object DO_NOT_LIST : RecommendedRoute {
+        override val rawValue: String get() = "do_not_list"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : RecommendedRoute
+
+    public companion object {
+        public fun from(raw: String): RecommendedRoute = when (raw) {
+            "list_single" -> LIST_SINGLE
+            "bundle" -> BUNDLE
+            "bulk" -> BULK
+            "hold" -> HOLD
+            "grade_review" -> GRADE_REVIEW
+            "restoration_review" -> RESTORATION_REVIEW
+            "do_not_list" -> DO_NOT_LIST
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object RecommendedRouteSerializer : KSerializer<RecommendedRoute> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("RecommendedRoute", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): RecommendedRoute = RecommendedRoute.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: RecommendedRoute) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -405,17 +913,76 @@ public data class Economics(
     val liquidity: Liquidity? = null,
 )
 
-@Serializable
-public enum class Liquidity {
-    @SerialName("high") HIGH,
-    @SerialName("medium") MEDIUM,
-    @SerialName("low") LOW;
+@Serializable(with = LiquiditySerializer::class)
+public sealed interface Liquidity {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object HIGH : Liquidity {
+        override val rawValue: String get() = "high"
+    }
+    public object MEDIUM : Liquidity {
+        override val rawValue: String get() = "medium"
+    }
+    public object LOW : Liquidity {
+        override val rawValue: String get() = "low"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Liquidity
+
+    public companion object {
+        public fun from(raw: String): Liquidity = when (raw) {
+            "high" -> HIGH
+            "medium" -> MEDIUM
+            "low" -> LOW
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class GradeEVConfidence {
-    @SerialName("medium") MEDIUM,
-    @SerialName("low") LOW;
+public object LiquiditySerializer : KSerializer<Liquidity> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Liquidity", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Liquidity = Liquidity.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Liquidity) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = GradeEVConfidenceSerializer::class)
+public sealed interface GradeEVConfidence {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object MEDIUM : GradeEVConfidence {
+        override val rawValue: String get() = "medium"
+    }
+    public object LOW : GradeEVConfidence {
+        override val rawValue: String get() = "low"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : GradeEVConfidence
+
+    public companion object {
+        public fun from(raw: String): GradeEVConfidence = when (raw) {
+            "medium" -> MEDIUM
+            "low" -> LOW
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object GradeEVConfidenceSerializer : KSerializer<GradeEVConfidence> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("GradeEVConfidence", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): GradeEVConfidence = GradeEVConfidence.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: GradeEVConfidence) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -439,10 +1006,38 @@ public data class RecommendBatchCardInput(
     val isVintage: Boolean? = null,
 )
 
-@Serializable
-public enum class CollectionType2 {
-    @SerialName("personal") PERSONAL,
-    @SerialName("resale") RESALE;
+@Serializable(with = CollectionType2Serializer::class)
+public sealed interface CollectionType2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PERSONAL : CollectionType2 {
+        override val rawValue: String get() = "personal"
+    }
+    public object RESALE : CollectionType2 {
+        override val rawValue: String get() = "resale"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : CollectionType2
+
+    public companion object {
+        public fun from(raw: String): CollectionType2 = when (raw) {
+            "personal" -> PERSONAL
+            "resale" -> RESALE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CollectionType2Serializer : KSerializer<CollectionType2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CollectionType2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): CollectionType2 = CollectionType2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: CollectionType2) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -544,9 +1139,34 @@ public data class CertLookupRequest(
     val certNumber: String,
 )
 
-@Serializable
-public enum class Grader {
-    @SerialName("PSA") PSA;
+@Serializable(with = GraderSerializer::class)
+public sealed interface Grader {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PSA : Grader {
+        override val rawValue: String get() = "PSA"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Grader
+
+    public companion object {
+        public fun from(raw: String): Grader = when (raw) {
+            "PSA" -> PSA
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object GraderSerializer : KSerializer<Grader> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Grader", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Grader = Grader.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Grader) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -565,9 +1185,34 @@ public data class CertLookupResponse(
     val labelType: String? = null,
 )
 
-@Serializable
-public enum class Grader2 {
-    @SerialName("PSA") PSA;
+@Serializable(with = Grader2Serializer::class)
+public sealed interface Grader2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PSA : Grader2 {
+        override val rawValue: String get() = "PSA"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Grader2
+
+    public companion object {
+        public fun from(raw: String): Grader2 = when (raw) {
+            "PSA" -> PSA
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Grader2Serializer : KSerializer<Grader2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Grader2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Grader2 = Grader2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Grader2) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -578,9 +1223,34 @@ public data class ChannelListingRequest(
     val condition: String,
 )
 
-@Serializable
-public enum class Channel {
-    @SerialName("cardtrader") CARDTRADER;
+@Serializable(with = ChannelSerializer::class)
+public sealed interface Channel {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CARDTRADER : Channel {
+        override val rawValue: String get() = "cardtrader"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Channel
+
+    public companion object {
+        public fun from(raw: String): Channel = when (raw) {
+            "cardtrader" -> CARDTRADER
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChannelSerializer : KSerializer<Channel> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Channel", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Channel = Channel.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Channel) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -592,10 +1262,38 @@ public data class ChannelListingResponse(
     val error: String? = null,
 )
 
-@Serializable
-public enum class Status {
-    @SerialName("listed") LISTED,
-    @SerialName("failed") FAILED;
+@Serializable(with = StatusSerializer::class)
+public sealed interface Status {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object LISTED : Status {
+        override val rawValue: String get() = "listed"
+    }
+    public object FAILED : Status {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Status
+
+    public companion object {
+        public fun from(raw: String): Status = when (raw) {
+            "listed" -> LISTED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object StatusSerializer : KSerializer<Status> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Status", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Status = Status.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Status) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -610,7 +1308,7 @@ public data class CatalogueLookupRequest(
 public data class CatalogueLookupResponse(
     val match: CatalogueLookupMatch? = null,
     val confidence: GameConfidence? = null,
-    val candidates: List<CatalogueLookupMatch>,
+    val candidates: List<CatalogueLookupMatch> = emptyList(),
 )
 
 @Serializable
@@ -625,28 +1323,130 @@ public data class Entitlement(
     val updatedAt: String,
 )
 
-@Serializable
-public enum class Tier2 {
-    @SerialName("free") FREE,
-    @SerialName("starter") STARTER,
-    @SerialName("growth") GROWTH,
-    @SerialName("pro") PRO;
+@Serializable(with = Tier2Serializer::class)
+public sealed interface Tier2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FREE : Tier2 {
+        override val rawValue: String get() = "free"
+    }
+    public object STARTER : Tier2 {
+        override val rawValue: String get() = "starter"
+    }
+    public object GROWTH : Tier2 {
+        override val rawValue: String get() = "growth"
+    }
+    public object PRO : Tier2 {
+        override val rawValue: String get() = "pro"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Tier2
+
+    public companion object {
+        public fun from(raw: String): Tier2 = when (raw) {
+            "free" -> FREE
+            "starter" -> STARTER
+            "growth" -> GROWTH
+            "pro" -> PRO
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Status2 {
-    @SerialName("active") ACTIVE,
-    @SerialName("trialing") TRIALING,
-    @SerialName("past_due") PAST_DUE,
-    @SerialName("grace") GRACE,
-    @SerialName("canceled") CANCELED,
-    @SerialName("expired") EXPIRED;
+public object Tier2Serializer : KSerializer<Tier2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Tier2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Tier2 = Tier2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Tier2) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
-@Serializable
-public enum class Source2 {
-    @SerialName("stripe") STRIPE,
-    @SerialName("apple") APPLE;
+@Serializable(with = Status2Serializer::class)
+public sealed interface Status2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object ACTIVE : Status2 {
+        override val rawValue: String get() = "active"
+    }
+    public object TRIALING : Status2 {
+        override val rawValue: String get() = "trialing"
+    }
+    public object PAST_DUE : Status2 {
+        override val rawValue: String get() = "past_due"
+    }
+    public object GRACE : Status2 {
+        override val rawValue: String get() = "grace"
+    }
+    public object CANCELED : Status2 {
+        override val rawValue: String get() = "canceled"
+    }
+    public object EXPIRED : Status2 {
+        override val rawValue: String get() = "expired"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Status2
+
+    public companion object {
+        public fun from(raw: String): Status2 = when (raw) {
+            "active" -> ACTIVE
+            "trialing" -> TRIALING
+            "past_due" -> PAST_DUE
+            "grace" -> GRACE
+            "canceled" -> CANCELED
+            "expired" -> EXPIRED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Status2Serializer : KSerializer<Status2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Status2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Status2 = Status2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Status2) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = Source2Serializer::class)
+public sealed interface Source2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object STRIPE : Source2 {
+        override val rawValue: String get() = "stripe"
+    }
+    public object APPLE : Source2 {
+        override val rawValue: String get() = "apple"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Source2
+
+    public companion object {
+        public fun from(raw: String): Source2 = when (raw) {
+            "stripe" -> STRIPE
+            "apple" -> APPLE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Source2Serializer : KSerializer<Source2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Source2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Source2 = Source2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Source2) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -660,24 +1460,114 @@ public data class VerificationEventRequest(
     val source: Source3? = null,
 )
 
-@Serializable
-public enum class Kind {
-    @SerialName("identity") IDENTITY,
-    @SerialName("condition") CONDITION;
+@Serializable(with = KindSerializer::class)
+public sealed interface Kind {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IDENTITY : Kind {
+        override val rawValue: String get() = "identity"
+    }
+    public object CONDITION : Kind {
+        override val rawValue: String get() = "condition"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Kind
+
+    public companion object {
+        public fun from(raw: String): Kind = when (raw) {
+            "identity" -> IDENTITY
+            "condition" -> CONDITION
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Verdict {
-    @SerialName("confirmed") CONFIRMED,
-    @SerialName("not_present") NOT_PRESENT,
-    @SerialName("unsure") UNSURE;
+public object KindSerializer : KSerializer<Kind> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Kind", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Kind = Kind.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Kind) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
-@Serializable
-public enum class Source3 {
-    @SerialName("ios_capture") IOS_CAPTURE,
-    @SerialName("web_add_flow") WEB_ADD_FLOW,
-    @SerialName("other") OTHER;
+@Serializable(with = VerdictSerializer::class)
+public sealed interface Verdict {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CONFIRMED : Verdict {
+        override val rawValue: String get() = "confirmed"
+    }
+    public object NOT_PRESENT : Verdict {
+        override val rawValue: String get() = "not_present"
+    }
+    public object UNSURE : Verdict {
+        override val rawValue: String get() = "unsure"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Verdict
+
+    public companion object {
+        public fun from(raw: String): Verdict = when (raw) {
+            "confirmed" -> CONFIRMED
+            "not_present" -> NOT_PRESENT
+            "unsure" -> UNSURE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object VerdictSerializer : KSerializer<Verdict> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Verdict", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Verdict = Verdict.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Verdict) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = Source3Serializer::class)
+public sealed interface Source3 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IOS_CAPTURE : Source3 {
+        override val rawValue: String get() = "ios_capture"
+    }
+    public object WEB_ADD_FLOW : Source3 {
+        override val rawValue: String get() = "web_add_flow"
+    }
+    public object OTHER : Source3 {
+        override val rawValue: String get() = "other"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Source3
+
+    public companion object {
+        public fun from(raw: String): Source3 = when (raw) {
+            "ios_capture" -> IOS_CAPTURE
+            "web_add_flow" -> WEB_ADD_FLOW
+            "other" -> OTHER
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Source3Serializer : KSerializer<Source3> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Source3", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Source3 = Source3.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Source3) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -702,18 +1592,80 @@ public data class InspectionDepthHintResponse(
     val confidence: Confidence,
 )
 
-@Serializable
-public enum class DepthTier {
-    @SerialName("minimal") MINIMAL,
-    @SerialName("standard") STANDARD,
-    @SerialName("thorough") THOROUGH;
+@Serializable(with = DepthTierSerializer::class)
+public sealed interface DepthTier {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object MINIMAL : DepthTier {
+        override val rawValue: String get() = "minimal"
+    }
+    public object STANDARD : DepthTier {
+        override val rawValue: String get() = "standard"
+    }
+    public object THOROUGH : DepthTier {
+        override val rawValue: String get() = "thorough"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : DepthTier
+
+    public companion object {
+        public fun from(raw: String): DepthTier = when (raw) {
+            "minimal" -> MINIMAL
+            "standard" -> STANDARD
+            "thorough" -> THOROUGH
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class Confidence {
-    @SerialName("high") HIGH,
-    @SerialName("medium") MEDIUM,
-    @SerialName("low") LOW;
+public object DepthTierSerializer : KSerializer<DepthTier> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("DepthTier", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): DepthTier = DepthTier.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: DepthTier) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = ConfidenceSerializer::class)
+public sealed interface Confidence {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object HIGH : Confidence {
+        override val rawValue: String get() = "high"
+    }
+    public object MEDIUM : Confidence {
+        override val rawValue: String get() = "medium"
+    }
+    public object LOW : Confidence {
+        override val rawValue: String get() = "low"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Confidence
+
+    public companion object {
+        public fun from(raw: String): Confidence = when (raw) {
+            "high" -> HIGH
+            "medium" -> MEDIUM
+            "low" -> LOW
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ConfidenceSerializer : KSerializer<Confidence> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Confidence", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Confidence = Confidence.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Confidence) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -750,13 +1702,50 @@ public data class PricingRule(
     val updatedAt: String,
 )
 
-@Serializable
-public enum class Rounding {
-    @SerialName("none") NONE,
-    @SerialName("nearest_10p") NEAREST_10P,
-    @SerialName("nearest_50p") NEAREST_50P,
-    @SerialName("nearest_pound") NEAREST_POUND,
-    @SerialName("charm_99") CHARM_99;
+@Serializable(with = RoundingSerializer::class)
+public sealed interface Rounding {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NONE : Rounding {
+        override val rawValue: String get() = "none"
+    }
+    public object NEAREST_10P : Rounding {
+        override val rawValue: String get() = "nearest_10p"
+    }
+    public object NEAREST_50P : Rounding {
+        override val rawValue: String get() = "nearest_50p"
+    }
+    public object NEAREST_POUND : Rounding {
+        override val rawValue: String get() = "nearest_pound"
+    }
+    public object CHARM_99 : Rounding {
+        override val rawValue: String get() = "charm_99"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Rounding
+
+    public companion object {
+        public fun from(raw: String): Rounding = when (raw) {
+            "none" -> NONE
+            "nearest_10p" -> NEAREST_10P
+            "nearest_50p" -> NEAREST_50P
+            "nearest_pound" -> NEAREST_POUND
+            "charm_99" -> CHARM_99
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object RoundingSerializer : KSerializer<Rounding> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Rounding", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Rounding = Rounding.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Rounding) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -815,10 +1804,38 @@ public data class PricingBreakdownRequest(
     val settings: PricingSettings? = null,
 )
 
-@Serializable
-public enum class CollectionType3 {
-    @SerialName("personal") PERSONAL,
-    @SerialName("resale") RESALE;
+@Serializable(with = CollectionType3Serializer::class)
+public sealed interface CollectionType3 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PERSONAL : CollectionType3 {
+        override val rawValue: String get() = "personal"
+    }
+    public object RESALE : CollectionType3 {
+        override val rawValue: String get() = "resale"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : CollectionType3
+
+    public companion object {
+        public fun from(raw: String): CollectionType3 = when (raw) {
+            "personal" -> PERSONAL
+            "resale" -> RESALE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CollectionType3Serializer : KSerializer<CollectionType3> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CollectionType3", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): CollectionType3 = CollectionType3.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: CollectionType3) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -839,10 +1856,38 @@ public data class PricingBreakdownResponse(
     val priceKind: PriceKind,
 )
 
-@Serializable
-public enum class PriceKind {
-    @SerialName("realised") REALISED,
-    @SerialName("asking") ASKING;
+@Serializable(with = PriceKindSerializer::class)
+public sealed interface PriceKind {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object REALISED : PriceKind {
+        override val rawValue: String get() = "realised"
+    }
+    public object ASKING : PriceKind {
+        override val rawValue: String get() = "asking"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : PriceKind
+
+    public companion object {
+        public fun from(raw: String): PriceKind = when (raw) {
+            "realised" -> REALISED
+            "asking" -> ASKING
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object PriceKindSerializer : KSerializer<PriceKind> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("PriceKind", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): PriceKind = PriceKind.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: PriceKind) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
@@ -856,16 +1901,72 @@ public data class ProfileResponse(
     val isAdmin: Boolean,
 )
 
-@Serializable
-public enum class SellerType {
-    @SerialName("private") PRIVATE,
-    @SerialName("business") BUSINESS;
+@Serializable(with = SellerTypeSerializer::class)
+public sealed interface SellerType {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PRIVATE : SellerType {
+        override val rawValue: String get() = "private"
+    }
+    public object BUSINESS : SellerType {
+        override val rawValue: String get() = "business"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : SellerType
+
+    public companion object {
+        public fun from(raw: String): SellerType = when (raw) {
+            "private" -> PRIVATE
+            "business" -> BUSINESS
+            else -> Unknown(raw)
+        }
+    }
 }
 
-@Serializable
-public enum class SellerTypeSource {
-    @SerialName("manual") MANUAL,
-    @SerialName("auto") AUTO;
+public object SellerTypeSerializer : KSerializer<SellerType> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("SellerType", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): SellerType = SellerType.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: SellerType) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = SellerTypeSourceSerializer::class)
+public sealed interface SellerTypeSource {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object MANUAL : SellerTypeSource {
+        override val rawValue: String get() = "manual"
+    }
+    public object AUTO : SellerTypeSource {
+        override val rawValue: String get() = "auto"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : SellerTypeSource
+
+    public companion object {
+        public fun from(raw: String): SellerTypeSource = when (raw) {
+            "manual" -> MANUAL
+            "auto" -> AUTO
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object SellerTypeSourceSerializer : KSerializer<SellerTypeSource> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("SellerTypeSource", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): SellerTypeSource = SellerTypeSource.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: SellerTypeSource) {
+        encoder.encodeString(value.rawValue)
+    }
 }
 
 @Serializable
