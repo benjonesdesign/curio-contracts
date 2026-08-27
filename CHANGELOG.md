@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.1.27
+- **The drift guard now covers `dist/` — the artifact npm consumers actually import.** It
+  previously checked only the generated Swift and Kotlin, on the reasoning that `dist/` "is just
+  tsc output of `src/` and can't hand-drift". That was wrong in the one way that matters: nothing
+  forces `npm run build` to have been *run*. Edit a schema in `src/`, commit without building, and
+  `dist/` is stale — while Swift and Kotlin drift *would* have been caught. Since `main` is
+  `./dist/index.js`, that ships the OLD schema to every TypeScript consumer under a version number
+  claiming the new one, and every existing check passes: `contracts-check` verifies the installed
+  commit matches the pin, `versions-check` verifies the pin matches `versions.json`, and **neither
+  verifies that a tag CONTAINS what it claims**.
+  Verified by simulation, not assumption: a doc-comment-only edit to `src/` drifts `dist/.d.ts`
+  and `.js` while leaving Swift and Kotlin byte-identical — precisely the case the old guard waved
+  through.
+- **Release-integrity assertions.** When HEAD is tagged, the guard now also fails if
+  `package.json`'s version disagrees with the tag name, or if the tag is not an ancestor of
+  `origin/main`. The second would have caught the v0.1.10–v0.1.12 orphan-tag incident that
+  `versions.json`'s own note records finding months later by accident.
+- **Retroactive audit of existing tags:** v0.1.24, v0.1.25 and v0.1.26 all pass cleanly — zero
+  drift across `dist`, Swift and Kotlin. v0.1.22/v0.1.23 predate the Kotlin target so the current
+  guard cannot run against them end-to-end; no drift was found in the artifacts they do contain.
+- No runtime/schema change: the published contracts are identical to v0.1.26.
+
 ## v0.1.26
 - **New `profile` contract (`GET`/`PATCH /api/profile`)** — W18's P1
   (`curio-shared/canon/discovery/W18-onboarding-and-profile-discovery.md` §5/§6). One
