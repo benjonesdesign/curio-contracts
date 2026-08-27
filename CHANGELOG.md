@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.1.28
+- **Generated enums decode forward-compatibly (`curio-shared/decisions/0027`).** A plain Swift
+  `Codable` enum and a plain Kotlin `enum class` both THROW on an unrecognised raw value, and the
+  throw propagates to the **enclosing object** — so one unknown value anywhere in a response fails
+  the entire decode. A ninth `GameId` would have broken every pinned client's catalogue lookup, and
+  ADR 0004 already queues new games.
+
+  Kotlin enums are now a `sealed interface` + hand-rolled `KSerializer`: known values decode to
+  their own object, an unrecognised one decodes to `Unknown(rawValue)`, and `rawValue` is present
+  on every case so a value this build doesn't recognise **round-trips back unchanged** rather than
+  being silently dropped (0027 item 2a). Emitted mechanically from `(name, values)`.
+
+  ⚠️ **Shape change for Kotlin consumers.** `Game.POKEMON` etc. are now objects on a sealed
+  interface rather than enum constants. `.rawValue` reads and equality comparisons are unaffected;
+  an exhaustive `when` gains an `Unknown` branch. Swift generation is unchanged in this release and
+  remains to do.
+
+  The surface is larger than `GameId`: **52 enum-typed fields across 14 API modules**, all
+  decode-breaking, none protected by nullability. `game: Game?` handles ABSENT and does nothing for
+  UNRECOGNISED — they are different failures and only the first was handled.
+
+- **A Zod `.default()` now emits as a client default, not a required field.** `.default([])` is a
+  SERVER-PARSE behaviour: it tells the server's own parser what to substitute when it sees no key,
+  and never crosses the wire. Emitting it as required made an absent key a decode failure that took
+  the whole response down.
+
+  Two deployment couplings that created, neither previously written down: a client build consuming
+  the field **required** the server deployment that emits it, and a server **rollback** past that
+  deployment would break every deployed client — which App Store latency makes impossible to fix in
+  step. A required field is a rollback-safety defect, not merely a robustness one.
+
+  Audited rather than assumed: there is **exactly one** `.default()` in the whole contract surface
+  (`catalogue-lookup`'s `candidates`). Fixed at the generator anyway, so the next one is safe by
+  construction. `IdentifyAmbiguousResponse.candidates` has no default and stays **required** — a
+  blanket default would paper over real server bugs, and a test asserts that didn't happen.
+
+  Implementation asymmetry worth knowing: a property default suffices in Kotlin (`kotlinx` uses it
+  on an absent key). It does **not** in Swift — the synthesised `init(from:)` ignores property
+  defaults, calls `decode()`, and throws `keyNotFound` — so a struct with a defaulted field now
+  gets a real `init(from:)` using `decodeIfPresent ?? default`.
+
+- **This repo has CI for the first time.** `decisions/0026` asserted that `RoundTripTest.kt` "runs
+  in that repo's CI today" and used it as evidence the Kotlin conformance suite was enforceable.
+  The test file was real; there was no workflow at all. `.github/workflows/ci.yml` now runs the TS
+  tests, the drift guard, and `./gradlew test` on a pinned JDK 21. It caught a real error in the new
+  fixtures on its first run.
+
+  The unknown-value fixtures decode through the **containing response type**, never the bare enum:
+  the failure being guarded is a throw *propagating* to the enclosing object, and a bare-enum
+  fixture would pass while the real path breaks.
+
+
 ## v0.1.27
 - **The drift guard now covers `dist/` — the artifact npm consumers actually import.** It
   previously checked only the generated Swift and Kotlin, on the reasoning that `dist/` "is just
