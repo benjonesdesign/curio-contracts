@@ -115,7 +115,30 @@ export const DecideRequestSchema = z.object({
     game: GameIdSchema.optional(),
     isVintage: z.boolean().nullable().optional(),
     collectionType: z.enum(["personal", "resale"]).optional(),
-    /** Explicit settings override; omitted falls back to the account's saved profile. */
+    /**
+     * The seller's target return on this card, as a % of what they pay (e.g. 20, 30, 40). Optional;
+     * absent uses their saved profile value.
+     *
+     * ── WHY THIS IS ALLOWED WHEN pricingSettings IS DISCOURAGED ────────────────────────────────
+     *
+     * The line is: A CLIENT MAY SEND WHAT THE SELLER WANTS, NEVER WHAT THE WORLD COSTS.
+     *
+     * Fees, tax and postage are facts about the world, and the server owns them — a client asserting
+     * them is how max-buy came to charge every seller £0 in eBay fees. `pricingSettings` carries all
+     * eight of those at once, so sending it to express one preference means asserting a whole fee
+     * position the client does not own. iOS dropped its 20/30/40% picker rather than do that, which
+     * was the right refusal.
+     *
+     * Target margin is not in that category. It is a seller PREFERENCE, and a legitimately
+     * per-moment one — 20% on a fast-moving card, 40% on a slow one, decided standing in a shop.
+     * A scalar for it costs nothing and asserts nothing.
+     *
+     * Three consumers before it ships: the appraise screen's target-return picker, Best Offer's
+     * auto-decline floor, and W20's auction start price.
+     */
+    targetMarginPct: z.number().optional(),
+    /** Explicit settings override; omitted falls back to the account's saved profile. Prefer
+     *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
     pricingSettings: PricingSettingsSchema.optional(),
 });
 export const DecideResponseSchema = z.object({ decision: DecisionSchema });
@@ -129,6 +152,9 @@ export const QuickScanRequestSchema = z.object({
     game: GameIdSchema.optional(),
     condition: ConditionSchema.optional(),
     finish: z.string().nullable().optional(),
+    /** As on DecideRequest — a seller preference, not a cost assertion. More useful here, if
+     *  anything: an anonymous scanner has no saved profile to default from. */
+    targetMarginPct: z.number().optional(),
 });
 export const QuickScanCandidateSchema = z.object({
     game: GameIdSchema.nullable().optional(),
@@ -136,6 +162,21 @@ export const QuickScanCandidateSchema = z.object({
     name: z.string(),
     setName: z.string().nullable().optional(),
     cardNumber: z.string().nullable().optional(),
+    /**
+     * Catalogue reference image. `CatalogueLookupMatch` has carried one since v0.1.19; this was
+     * simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail the
+     * picker's differentiator.
+     *
+     * Its absence forced a SECOND card-search round trip purely to fetch images already held on the
+     * server — and anonymous scanning is already two calls through one shared 60/5min bucket, so a
+     * third would cut a brand-new user from ~30 scans per five minutes to ~20. That is the wedge's
+     * rate limit getting worse for exactly the audience it exists to convert.
+     *
+     * ⚠️ Until a server populates this, anyone collapsing those two calls into one silently loses
+     * the images. Display-only, hotlinked at render time per decisions/0022 — never downloaded,
+     * cached or re-hosted.
+     */
+    image: z.string().nullable().optional(),
 });
 export const QuickScanResponseSchema = z.object({
     /** Whether the scanned identity resolved to a real catalogue card. */

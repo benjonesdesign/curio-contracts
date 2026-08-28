@@ -168,7 +168,30 @@ export declare const DecideRequestSchema: z.ZodObject<{
     game: z.ZodOptional<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>;
     isVintage: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
     collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
-    /** Explicit settings override; omitted falls back to the account's saved profile. */
+    /**
+     * The seller's target return on this card, as a % of what they pay (e.g. 20, 30, 40). Optional;
+     * absent uses their saved profile value.
+     *
+     * ── WHY THIS IS ALLOWED WHEN pricingSettings IS DISCOURAGED ────────────────────────────────
+     *
+     * The line is: A CLIENT MAY SEND WHAT THE SELLER WANTS, NEVER WHAT THE WORLD COSTS.
+     *
+     * Fees, tax and postage are facts about the world, and the server owns them — a client asserting
+     * them is how max-buy came to charge every seller £0 in eBay fees. `pricingSettings` carries all
+     * eight of those at once, so sending it to express one preference means asserting a whole fee
+     * position the client does not own. iOS dropped its 20/30/40% picker rather than do that, which
+     * was the right refusal.
+     *
+     * Target margin is not in that category. It is a seller PREFERENCE, and a legitimately
+     * per-moment one — 20% on a fast-moving card, 40% on a slow one, decided standing in a shop.
+     * A scalar for it costs nothing and asserts nothing.
+     *
+     * Three consumers before it ships: the appraise screen's target-return picker, Best Offer's
+     * auto-decline floor, and W20's auction start price.
+     */
+    targetMarginPct: z.ZodOptional<z.ZodNumber>;
+    /** Explicit settings override; omitted falls back to the account's saved profile. Prefer
+     *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
     pricingSettings: z.ZodOptional<z.ZodObject<{
         ebayFeeRate: z.ZodNumber;
         ebayFeeFixed: z.ZodNumber;
@@ -214,6 +237,7 @@ export declare const DecideRequestSchema: z.ZodObject<{
         postageCost: number;
     } | undefined;
     marketValueGbp?: number | undefined;
+    targetMarginPct?: number | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     collectionType?: "personal" | "resale" | undefined;
@@ -231,6 +255,7 @@ export declare const DecideRequestSchema: z.ZodObject<{
         postageCost: number;
     } | undefined;
     marketValueGbp?: number | undefined;
+    targetMarginPct?: number | undefined;
 }>;
 export type DecideRequest = z.infer<typeof DecideRequestSchema>;
 export declare const DecideResponseSchema: z.ZodObject<{
@@ -401,12 +426,16 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     game: z.ZodOptional<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>;
     condition: z.ZodOptional<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>>;
     finish: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    /** As on DecideRequest — a seller preference, not a cost assertion. More useful here, if
+     *  anything: an anonymous scanner has no saved profile to default from. */
+    targetMarginPct: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     name?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
@@ -414,6 +443,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
 }>;
 export type QuickScanRequest = z.infer<typeof QuickScanRequestSchema>;
@@ -423,18 +453,35 @@ export declare const QuickScanCandidateSchema: z.ZodObject<{
     name: z.ZodString;
     setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     cardNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    /**
+     * Catalogue reference image. `CatalogueLookupMatch` has carried one since v0.1.19; this was
+     * simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail the
+     * picker's differentiator.
+     *
+     * Its absence forced a SECOND card-search round trip purely to fetch images already held on the
+     * server — and anonymous scanning is already two calls through one shared 60/5min bucket, so a
+     * third would cut a brand-new user from ~30 scans per five minutes to ~20. That is the wedge's
+     * rate limit getting worse for exactly the audience it exists to convert.
+     *
+     * ⚠️ Until a server populates this, anyone collapsing those two calls into one silently loses
+     * the images. Display-only, hotlinked at render time per decisions/0022 — never downloaded,
+     * cached or re-hosted.
+     */
+    image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     name: string;
     nativeId: string;
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    image?: string | null | undefined;
 }, {
     name: string;
     nativeId: string;
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    image?: string | null | undefined;
 }>;
 export declare const QuickScanResponseSchema: z.ZodObject<{
     /** Whether the scanned identity resolved to a real catalogue card. */
@@ -446,18 +493,35 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         name: z.ZodString;
         setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         cardNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        /**
+         * Catalogue reference image. `CatalogueLookupMatch` has carried one since v0.1.19; this was
+         * simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail the
+         * picker's differentiator.
+         *
+         * Its absence forced a SECOND card-search round trip purely to fetch images already held on the
+         * server — and anonymous scanning is already two calls through one shared 60/5min bucket, so a
+         * third would cut a brand-new user from ~30 scans per five minutes to ~20. That is the wedge's
+         * rate limit getting worse for exactly the audience it exists to convert.
+         *
+         * ⚠️ Until a server populates this, anyone collapsing those two calls into one silently loses
+         * the images. Display-only, hotlinked at render time per decisions/0022 — never downloaded,
+         * cached or re-hosted.
+         */
+        image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
         nativeId: string;
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }, {
         name: string;
         nativeId: string;
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }>, "many">>;
     /** The resolved card, when `identified`. */
     match: z.ZodOptional<z.ZodNullable<z.ZodObject<{
@@ -466,18 +530,35 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         name: z.ZodString;
         setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         cardNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        /**
+         * Catalogue reference image. `CatalogueLookupMatch` has carried one since v0.1.19; this was
+         * simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail the
+         * picker's differentiator.
+         *
+         * Its absence forced a SECOND card-search round trip purely to fetch images already held on the
+         * server — and anonymous scanning is already two calls through one shared 60/5min bucket, so a
+         * third would cut a brand-new user from ~30 scans per five minutes to ~20. That is the wedge's
+         * rate limit getting worse for exactly the audience it exists to convert.
+         *
+         * ⚠️ Until a server populates this, anyone collapsing those two calls into one silently loses
+         * the images. Display-only, hotlinked at render time per decisions/0022 — never downloaded,
+         * cached or re-hosted.
+         */
+        image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     }, "strip", z.ZodTypeAny, {
         name: string;
         nativeId: string;
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }, {
         name: string;
         nativeId: string;
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }>>>;
     /**
      * NULL when identity is unresolved — an ambiguous or unrecognised card has no decision to make,
@@ -600,6 +681,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }[];
     decision: {
         confidence: "high" | "medium" | "low";
@@ -633,6 +715,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     } | null | undefined;
 }, {
     decision: {
@@ -666,6 +749,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     }[] | undefined;
     match?: {
         name: string;
@@ -673,6 +757,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
     } | null | undefined;
     conditionAssessed?: boolean | undefined;
 }>;

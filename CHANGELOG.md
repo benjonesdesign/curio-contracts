@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.1.30
+Two additive fields, both requested by the iOS lane, both unblocking a screen.
+
+- **`targetMarginPct` (optional scalar) on `DecideRequest` and `QuickScanRequest`.** iOS dropped
+  its 20/30/40% target-return picker because the only way to carry a margin was `pricingSettings`,
+  which requires all eight fields — so the client would have been asserting a fee position it does
+  not own. **That refusal was correct**, and it is the bug this whole sequence started with.
+
+  The line this draws, worth stating once: **a client may send what the seller WANTS, never what
+  the world COSTS.** Fees, tax and postage are facts the server owns. Target margin is a seller
+  preference, and a legitimately per-moment one — 20% on a fast-moving card, 40% on a slow one,
+  decided standing in a shop. Absent, it falls back to the saved profile value.
+
+  Also on `QuickScanRequest`, where it is arguably more useful: an anonymous scanner has no saved
+  profile to default from.
+
+- **`image` on `QuickScanCandidate`.** `CatalogueLookupMatch` has carried one since v0.1.19; this
+  was simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail
+  the picker's differentiator.
+
+  Its absence forced a **second card-search round trip** purely to fetch images the server already
+  holds — and anonymous scanning is already two calls through one shared 60/5min bucket, so a third
+  cuts a brand-new user from ~30 scans per five minutes to ~20. That is the wedge's rate limit
+  getting worse for exactly the audience it exists to convert.
+
+  ⚠️ **Until a server populates it, collapsing those two calls into one silently loses the images.**
+  Display-only, hotlinked at render time per `decisions/0022`.
+
+
 ## v0.1.29
 - **New: `decide` — one decision shape, two entry points.** `POST /api/decide` (authenticated) and
   `POST /api/quick-scan` (anonymous) differ in auth and rate-limit bucket and in **nothing else**.
