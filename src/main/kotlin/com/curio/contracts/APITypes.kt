@@ -2025,6 +2025,7 @@ public data class DecideRequest(
     val game: Game? = null,
     val isVintage: Boolean? = null,
     val collectionType: CollectionType4? = null,
+    val targetMarginPct: Double? = null,
     val pricingSettings: PricingSettings? = null,
 )
 
@@ -2291,6 +2292,7 @@ public data class QuickScanRequest(
     val game: Game? = null,
     val condition: Condition? = null,
     val finish: String? = null,
+    val targetMarginPct: Double? = null,
 )
 
 @Serializable
@@ -2309,4 +2311,5 @@ public data class QuickScanCandidate(
     val name: String,
     val setName: String? = null,
     val cardNumber: String? = null,
+    val image: String? = null,
 )

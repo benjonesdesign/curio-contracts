@@ -1541,15 +1541,17 @@ public struct DecideRequest: Codable, Sendable {
     public let game: Game?
     public let isVintage: Bool?
     public let collectionType: CollectionType4?
+    public let targetMarginPct: Double?
     public let pricingSettings: PricingSettings?
 
-    public init(physicalCardId: String?, marketValueGbp: Double?, condition: Condition?, game: Game?, isVintage: Bool?, collectionType: CollectionType4?, pricingSettings: PricingSettings?) {
+    public init(physicalCardId: String?, marketValueGbp: Double?, condition: Condition?, game: Game?, isVintage: Bool?, collectionType: CollectionType4?, targetMarginPct: Double?, pricingSettings: PricingSettings?) {
         self.physicalCardId = physicalCardId
         self.marketValueGbp = marketValueGbp
         self.condition = condition
         self.game = game
         self.isVintage = isVintage
         self.collectionType = collectionType
+        self.targetMarginPct = targetMarginPct
         self.pricingSettings = pricingSettings
     }
 }
@@ -1693,14 +1695,16 @@ public struct QuickScanRequest: Codable, Sendable {
     public let game: Game?
     public let condition: Condition?
     public let finish: String?
+    public let targetMarginPct: Double?
 
-    public init(name: String?, setName: String?, cardNumber: String?, game: Game?, condition: Condition?, finish: String?) {
+    public init(name: String?, setName: String?, cardNumber: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?) {
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
         self.game = game
         self.condition = condition
         self.finish = finish
+        self.targetMarginPct = targetMarginPct
     }
 }
 
@@ -1743,12 +1747,14 @@ public struct QuickScanCandidate: Codable, Sendable {
     public let name: String
     public let setName: String?
     public let cardNumber: String?
+    public let image: String?
 
-    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?) {
+    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?, image: String?) {
         self.game = game
         self.nativeId = nativeId
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
+        self.image = image
     }
 }
