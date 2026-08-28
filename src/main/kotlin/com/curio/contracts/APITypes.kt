@@ -2016,3 +2016,297 @@ public data class StoredPricingSettingsPatch(
     val minSaleValue: Double? = null,
     val postageCost: Double? = null,
 )
+
+@Serializable
+public data class DecideRequest(
+    val physicalCardId: String? = null,
+    val marketValueGbp: Double? = null,
+    val condition: Condition? = null,
+    val game: Game? = null,
+    val isVintage: Boolean? = null,
+    val collectionType: CollectionType4? = null,
+    val pricingSettings: PricingSettings? = null,
+)
+
+@Serializable(with = ConditionSerializer::class)
+public sealed interface Condition {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NM : Condition {
+        override val rawValue: String get() = "NM"
+    }
+    public object LP : Condition {
+        override val rawValue: String get() = "LP"
+    }
+    public object MP : Condition {
+        override val rawValue: String get() = "MP"
+    }
+    public object HP : Condition {
+        override val rawValue: String get() = "HP"
+    }
+    public object DMG : Condition {
+        override val rawValue: String get() = "DMG"
+    }
+    public object GRADED : Condition {
+        override val rawValue: String get() = "Graded"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Condition
+
+    public companion object {
+        public fun from(raw: String): Condition = when (raw) {
+            "NM" -> NM
+            "LP" -> LP
+            "MP" -> MP
+            "HP" -> HP
+            "DMG" -> DMG
+            "Graded" -> GRADED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ConditionSerializer : KSerializer<Condition> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Condition", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Condition = Condition.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Condition) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = CollectionType4Serializer::class)
+public sealed interface CollectionType4 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PERSONAL : CollectionType4 {
+        override val rawValue: String get() = "personal"
+    }
+    public object RESALE : CollectionType4 {
+        override val rawValue: String get() = "resale"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : CollectionType4
+
+    public companion object {
+        public fun from(raw: String): CollectionType4 = when (raw) {
+            "personal" -> PERSONAL
+            "resale" -> RESALE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CollectionType4Serializer : KSerializer<CollectionType4> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CollectionType4", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): CollectionType4 = CollectionType4.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: CollectionType4) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class DecideResponse(
+    val decision: Decision,
+)
+
+@Serializable
+public data class Decision(
+    val route: RecommendedRoute,
+    val reason: RouteReason,
+    val alternatives: List<DecisionAlternative> = emptyList(),
+    val confidence: GameConfidence,
+    val liquidity: Liquidity,
+    val economics: DecisionEconomics,
+    val maxBuyGbp: Double,
+    val minAcceptGbp: Double,
+    val offerPctAtMax: Double,
+    val degraded: Boolean,
+    val degradedReasons: List<DegradedReason> = emptyList(),
+)
+
+@Serializable(with = RouteReasonSerializer::class)
+public sealed interface RouteReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object BELOW_BULK_FLOOR : RouteReason {
+        override val rawValue: String get() = "below_bulk_floor"
+    }
+    public object NET_BELOW_MINIMUM : RouteReason {
+        override val rawValue: String get() = "net_below_minimum"
+    }
+    public object GRADE_WORTH_REVIEWING : RouteReason {
+        override val rawValue: String get() = "grade_worth_reviewing"
+    }
+    public object THIN_MARKET : RouteReason {
+        override val rawValue: String get() = "thin_market"
+    }
+    public object BUNDLE_LOT_AVAILABLE : RouteReason {
+        override val rawValue: String get() = "bundle_lot_available"
+    }
+    public object SOUND_SINGLE_LISTING : RouteReason {
+        override val rawValue: String get() = "sound_single_listing"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : RouteReason
+
+    public companion object {
+        public fun from(raw: String): RouteReason = when (raw) {
+            "below_bulk_floor" -> BELOW_BULK_FLOOR
+            "net_below_minimum" -> NET_BELOW_MINIMUM
+            "grade_worth_reviewing" -> GRADE_WORTH_REVIEWING
+            "thin_market" -> THIN_MARKET
+            "bundle_lot_available" -> BUNDLE_LOT_AVAILABLE
+            "sound_single_listing" -> SOUND_SINGLE_LISTING
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object RouteReasonSerializer : KSerializer<RouteReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("RouteReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): RouteReason = RouteReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: RouteReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class DecisionAlternative(
+    val route: RecommendedRoute,
+    val reason: AlternativeReason,
+)
+
+@Serializable(with = AlternativeReasonSerializer::class)
+public sealed interface AlternativeReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NET_NEGATIVE_AFTER_COSTS : AlternativeReason {
+        override val rawValue: String get() = "net_negative_after_costs"
+    }
+    public object BUNDLE_SHARES_POSTAGE : AlternativeReason {
+        override val rawValue: String get() = "bundle_shares_postage"
+    }
+    public object LIST_UNGRADED_INSTEAD : AlternativeReason {
+        override val rawValue: String get() = "list_ungraded_instead"
+    }
+    public object LIST_NOW_ACCEPT_SLOWER : AlternativeReason {
+        override val rawValue: String get() = "list_now_accept_slower"
+    }
+    public object LIST_ALONE_INSTEAD : AlternativeReason {
+        override val rawValue: String get() = "list_alone_instead"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : AlternativeReason
+
+    public companion object {
+        public fun from(raw: String): AlternativeReason = when (raw) {
+            "net_negative_after_costs" -> NET_NEGATIVE_AFTER_COSTS
+            "bundle_shares_postage" -> BUNDLE_SHARES_POSTAGE
+            "list_ungraded_instead" -> LIST_UNGRADED_INSTEAD
+            "list_now_accept_slower" -> LIST_NOW_ACCEPT_SLOWER
+            "list_alone_instead" -> LIST_ALONE_INSTEAD
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object AlternativeReasonSerializer : KSerializer<AlternativeReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("AlternativeReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): AlternativeReason = AlternativeReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: AlternativeReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class DecisionEconomics(
+    val marketValueGbp: Double,
+    val feeGbp: Double,
+    val postageGbp: Double,
+    val packagingGbp: Double,
+    val costBasisGbp: Double? = null,
+    val taxProvisionGbp: Double,
+    val expectedNetGbp: Double,
+)
+
+@Serializable(with = DegradedReasonSerializer::class)
+public sealed interface DegradedReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NO_SALE_COUNT : DegradedReason {
+        override val rawValue: String get() = "no_sale_count"
+    }
+    public object FEES_UNKNOWN : DegradedReason {
+        override val rawValue: String get() = "fees_unknown"
+    }
+    public object COMPATIBLE_COUNT_UNKNOWN : DegradedReason {
+        override val rawValue: String get() = "compatible_count_unknown"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : DegradedReason
+
+    public companion object {
+        public fun from(raw: String): DegradedReason = when (raw) {
+            "no_sale_count" -> NO_SALE_COUNT
+            "fees_unknown" -> FEES_UNKNOWN
+            "compatible_count_unknown" -> COMPATIBLE_COUNT_UNKNOWN
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object DegradedReasonSerializer : KSerializer<DegradedReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("DegradedReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): DegradedReason = DegradedReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: DegradedReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class QuickScanRequest(
+    val name: String? = null,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val game: Game? = null,
+    val condition: Condition? = null,
+    val finish: String? = null,
+)
+
+@Serializable
+public data class QuickScanResponse(
+    val identified: Boolean,
+    val candidates: List<QuickScanCandidate> = emptyList(),
+    val match: QuickScanCandidate? = null,
+    val decision: Decision? = null,
+    val conditionAssessed: Boolean = false,
+)
+
+@Serializable
+public data class QuickScanCandidate(
+    val game: Game? = null,
+    val nativeId: String,
+    val name: String,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+)

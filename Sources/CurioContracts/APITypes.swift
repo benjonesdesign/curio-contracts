@@ -1533,3 +1533,222 @@ public struct StoredPricingSettingsPatch: Codable, Sendable {
         self.postageCost = postageCost
     }
 }
+
+public struct DecideRequest: Codable, Sendable {
+    public let physicalCardId: String?
+    public let marketValueGbp: Double?
+    public let condition: Condition?
+    public let game: Game?
+    public let isVintage: Bool?
+    public let collectionType: CollectionType4?
+    public let pricingSettings: PricingSettings?
+
+    public init(physicalCardId: String?, marketValueGbp: Double?, condition: Condition?, game: Game?, isVintage: Bool?, collectionType: CollectionType4?, pricingSettings: PricingSettings?) {
+        self.physicalCardId = physicalCardId
+        self.marketValueGbp = marketValueGbp
+        self.condition = condition
+        self.game = game
+        self.isVintage = isVintage
+        self.collectionType = collectionType
+        self.pricingSettings = pricingSettings
+    }
+}
+
+public enum Condition: String, Codable, Sendable {
+    case nM = "NM"
+    case lP = "LP"
+    case mP = "MP"
+    case hP = "HP"
+    case dMG = "DMG"
+    case graded = "Graded"
+}
+
+public enum CollectionType4: String, Codable, Sendable {
+    case personal = "personal"
+    case resale = "resale"
+}
+
+public struct DecideResponse: Codable, Sendable {
+    public let decision: Decision
+
+    public init(decision: Decision) {
+        self.decision = decision
+    }
+}
+
+public struct Decision: Codable, Sendable {
+    public let route: RecommendedRoute
+    public let reason: RouteReason
+    public let alternatives: [DecisionAlternative]
+    public let confidence: GameConfidence
+    public let liquidity: Liquidity
+    public let economics: DecisionEconomics
+    public let maxBuyGbp: Double
+    public let minAcceptGbp: Double
+    public let offerPctAtMax: Double
+    public let degraded: Bool
+    public let degradedReasons: [DegradedReason]
+
+    enum CodingKeys: String, CodingKey {
+        case route
+        case reason
+        case alternatives
+        case confidence
+        case liquidity
+        case economics
+        case maxBuyGbp
+        case minAcceptGbp
+        case offerPctAtMax
+        case degraded
+        case degradedReasons
+    }
+
+    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double, minAcceptGbp: Double, offerPctAtMax: Double, degraded: Bool, degradedReasons: [DegradedReason]) {
+        self.route = route
+        self.reason = reason
+        self.alternatives = alternatives
+        self.confidence = confidence
+        self.liquidity = liquidity
+        self.economics = economics
+        self.maxBuyGbp = maxBuyGbp
+        self.minAcceptGbp = minAcceptGbp
+        self.offerPctAtMax = offerPctAtMax
+        self.degraded = degraded
+        self.degradedReasons = degradedReasons
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.route = try c.decode(RecommendedRoute.self, forKey: .route)
+        self.reason = try c.decode(RouteReason.self, forKey: .reason)
+        self.alternatives = try c.decodeIfPresent([DecisionAlternative].self, forKey: .alternatives) ?? []
+        self.confidence = try c.decode(GameConfidence.self, forKey: .confidence)
+        self.liquidity = try c.decode(Liquidity.self, forKey: .liquidity)
+        self.economics = try c.decode(DecisionEconomics.self, forKey: .economics)
+        self.maxBuyGbp = try c.decode(Double.self, forKey: .maxBuyGbp)
+        self.minAcceptGbp = try c.decode(Double.self, forKey: .minAcceptGbp)
+        self.offerPctAtMax = try c.decode(Double.self, forKey: .offerPctAtMax)
+        self.degraded = try c.decode(Bool.self, forKey: .degraded)
+        self.degradedReasons = try c.decodeIfPresent([DegradedReason].self, forKey: .degradedReasons) ?? []
+    }
+}
+
+public enum RouteReason: String, Codable, Sendable {
+    case belowBulkFloor = "below_bulk_floor"
+    case netBelowMinimum = "net_below_minimum"
+    case gradeWorthReviewing = "grade_worth_reviewing"
+    case thinMarket = "thin_market"
+    case bundleLotAvailable = "bundle_lot_available"
+    case soundSingleListing = "sound_single_listing"
+}
+
+public struct DecisionAlternative: Codable, Sendable {
+    public let route: RecommendedRoute
+    public let reason: AlternativeReason
+
+    public init(route: RecommendedRoute, reason: AlternativeReason) {
+        self.route = route
+        self.reason = reason
+    }
+}
+
+public enum AlternativeReason: String, Codable, Sendable {
+    case netNegativeAfterCosts = "net_negative_after_costs"
+    case bundleSharesPostage = "bundle_shares_postage"
+    case listUngradedInstead = "list_ungraded_instead"
+    case listNowAcceptSlower = "list_now_accept_slower"
+    case listAloneInstead = "list_alone_instead"
+}
+
+public struct DecisionEconomics: Codable, Sendable {
+    public let marketValueGbp: Double
+    public let feeGbp: Double
+    public let postageGbp: Double
+    public let packagingGbp: Double
+    public let costBasisGbp: Double?
+    public let taxProvisionGbp: Double
+    public let expectedNetGbp: Double
+
+    public init(marketValueGbp: Double, feeGbp: Double, postageGbp: Double, packagingGbp: Double, costBasisGbp: Double?, taxProvisionGbp: Double, expectedNetGbp: Double) {
+        self.marketValueGbp = marketValueGbp
+        self.feeGbp = feeGbp
+        self.postageGbp = postageGbp
+        self.packagingGbp = packagingGbp
+        self.costBasisGbp = costBasisGbp
+        self.taxProvisionGbp = taxProvisionGbp
+        self.expectedNetGbp = expectedNetGbp
+    }
+}
+
+public enum DegradedReason: String, Codable, Sendable {
+    case noSaleCount = "no_sale_count"
+    case feesUnknown = "fees_unknown"
+    case compatibleCountUnknown = "compatible_count_unknown"
+}
+
+public struct QuickScanRequest: Codable, Sendable {
+    public let name: String?
+    public let setName: String?
+    public let cardNumber: String?
+    public let game: Game?
+    public let condition: Condition?
+    public let finish: String?
+
+    public init(name: String?, setName: String?, cardNumber: String?, game: Game?, condition: Condition?, finish: String?) {
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.game = game
+        self.condition = condition
+        self.finish = finish
+    }
+}
+
+public struct QuickScanResponse: Codable, Sendable {
+    public let identified: Bool
+    public let candidates: [QuickScanCandidate]
+    public let match: QuickScanCandidate?
+    public let decision: Decision?
+    public let conditionAssessed: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case identified
+        case candidates
+        case match
+        case decision
+        case conditionAssessed
+    }
+
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, conditionAssessed: Bool) {
+        self.identified = identified
+        self.candidates = candidates
+        self.match = match
+        self.decision = decision
+        self.conditionAssessed = conditionAssessed
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.identified = try c.decode(Bool.self, forKey: .identified)
+        self.candidates = try c.decodeIfPresent([QuickScanCandidate].self, forKey: .candidates) ?? []
+        self.match = try c.decodeIfPresent(QuickScanCandidate.self, forKey: .match)
+        self.decision = try c.decodeIfPresent(Decision.self, forKey: .decision)
+        self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
+    }
+}
+
+public struct QuickScanCandidate: Codable, Sendable {
+    public let game: Game?
+    public let nativeId: String
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+
+    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?) {
+        self.game = game
+        self.nativeId = nativeId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+    }
+}
