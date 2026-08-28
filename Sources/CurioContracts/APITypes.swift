@@ -1713,6 +1713,7 @@ public struct QuickScanResponse: Codable, Sendable {
     public let candidates: [QuickScanCandidate]
     public let match: QuickScanCandidate?
     public let decision: Decision?
+    public let decisionUnavailable: DecisionUnavailable?
     public let conditionAssessed: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -1720,14 +1721,16 @@ public struct QuickScanResponse: Codable, Sendable {
         case candidates
         case match
         case decision
+        case decisionUnavailable
         case conditionAssessed
     }
 
-    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, conditionAssessed: Bool) {
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool) {
         self.identified = identified
         self.candidates = candidates
         self.match = match
         self.decision = decision
+        self.decisionUnavailable = decisionUnavailable
         self.conditionAssessed = conditionAssessed
     }
 
@@ -1737,6 +1740,7 @@ public struct QuickScanResponse: Codable, Sendable {
         self.candidates = try c.decodeIfPresent([QuickScanCandidate].self, forKey: .candidates) ?? []
         self.match = try c.decodeIfPresent(QuickScanCandidate.self, forKey: .match)
         self.decision = try c.decodeIfPresent(Decision.self, forKey: .decision)
+        self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable.self, forKey: .decisionUnavailable)
         self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
     }
 }
@@ -1757,4 +1761,10 @@ public struct QuickScanCandidate: Codable, Sendable {
         self.cardNumber = cardNumber
         self.image = image
     }
+}
+
+public enum DecisionUnavailable: String, Codable, Sendable {
+    case identityUnresolved = "identity_unresolved"
+    case noMarketValue = "no_market_value"
+    case pricingUnavailable = "pricing_unavailable"
 }

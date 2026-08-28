@@ -211,6 +211,27 @@ export const QuickScanResponseSchema = z.object({
    * what this is".
    */
   decision: DecisionSchema.nullable(),
+  /**
+   * WHY there is no decision. Present exactly when `decision` is null.
+   *
+   * Added because `decision: null` alone conflated states that need different handling, which is
+   * the defect `decisions/0024` records — and which was reintroduced one commit after documenting
+   * it. "We couldn't identify this card", "we know the card but have no price for it" and "the
+   * pricing path is unavailable" are a normal result, a normal result, and an OUTAGE. A single
+   * null cannot tell a client which to show, and cannot tell us which is happening in production.
+   *
+   * That last part is not hypothetical: an anonymous scan returned `decision: null` in production
+   * for every card tried, and the response could not distinguish "these cards have no price" from
+   * "the price path is down". Diagnosing it required guessing.
+   */
+  decisionUnavailable: z.enum([
+    /** Identity did not resolve — nothing to price yet. Expected, not a fault. */
+    "identity_unresolved",
+    /** Card identified, but no market value is known for it. A real answer about a real card. */
+    "no_market_value",
+    /** The pricing path itself failed. An OUTAGE — never show this as "no data for this card". */
+    "pricing_unavailable",
+  ]).nullable().optional(),
   /** Whether a condition assessment fed the decision, or the default was assumed. */
   conditionAssessed: z.boolean().default(false),
 });

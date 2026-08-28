@@ -672,6 +672,20 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     }>>;
+    /**
+     * WHY there is no decision. Present exactly when `decision` is null.
+     *
+     * Added because `decision: null` alone conflated states that need different handling, which is
+     * the defect `decisions/0024` records — and which was reintroduced one commit after documenting
+     * it. "We couldn't identify this card", "we know the card but have no price for it" and "the
+     * pricing path is unavailable" are a normal result, a normal result, and an OUTAGE. A single
+     * null cannot tell a client which to show, and cannot tell us which is happening in production.
+     *
+     * That last part is not hypothetical: an anonymous scan returned `decision: null` in production
+     * for every card tried, and the response could not distinguish "these cards have no price" from
+     * "the price path is down". Diagnosing it required guessing.
+     */
+    decisionUnavailable: z.ZodOptional<z.ZodNullable<z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>>>;
     /** Whether a condition assessment fed the decision, or the default was assumed. */
     conditionAssessed: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
@@ -717,6 +731,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         cardNumber?: string | null | undefined;
         image?: string | null | undefined;
     } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
 }, {
     decision: {
         confidence: "high" | "medium" | "low";
@@ -759,6 +774,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         cardNumber?: string | null | undefined;
         image?: string | null | undefined;
     } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
     conditionAssessed?: boolean | undefined;
 }>;
 export type QuickScanResponse = z.infer<typeof QuickScanResponseSchema>;

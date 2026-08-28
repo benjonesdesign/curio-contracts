@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.1.31
+- **`decisionUnavailable` on `QuickScanResponse`** — why there is no decision, present exactly when
+  `decision` is null.
+
+  `decision: null` alone conflated three states that need different handling: identity didn't
+  resolve, the card is known but has no price, or **the pricing path is down**. The first two are
+  normal results; the third is an outage. A single null can't tell a client which to render, and
+  can't tell us which is happening in production.
+
+  That is not hypothetical, and the timing is the point: this is the exact defect
+  `decisions/0024` records — *"a field that conflates 'no data for this input' with 'this subsystem
+  is unavailable' will hide an outage indefinitely"* — reintroduced **one commit after** writing
+  it down. An anonymous scan returned `decision: null` for every card tried in production, and
+  diagnosing it required guessing rather than reading.
+
+
 ## v0.1.30
 Two additive fields, both requested by the iOS lane, both unblocking a screen.
 

@@ -2301,6 +2301,7 @@ public data class QuickScanResponse(
     val candidates: List<QuickScanCandidate> = emptyList(),
     val match: QuickScanCandidate? = null,
     val decision: Decision? = null,
+    val decisionUnavailable: DecisionUnavailable? = null,
     val conditionAssessed: Boolean = false,
 )
 
@@ -2313,3 +2314,41 @@ public data class QuickScanCandidate(
     val cardNumber: String? = null,
     val image: String? = null,
 )
+
+@Serializable(with = DecisionUnavailableSerializer::class)
+public sealed interface DecisionUnavailable {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IDENTITY_UNRESOLVED : DecisionUnavailable {
+        override val rawValue: String get() = "identity_unresolved"
+    }
+    public object NO_MARKET_VALUE : DecisionUnavailable {
+        override val rawValue: String get() = "no_market_value"
+    }
+    public object PRICING_UNAVAILABLE : DecisionUnavailable {
+        override val rawValue: String get() = "pricing_unavailable"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : DecisionUnavailable
+
+    public companion object {
+        public fun from(raw: String): DecisionUnavailable = when (raw) {
+            "identity_unresolved" -> IDENTITY_UNRESOLVED
+            "no_market_value" -> NO_MARKET_VALUE
+            "pricing_unavailable" -> PRICING_UNAVAILABLE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object DecisionUnavailableSerializer : KSerializer<DecisionUnavailable> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("DecisionUnavailable", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): DecisionUnavailable = DecisionUnavailable.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: DecisionUnavailable) {
+        encoder.encodeString(value.rawValue)
+    }
+}
