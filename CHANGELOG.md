@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.1.29
+- **New: `decide` — one decision shape, two entry points.** `POST /api/decide` (authenticated) and
+  `POST /api/quick-scan` (anonymous) differ in auth and rate-limit bucket and in **nothing else**.
+  Written as a single module deliberately: both answer "what should I do with this card, and what
+  may I pay for it?", and building them separately mints two shapes for one concept.
+
+  **`Decision` carries NO identity.** If it did, `/api/decide` — which receives an
+  already-identified card — would return `identified`/`candidates` permanently empty: required
+  fields nobody populates, which is exactly v0.1.28's own lesson. Quick Scan **composes** instead:
+  an identity block, and a `decision` that is **null** when identity is unresolved. Not an empty
+  Decision — absent. An ambiguous card has no decision to make, because there is no card to price.
+
+  **The two money figures are named by their verb**: `maxBuyGbp` (the most to PAY) and
+  `minAcceptGbp` (the least to ACCEPT). They point in opposite directions and are both "the
+  number"; a client confusing them has a money bug in the worst direction that reads as entirely
+  plausible. Nothing is called `maxBuy` and `walkAway` side by side and left to a comment.
+
+- **Reuses rather than mints.** `RecommendedRoute` is reused from `/api/recommend` — same concept,
+  already shipped and decoded, and a *superset* (it carries `restoration_review`, which the engine
+  does not yet produce). A narrower twin would have guaranteed a future additive change to a
+  shipped enum, which v0.1.28 makes a lockstep release. `ConfidenceSchema` is reused from
+  `common`.
+
+- **One `Liquidity`.** It was declared inline in `/api/recommend` and again in `decide`, which
+  generated `Liquidity` **and** `Liquidity2` on every client for the same three values. Now a
+  single `LiquiditySchema` in `common`, used by both.
+
+- `DecisionAlternative` carries a reason **code**, not `/api/recommend`'s `why: string`. The
+  English one makes the server the owner of copy for three platforms; this supersedes it. Both
+  exist during the transition because `/api/recommend` is shipped and iOS calls it.
+
+
 ## v0.1.28
 - **Generated enums decode forward-compatibly (`curio-shared/decisions/0027`).** A plain Swift
   `Codable` enum and a plain Kotlin `enum class` both THROW on an unrecognised raw value, and the

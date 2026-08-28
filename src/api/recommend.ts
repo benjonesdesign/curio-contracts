@@ -3,7 +3,7 @@
 // curio-shared/canon/specs/recommendation.md and pokemon-tool's app/api/recommend/route.ts +
 // lib/types.ts (RouteRecommendation family).
 import { z } from "zod";
-import { ConfidenceSchema } from "./common.js";
+import { ConfidenceSchema, LiquiditySchema } from "./common.js";
 
 // The seller's own pricing preferences (fee/cost/tax/margin assumptions the recommendation
 // engine's economics are computed against) — mirrors pokemon-tool's lib/pricing.ts
@@ -50,7 +50,7 @@ export const RouteEconomicsSchema = z.object({
   postage_gbp: z.number().nullable(),
   cost_basis_gbp: z.number().nullable(),
   expected_net_gbp: z.number().nullable(),
-  liquidity: z.enum(["high", "medium", "low"]).nullable(),
+  liquidity: LiquiditySchema.nullable(),
 });
 
 export const RouteAlternativeSchema = z.object({

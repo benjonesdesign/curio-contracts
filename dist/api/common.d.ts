@@ -14,4 +14,9 @@ export type GameId = z.infer<typeof GameIdSchema>;
 export declare const ConditionSchema: z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>;
 export type Condition = z.infer<typeof ConditionSchema>;
 export declare const ConfidenceSchema: z.ZodEnum<["high", "medium", "low"]>;
+/** How readily a card sells, from comparable-sale volume. Shared by /api/recommend's economics and
+ *  /api/decide — one concept, so one type. Declared inline in both before 2026-08-28, which
+ *  generated a `Liquidity` and a `Liquidity2` on every client for the same three values. */
+export declare const LiquiditySchema: z.ZodEnum<["high", "medium", "low"]>;
+export type Liquidity = z.infer<typeof LiquiditySchema>;
 export type Confidence = z.infer<typeof ConfidenceSchema>;
