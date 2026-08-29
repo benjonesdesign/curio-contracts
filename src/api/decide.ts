@@ -238,6 +238,23 @@ export const QuickScanCandidateSchema = z.object({
   name: z.string(),
   setName: z.string().nullable().optional(),
   cardNumber: z.string().nullable().optional(),
+  /** Rarity, for the attribute chip the collapse otherwise dropped. */
+  rarity: z.string().nullable().optional(),
+  /**
+   * How confident the CATALOGUE RESOLVER is in this match — not how confident we are in its price.
+   *
+   * `identified` is a boolean, and a boolean cannot express "resolved, but hold it at arm's
+   * length". iOS had an `.uncertain` state for exactly that and deleted it rather than leave an
+   * unreachable branch, which was the right call and a real capability loss: a medium-confidence
+   * name-trigram match and an exact number+set hit are not the same claim, and the UI should be
+   * able to say so.
+   *
+   * ⚠️ MUST NOT be re-derived client-side. It comes from the resolver tier that produced the
+   * match — a client inferring it from name similarity or field completeness would be inventing a
+   * second, disagreeing confidence model, which is the shape of every drift incident in this
+   * project's history.
+   */
+  confidence: ConfidenceSchema.nullable().optional(),
   /**
    * Catalogue reference image. `CatalogueLookupMatch` has carried one since v0.1.19; this was
    * simply omitted, because quick-scan predates the rule-13 amendment that makes the thumbnail the

@@ -1797,14 +1797,18 @@ public struct QuickScanCandidate: Codable, Sendable {
     public let name: String
     public let setName: String?
     public let cardNumber: String?
+    public let rarity: String?
+    public let confidence: GameConfidence?
     public let image: String?
 
-    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?, image: String?) {
+    public init(game: Game?, nativeId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, confidence: GameConfidence?, image: String?) {
         self.game = game
         self.nativeId = nativeId
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
+        self.rarity = rarity
+        self.confidence = confidence
         self.image = image
     }
 }
