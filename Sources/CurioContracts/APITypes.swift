@@ -1724,6 +1724,75 @@ public struct DecisionGradeEV: Codable, Sendable {
     }
 }
 
+public struct DecideBatchRequest: Codable, Sendable {
+    public let cards: [DecideBatchCard]
+    public let targetMarginPct: Double?
+    public let pricingSettings: PricingSettings?
+
+    public init(cards: [DecideBatchCard], targetMarginPct: Double?, pricingSettings: PricingSettings?) {
+        self.cards = cards
+        self.targetMarginPct = targetMarginPct
+        self.pricingSettings = pricingSettings
+    }
+}
+
+public struct DecideBatchCard: Codable, Sendable {
+    public let id: String
+    public let marketValueGbp: Double?
+    public let costBasisGbp: Double?
+    public let condition: Condition?
+    public let isVintage: Bool?
+    public let saleCount: Int?
+    public let priceSource: String?
+    public let compatibleCount: Int?
+    public let collectionType: CollectionType5?
+
+    public init(id: String, marketValueGbp: Double?, costBasisGbp: Double?, condition: Condition?, isVintage: Bool?, saleCount: Int?, priceSource: String?, compatibleCount: Int?, collectionType: CollectionType5?) {
+        self.id = id
+        self.marketValueGbp = marketValueGbp
+        self.costBasisGbp = costBasisGbp
+        self.condition = condition
+        self.isVintage = isVintage
+        self.saleCount = saleCount
+        self.priceSource = priceSource
+        self.compatibleCount = compatibleCount
+        self.collectionType = collectionType
+    }
+}
+
+public enum CollectionType5: String, Codable, Sendable {
+    case personal = "personal"
+    case resale = "resale"
+}
+
+public struct DecideBatchResponse: Codable, Sendable {
+    public let results: [DecideBatchResult]
+
+    public init(results: [DecideBatchResult]) {
+        self.results = results
+    }
+}
+
+public struct DecideBatchResult: Codable, Sendable {
+    public let id: String
+    public let decision: Decision?
+    public let decisionUnavailable: DecisionUnavailable?
+    public let price: PriceProvenance?
+
+    public init(id: String, decision: Decision?, decisionUnavailable: DecisionUnavailable?, price: PriceProvenance?) {
+        self.id = id
+        self.decision = decision
+        self.decisionUnavailable = decisionUnavailable
+        self.price = price
+    }
+}
+
+public enum DecisionUnavailable: String, Codable, Sendable {
+    case identityUnresolved = "identity_unresolved"
+    case noMarketValue = "no_market_value"
+    case pricingUnavailable = "pricing_unavailable"
+}
+
 public struct QuickScanRequest: Codable, Sendable {
     public let name: String?
     public let setName: String?
@@ -1753,7 +1822,7 @@ public struct QuickScanResponse: Codable, Sendable {
     public let decision: Decision?
     public let price: PriceProvenance?
     public let gradeEV: DecisionGradeEV?
-    public let decisionUnavailable: DecisionUnavailable?
+    public let decisionUnavailable: DecisionUnavailable2?
     public let conditionAssessed: Bool
 
     enum CodingKeys: String, CodingKey {
@@ -1767,7 +1836,7 @@ public struct QuickScanResponse: Codable, Sendable {
         case conditionAssessed
     }
 
-    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool) {
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable2?, conditionAssessed: Bool) {
         self.identified = identified
         self.candidates = candidates
         self.match = match
@@ -1786,7 +1855,7 @@ public struct QuickScanResponse: Codable, Sendable {
         self.decision = try c.decodeIfPresent(Decision.self, forKey: .decision)
         self.price = try c.decodeIfPresent(PriceProvenance.self, forKey: .price)
         self.gradeEV = try c.decodeIfPresent(DecisionGradeEV.self, forKey: .gradeEV)
-        self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable.self, forKey: .decisionUnavailable)
+        self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable2.self, forKey: .decisionUnavailable)
         self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
     }
 }
@@ -1813,7 +1882,7 @@ public struct QuickScanCandidate: Codable, Sendable {
     }
 }
 
-public enum DecisionUnavailable: String, Codable, Sendable {
+public enum DecisionUnavailable2: String, Codable, Sendable {
     case identityUnresolved = "identity_unresolved"
     case noMarketValue = "no_market_value"
     case pricingUnavailable = "pricing_unavailable"

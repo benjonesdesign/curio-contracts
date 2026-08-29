@@ -532,6 +532,614 @@ export declare const DecideResponseSchema: z.ZodObject<{
     } | undefined;
 }>;
 export type DecideResponse = z.infer<typeof DecideResponseSchema>;
+export declare const DecideBatchCardSchema: z.ZodObject<{
+    /** Caller-assigned id (e.g. the client-side listing id) — echoed back to match results up. */
+    id: z.ZodString;
+    marketValueGbp: z.ZodNullable<z.ZodNumber>;
+    costBasisGbp: z.ZodNullable<z.ZodNumber>;
+    condition: z.ZodOptional<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>>;
+    isVintage: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    saleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    priceSource: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
+    compatibleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    marketValueGbp: number | null;
+    costBasisGbp: number | null;
+    collectionType?: "personal" | "resale" | undefined;
+    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    isVintage?: boolean | null | undefined;
+    priceSource?: string | null | undefined;
+    saleCount?: number | null | undefined;
+    compatibleCount?: number | null | undefined;
+}, {
+    id: string;
+    marketValueGbp: number | null;
+    costBasisGbp: number | null;
+    collectionType?: "personal" | "resale" | undefined;
+    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    isVintage?: boolean | null | undefined;
+    priceSource?: string | null | undefined;
+    saleCount?: number | null | undefined;
+    compatibleCount?: number | null | undefined;
+}>;
+export type DecideBatchCard = z.infer<typeof DecideBatchCardSchema>;
+export declare const DecideBatchRequestSchema: z.ZodObject<{
+    cards: z.ZodArray<z.ZodObject<{
+        /** Caller-assigned id (e.g. the client-side listing id) — echoed back to match results up. */
+        id: z.ZodString;
+        marketValueGbp: z.ZodNullable<z.ZodNumber>;
+        costBasisGbp: z.ZodNullable<z.ZodNumber>;
+        condition: z.ZodOptional<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>>;
+        isVintage: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+        saleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        priceSource: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+        /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
+        compatibleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        marketValueGbp: number | null;
+        costBasisGbp: number | null;
+        collectionType?: "personal" | "resale" | undefined;
+        condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        isVintage?: boolean | null | undefined;
+        priceSource?: string | null | undefined;
+        saleCount?: number | null | undefined;
+        compatibleCount?: number | null | undefined;
+    }, {
+        id: string;
+        marketValueGbp: number | null;
+        costBasisGbp: number | null;
+        collectionType?: "personal" | "resale" | undefined;
+        condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        isVintage?: boolean | null | undefined;
+        priceSource?: string | null | undefined;
+        saleCount?: number | null | undefined;
+        compatibleCount?: number | null | undefined;
+    }>, "many">;
+    /** Applies to the whole batch — a seller preference, not a per-card fact. */
+    targetMarginPct: z.ZodOptional<z.ZodNumber>;
+    pricingSettings: z.ZodOptional<z.ZodObject<{
+        ebayFeeRate: z.ZodNumber;
+        ebayFeeFixed: z.ZodNumber;
+        packagingCost: z.ZodNumber;
+        shippingCost: z.ZodNumber;
+        taxRate: z.ZodNumber;
+        minProfitPct: z.ZodNumber;
+        minSaleValue: z.ZodNumber;
+        postageCost: z.ZodNumber;
+    }, "strip", z.ZodTypeAny, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }, {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    }>>;
+}, "strip", z.ZodTypeAny, {
+    cards: {
+        id: string;
+        marketValueGbp: number | null;
+        costBasisGbp: number | null;
+        collectionType?: "personal" | "resale" | undefined;
+        condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        isVintage?: boolean | null | undefined;
+        priceSource?: string | null | undefined;
+        saleCount?: number | null | undefined;
+        compatibleCount?: number | null | undefined;
+    }[];
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
+    targetMarginPct?: number | undefined;
+}, {
+    cards: {
+        id: string;
+        marketValueGbp: number | null;
+        costBasisGbp: number | null;
+        collectionType?: "personal" | "resale" | undefined;
+        condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        isVintage?: boolean | null | undefined;
+        priceSource?: string | null | undefined;
+        saleCount?: number | null | undefined;
+        compatibleCount?: number | null | undefined;
+    }[];
+    pricingSettings?: {
+        ebayFeeRate: number;
+        ebayFeeFixed: number;
+        packagingCost: number;
+        shippingCost: number;
+        taxRate: number;
+        minProfitPct: number;
+        minSaleValue: number;
+        postageCost: number;
+    } | undefined;
+    targetMarginPct?: number | undefined;
+}>;
+export type DecideBatchRequest = z.infer<typeof DecideBatchRequestSchema>;
+export declare const DecideBatchResultSchema: z.ZodObject<{
+    id: z.ZodString;
+    /**
+     * NULL when that card has no market value yet — the same principle as quick-scan's null
+     * decision: a decision computed from a value we do not have is a guess wearing a number. One
+     * unpriceable card does not fail the batch.
+     */
+    decision: z.ZodNullable<z.ZodObject<{
+        route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
+        reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
+        alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
+            reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+        }, "strip", z.ZodTypeAny, {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }, {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }>, "many">>;
+        confidence: z.ZodEnum<["high", "medium", "low"]>;
+        liquidity: z.ZodEnum<["high", "medium", "low"]>;
+        economics: z.ZodObject<{
+            marketValueGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
+            feeGbp: z.ZodNumber;
+            postageGbp: z.ZodNumber;
+            packagingGbp: z.ZodNumber;
+            /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
+             *  free acquisition inflates every net figure on the screen people scan with. */
+            costBasisGbp: z.ZodNullable<z.ZodNumber>;
+            taxProvisionGbp: z.ZodNumber;
+            expectedNetGbp: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        }, {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        }>;
+        /** ACQUISITION: the most the seller should PAY for this card. */
+        maxBuyGbp: z.ZodNumber;
+        /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
+         *  floor, the auction start price (a start price is a free reserve), and the
+         *  "this shouldn't be an auction" test against the top realised comp. */
+        minAcceptGbp: z.ZodNumber;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. */
+        offerPctAtMax: z.ZodNumber;
+        /**
+         * True when the decision was made without complete information — an offline client with no
+         * comps and no fee context. The route is still the best available call; degraded means "trust
+         * this less", never "ignore this". Always capped at "low" confidence, so a degraded decision
+         * can never present as more certain than a complete one.
+         */
+        degraded: z.ZodBoolean;
+        degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number;
+        minAcceptGbp: number;
+        offerPctAtMax: number;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number;
+        minAcceptGbp: number;
+        offerPctAtMax: number;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>>;
+    decisionUnavailable: z.ZodOptional<z.ZodNullable<z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>>>;
+    price: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+        source: z.ZodNullable<z.ZodString>;
+        /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+        confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+        /** Set when the figure was converted from another currency, so a UK seller is told. */
+        currencyNote: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }>>>;
+}, "strip", z.ZodTypeAny, {
+    id: string;
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number;
+        minAcceptGbp: number;
+        offerPctAtMax: number;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    } | null;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+}, {
+    id: string;
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeGbp: number;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number;
+            expectedNetGbp: number;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number;
+        minAcceptGbp: number;
+        offerPctAtMax: number;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    } | null;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+}>;
+export type DecideBatchResult = z.infer<typeof DecideBatchResultSchema>;
+export declare const DecideBatchResponseSchema: z.ZodObject<{
+    results: z.ZodArray<z.ZodObject<{
+        id: z.ZodString;
+        /**
+         * NULL when that card has no market value yet — the same principle as quick-scan's null
+         * decision: a decision computed from a value we do not have is a guess wearing a number. One
+         * unpriceable card does not fail the batch.
+         */
+        decision: z.ZodNullable<z.ZodObject<{
+            route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
+            reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
+            alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
+                reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+            }, "strip", z.ZodTypeAny, {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }, {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }>, "many">>;
+            confidence: z.ZodEnum<["high", "medium", "low"]>;
+            liquidity: z.ZodEnum<["high", "medium", "low"]>;
+            economics: z.ZodObject<{
+                marketValueGbp: z.ZodNumber;
+                /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
+                feeGbp: z.ZodNumber;
+                postageGbp: z.ZodNumber;
+                packagingGbp: z.ZodNumber;
+                /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
+                 *  free acquisition inflates every net figure on the screen people scan with. */
+                costBasisGbp: z.ZodNullable<z.ZodNumber>;
+                taxProvisionGbp: z.ZodNumber;
+                expectedNetGbp: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            }, {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            }>;
+            /** ACQUISITION: the most the seller should PAY for this card. */
+            maxBuyGbp: z.ZodNumber;
+            /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
+             *  floor, the auction start price (a start price is a free reserve), and the
+             *  "this shouldn't be an auction" test against the top realised comp. */
+            minAcceptGbp: z.ZodNumber;
+            /** `maxBuyGbp` as a % of market value, to one decimal place. */
+            offerPctAtMax: z.ZodNumber;
+            /**
+             * True when the decision was made without complete information — an offline client with no
+             * comps and no fee context. The route is still the best available call; degraded means "trust
+             * this less", never "ignore this". Always capped at "low" confidence, so a degraded decision
+             * can never present as more certain than a complete one.
+             */
+            degraded: z.ZodBoolean;
+            degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+        }, "strip", z.ZodTypeAny, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        }, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        }>>;
+        decisionUnavailable: z.ZodOptional<z.ZodNullable<z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>>>;
+        price: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+            /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+            source: z.ZodNullable<z.ZodString>;
+            /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+            confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+            /** Set when the figure was converted from another currency, so a UK seller is told. */
+            currencyNote: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        }, {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        }>>>;
+    }, "strip", z.ZodTypeAny, {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }, {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }>, "many">;
+}, "strip", z.ZodTypeAny, {
+    results: {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }[];
+}, {
+    results: {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeGbp: number;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number;
+                expectedNetGbp: number;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number;
+            minAcceptGbp: number;
+            offerPctAtMax: number;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }[];
+}>;
+export type DecideBatchResponse = z.infer<typeof DecideBatchResponseSchema>;
 export declare const QuickScanRequestSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;

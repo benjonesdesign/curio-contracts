@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.34
+- **`/api/decide` gains a BATCH mode** — the named retirement condition for `/api/recommend`.
+
+  v0.1.33 marked `RouteEconomics` superseded and said `/api/recommend` retires *once its callers can
+  move*. The one thing stopping them was that `app/add/multiple/ReviewListStep.tsx` prices a whole
+  capture at once, and `/api/decide` was single-card. So the legacy shape kept two live web callers
+  and could not be deleted. That blocker is now gone.
+
+  One request, one settings object, N cards — the same reasoning as `RecommendBatchRequest`: the
+  seller's cost model is an **account-wide** preference and does not vary card-to-card within one
+  review session. Per-card values are per-card; the fee position is not.
+
+  A card with no market value returns a **null decision with a reason**, exactly as Quick Scan does.
+  One unpriceable card does not fail the batch, and the caller is told which of "no value" and
+  "pricing unavailable" it was.
+
+
 ## v0.1.33
 - **`rarity` and `confidence` on `QuickScanCandidate`** — the two fields the card-search collapse
   traded away.

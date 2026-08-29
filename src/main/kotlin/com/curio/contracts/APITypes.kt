@@ -2305,39 +2305,70 @@ public data class DecisionGradeEV(
 )
 
 @Serializable
-public data class QuickScanRequest(
-    val name: String? = null,
-    val setName: String? = null,
-    val cardNumber: String? = null,
-    val setCode: String? = null,
-    val game: Game? = null,
-    val condition: Condition? = null,
-    val finish: String? = null,
+public data class DecideBatchRequest(
+    val cards: List<DecideBatchCard>,
     val targetMarginPct: Double? = null,
+    val pricingSettings: PricingSettings? = null,
 )
 
 @Serializable
-public data class QuickScanResponse(
-    val identified: Boolean,
-    val candidates: List<QuickScanCandidate> = emptyList(),
-    val match: QuickScanCandidate? = null,
+public data class DecideBatchCard(
+    val id: String,
+    val marketValueGbp: Double? = null,
+    val costBasisGbp: Double? = null,
+    val condition: Condition? = null,
+    val isVintage: Boolean? = null,
+    val saleCount: Int? = null,
+    val priceSource: String? = null,
+    val compatibleCount: Int? = null,
+    val collectionType: CollectionType5? = null,
+)
+
+@Serializable(with = CollectionType5Serializer::class)
+public sealed interface CollectionType5 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object PERSONAL : CollectionType5 {
+        override val rawValue: String get() = "personal"
+    }
+    public object RESALE : CollectionType5 {
+        override val rawValue: String get() = "resale"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : CollectionType5
+
+    public companion object {
+        public fun from(raw: String): CollectionType5 = when (raw) {
+            "personal" -> PERSONAL
+            "resale" -> RESALE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CollectionType5Serializer : KSerializer<CollectionType5> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("CollectionType5", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): CollectionType5 = CollectionType5.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: CollectionType5) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class DecideBatchResponse(
+    val results: List<DecideBatchResult>,
+)
+
+@Serializable
+public data class DecideBatchResult(
+    val id: String,
     val decision: Decision? = null,
-    val price: PriceProvenance? = null,
-    val gradeEV: DecisionGradeEV? = null,
     val decisionUnavailable: DecisionUnavailable? = null,
-    val conditionAssessed: Boolean = false,
-)
-
-@Serializable
-public data class QuickScanCandidate(
-    val game: Game? = null,
-    val nativeId: String,
-    val name: String,
-    val setName: String? = null,
-    val cardNumber: String? = null,
-    val rarity: String? = null,
-    val confidence: GameConfidence? = null,
-    val image: String? = null,
+    val price: PriceProvenance? = null,
 )
 
 @Serializable(with = DecisionUnavailableSerializer::class)
@@ -2374,6 +2405,80 @@ public object DecisionUnavailableSerializer : KSerializer<DecisionUnavailable> {
         PrimitiveSerialDescriptor("DecisionUnavailable", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): DecisionUnavailable = DecisionUnavailable.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: DecisionUnavailable) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class QuickScanRequest(
+    val name: String? = null,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val setCode: String? = null,
+    val game: Game? = null,
+    val condition: Condition? = null,
+    val finish: String? = null,
+    val targetMarginPct: Double? = null,
+)
+
+@Serializable
+public data class QuickScanResponse(
+    val identified: Boolean,
+    val candidates: List<QuickScanCandidate> = emptyList(),
+    val match: QuickScanCandidate? = null,
+    val decision: Decision? = null,
+    val price: PriceProvenance? = null,
+    val gradeEV: DecisionGradeEV? = null,
+    val decisionUnavailable: DecisionUnavailable2? = null,
+    val conditionAssessed: Boolean = false,
+)
+
+@Serializable
+public data class QuickScanCandidate(
+    val game: Game? = null,
+    val nativeId: String,
+    val name: String,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val rarity: String? = null,
+    val confidence: GameConfidence? = null,
+    val image: String? = null,
+)
+
+@Serializable(with = DecisionUnavailable2Serializer::class)
+public sealed interface DecisionUnavailable2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IDENTITY_UNRESOLVED : DecisionUnavailable2 {
+        override val rawValue: String get() = "identity_unresolved"
+    }
+    public object NO_MARKET_VALUE : DecisionUnavailable2 {
+        override val rawValue: String get() = "no_market_value"
+    }
+    public object PRICING_UNAVAILABLE : DecisionUnavailable2 {
+        override val rawValue: String get() = "pricing_unavailable"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : DecisionUnavailable2
+
+    public companion object {
+        public fun from(raw: String): DecisionUnavailable2 = when (raw) {
+            "identity_unresolved" -> IDENTITY_UNRESOLVED
+            "no_market_value" -> NO_MARKET_VALUE
+            "pricing_unavailable" -> PRICING_UNAVAILABLE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object DecisionUnavailable2Serializer : KSerializer<DecisionUnavailable2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("DecisionUnavailable2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): DecisionUnavailable2 = DecisionUnavailable2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: DecisionUnavailable2) {
         encoder.encodeString(value.rawValue)
     }
 }
