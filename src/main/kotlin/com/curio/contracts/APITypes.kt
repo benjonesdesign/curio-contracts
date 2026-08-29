@@ -2335,6 +2335,8 @@ public data class QuickScanCandidate(
     val name: String,
     val setName: String? = null,
     val cardNumber: String? = null,
+    val rarity: String? = null,
+    val confidence: GameConfidence? = null,
     val image: String? = null,
 )
 

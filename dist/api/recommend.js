@@ -36,6 +36,36 @@ export const RecommendedRouteSchema = z.enum([
     "restoration_review",
     "do_not_list",
 ]);
+/**
+ * ⚠️ SUPERSEDED by `DecisionEconomics` in `./decide.ts`. Retiring — see the mapping below.
+ *
+ * DECIDED 2026-08-29, because "two shapes for one concept" must not persist by default. This shape
+ * and `DecisionEconomics` describe the same money with different names and a different case
+ * convention, and a client mapping between two near-identical money shapes is exactly where a
+ * transposition bug hides. So the mapping lives HERE, once, rather than being re-derived by each
+ * client:
+ *
+ * | RouteEconomics (legacy)  | DecisionEconomics (successor) |
+ * |--------------------------|-------------------------------|
+ * | `expected_sale_gbp`      | `marketValueGbp`              |
+ * | `fees_gbp`               | `feeGbp`                      |
+ * | `postage_gbp`            | `postageGbp`                  |
+ * | `cost_basis_gbp`         | `costBasisGbp`                |
+ * | `expected_net_gbp`       | `expectedNetGbp`              |
+ * | `liquidity`              | `Decision.liquidity` (moved up a level) |
+ * | —                        | `packagingGbp` (new)          |
+ * | —                        | `taxProvisionGbp` (new)       |
+ *
+ * NOT renamed in place, deliberately: `/api/recommend` is shipped with two web callers
+ * (`app/add/multiple/ReviewListStep.tsx`, `app/inventory/[id]/page.tsx`) and five on iOS, and
+ * renaming a shape that is being retired is churn that breaks seven call sites to reach the same
+ * end state.
+ *
+ * RETIREMENT CONDITION, so this is a decision and not a hope: `/api/recommend` goes when its
+ * callers move to `/api/decide`, and the one thing blocking that is that **`/api/decide` has no
+ * BATCH mode** — `ReviewListStep` prices a whole capture at once. Build that, migrate the callers,
+ * delete this. `explanation` retires with it; reason codes plus `@curio/copy` already replace it.
+ */
 export const RouteEconomicsSchema = z.object({
     expected_sale_gbp: z.number().nullable(),
     fees_gbp: z.number().nullable(),

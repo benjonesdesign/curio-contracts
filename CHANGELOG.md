@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.1.33
+- **`rarity` and `confidence` on `QuickScanCandidate`** — the two fields the card-search collapse
+  traded away.
+
+  `identified` is a boolean, and a boolean cannot express *"resolved, but hold it at arm's length"*.
+  iOS had an `.uncertain` state for exactly that and deleted it rather than leave an unreachable
+  branch — the right call, and a real capability loss. A medium-confidence name-trigram match and an
+  exact number+set hit are not the same claim, and the UI should be able to say so.
+
+  ⚠️ **It must not be re-derived client-side.** It comes from the resolver tier that produced the
+  match; a client inferring it from name similarity or field completeness would be inventing a
+  second, disagreeing confidence model — the shape of every drift incident in this project's
+  history.
+
+- **`RouteEconomics` is marked SUPERSEDED, with the field mapping written into the contract.**
+
+  It and `DecisionEconomics` describe the same money with different names and a different case
+  convention (`fees_gbp` vs `feeGbp`, `expected_sale_gbp` vs `marketValueGbp`). A client mapping
+  between two near-identical money shapes is exactly where a transposition bug hides, so the mapping
+  now lives in one place instead of being re-derived per client.
+
+  **Decided rather than deferred**, because two shapes for one concept must not persist by default:
+  `/api/recommend` retires. Not renamed in place — it is shipped with two web callers and five on
+  iOS, and renaming a retiring shape breaks seven call sites to reach the same end state.
+
+  **The retirement condition is named** so this is a decision and not a hope: `/api/decide` needs a
+  **batch mode** (`ReviewListStep` prices a whole capture at once). Build that, migrate the callers,
+  delete it. `explanation` goes with it.
+
+
 ## v0.1.32
 Two additions, both from the iOS lane blocking on a migration rather than working around it.
 
