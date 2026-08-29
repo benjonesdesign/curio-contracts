@@ -10,6 +10,9 @@ import kotlin.test.assertTrue
 class DecideRoundTripTest {
     private val json = Json { ignoreUnknownKeys = true }
 
+    /** Provenance is REQUIRED on DecideResponse — a decision always has a price it came from. */
+    private val price = """{"source": "ebay-uk-sold", "confidence": "high", "currencyNote": null}"""
+
     private val decision = """
         {
           "route": "list_single",
@@ -71,7 +74,8 @@ class DecideRoundTripTest {
     fun `the same Decision type decodes from BOTH endpoints`() {
         // One shape, two entry points. If the generator ever emitted two structurally-identical
         // classes, this would not compile.
-        val fromDecide: Decision = json.decodeFromString<DecideResponse>("""{"decision": $decision}""").decision
+        val fromDecide: Decision =
+            json.decodeFromString<DecideResponse>("""{"decision": $decision, "price": $price}""").decision
         val fromQuickScan: Decision? = json.decodeFromString<QuickScanResponse>(
             """{"identified": true, "candidates": [], "decision": $decision}""",
         ).decision
