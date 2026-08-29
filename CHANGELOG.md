@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.37 — card search can finally say it failed
+
+**Tagged immediately rather than accumulated, during a live P0.** pokemontcg.io has been 500ing for
+hours; every provider call resolved to `[]` behind a 5s timeout; `/api/card-search` returned **200
+with an empty list**; and a seller standing in a shop was told Pikachu is not a card.
+
+`CardSearchResponseSchema.cataloguesUnavailable` — the game ids we could not reach. Empty means
+every catalogue answered, so `results: []` alongside it is a genuine no-match. Non-empty means the
+answer is incomplete and MUST NOT be phrased as "no cards found".
+
+This is the **second** instance of one field meaning two things: `/api/quick-scan` returned
+`value: { typical: null }` for both "no comps" and "the pricing service is down", which hid an
+`INTERNAL_SERVICE_KEY` outage for a fortnight. Two is a pattern — a nullable or empty field that
+can mean both "nothing" and "we could not look" is now a defect on sight.
+
+Additive with a `.default([])`, so an older client decodes unchanged.
+
 ## v0.1.36
 - **`/api/reprice-apply` gets a contract module.** `reprice.ts` covered only the *flags* shape;
   apply's request and response were local types in the route. Permitted by the CLAUDE.md rule, and
