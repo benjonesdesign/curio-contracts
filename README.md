@@ -105,6 +105,35 @@ First build of a new tag on JitPack takes a minute or two (it's compiling, not j
 check https://jitpack.io/#benjonesdesign/curio-contracts/vX.Y.Z for build status if a Gradle sync
 hangs on a freshly-cut tag.
 
+## When to cut a tag — accumulate, don't tag per change (added 2026-08-29)
+
+**A tag is a lockstep event across four repos, and for the two mobile lanes it costs BEN's time
+rather than an agent's** — a Mac build and an `xcodegen` run for iOS, a push for Android, every
+time. On 2026-08-29 this repo went v0.1.30 → v0.1.35 in about a day, which is faster than the loop
+that propagates it can physically run.
+
+That was harmless only because both mobile lanes were idle. The failure mode when they are not is
+specific and worth naming, because it is the same erosion as a permanently red `main`:
+
+> "Canonical" becomes a version nobody is actually on, `versions:check` sits red as background
+> noise, and **a real drift gets missed inside the noise.**
+
+**So: accumulate on `main`, and cut a tag only when a consumer actually needs the shape.** Merging a
+contract change is cheap and reversible; tagging is what starts four repos moving. Same end state,
+roughly a third of the lockstep events, and far fewer build-and-push cycles landing on one person.
+
+Two things this does NOT change:
+
+1. **Canonical still advances in the same sitting as the tag.** That rule exists because iOS was
+   left behind twice, and batching the cadence must not reintroduce the gap it closed. A tag with
+   no matching `versions.json` bump is the orphan-tag failure wearing a different hat.
+2. **The release-integrity assertions stay.** Batching changes how often a release happens, not what
+   a release has to be true about — the tag must still match `package.json`, be an ancestor of
+   `main`, and carry the outputs the changelog claims.
+
+A correctness fix a lane is blocked on is still cut immediately. The point is to stop tagging
+*additive shapes nobody is consuming yet*, not to make a blocked lane wait for company.
+
 ## Releasing a new version
 
 1. **DB types changed?** Run `npm run gen:db` (wraps `supabase gen types typescript --project-id
