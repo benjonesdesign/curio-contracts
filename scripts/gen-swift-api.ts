@@ -28,7 +28,7 @@ import {
   DecideRequestSchema, DecideResponseSchema, DecisionSchema, DecisionEconomicsSchema,
   DecisionAlternativeSchema, QuickScanRequestSchema, QuickScanResponseSchema,
   QuickScanCandidateSchema, RouteReasonSchema, AlternativeReasonSchema, DegradedReasonSchema,
-  PriceProvenanceSchema, DecisionGradeEVSchema, DecideBatchRequestSchema,
+  PriceProvenanceSchema, DecisionGradeEVSchema, DecisionAssumptionSchema, DecisionAssumptionCodeSchema, DecideBatchRequestSchema,
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema } from "../src/api/common.js";
@@ -76,6 +76,10 @@ registerName(DecisionGradeEVSchema, "DecisionGradeEV");
 registerName(DecisionSchema, "Decision");
 registerName(DecisionEconomicsSchema, "DecisionEconomics");
 registerName(DecisionAlternativeSchema, "DecisionAlternative");
+// Named explicitly: the generator would take "Code" from the field name, which is far too
+// generic a type to ship to three platforms.
+registerName(DecisionAssumptionCodeSchema, "DecisionAssumptionCode");
+registerName(DecisionAssumptionSchema, "DecisionAssumption");
 registerName(QuickScanCandidateSchema, "QuickScanCandidate");
 // Same reasoning: one shared ShotQualityDescriptor struct, not a duplicate emitted only because
 // it's nested inside CaptureCommitRequest.shotQuality.

@@ -63,6 +63,19 @@ export const DegradedReasonSchema = z.enum([
 export const DecisionAlternativeSchema = z.object({
   route: RecommendedRouteSchema,
   reason: AlternativeReasonSchema,
+  /**
+   * What this alternative nets, when that is knowable.
+   *
+   * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+   * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+   * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+   * was a regression in decision quality rather than in polish.
+   *
+   * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+   * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+   * quoting this card's net beside "Bundle" would be a number that answers a different question.
+   */
+  expectedNetGbp: z.number().nullable().optional(),
 });
 
 export const DecisionEconomicsSchema = z.object({
@@ -77,6 +90,51 @@ export const DecisionEconomicsSchema = z.object({
   taxProvisionGbp: z.number(),
   expectedNetGbp: z.number(),
 });
+
+/**
+ * What the engine had to fill in for itself, because the seller had not said.
+ *
+ * The successor to `/api/recommend`'s `assumptions: string[]`, which was English and so could not
+ * live in the contract. iOS deleted its assumptions surface during the hero migration and
+ * deliberately did NOT backfill it from `degradedReasons` — correctly, because "what was missing"
+ * and "what was ASSUMED" are different claims and conflating them is the near-enough mapping this
+ * project has spent a fortnight removing. A decision can be complete (nothing degraded) and still
+ * rest on assumptions.
+ *
+ * ⚠️ THE SHAPE IS DECIDED NOW, AHEAD OF THE CHANNEL WORK, so it is not a second contract bump.
+ * W21 decision 7.1 requires that the assumed default channel be LABELLED AS AN ASSUMPTION and never
+ * presented as a choice the seller made — which needs exactly this surface. `channel` is in the
+ * code list already; the engine starts populating it when channel reaches SellerCostModel (W21
+ * step 1). Everything else here is populatable today.
+ *
+ * ONLY genuinely assumed things appear. A value the seller chose, or that came from their profile
+ * or their eBay policy, is not an assumption and must not be listed as one — the entire point is
+ * the distinction.
+ */
+export const DecisionAssumptionCodeSchema = z.enum([
+  /** Where this is being sold. W21 7.1: eBay is assumed, and must be labelled as assumed. */
+  "channel",
+  "seller_type",
+  "vat_registered",
+  "condition",
+  "postage",
+  "packaging",
+  "tax_rate",
+  "cost_basis",
+]);
+
+export const DecisionAssumptionSchema = z.object({
+  code: DecisionAssumptionCodeSchema,
+  /**
+   * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+   * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+   * server does not become the owner of English for three platforms.
+   */
+  value: z.string().nullable(),
+  /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+  valueGbp: z.number().nullable().optional(),
+});
+export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
 
 export const DecisionSchema = z.object({
   route: RecommendedRouteSchema,
@@ -114,6 +172,11 @@ export const DecisionSchema = z.object({
    */
   degraded: z.boolean(),
   degradedReasons: z.array(DegradedReasonSchema).default([]),
+  /**
+   * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+   * un-degraded and still rest on assumptions the seller never stated.
+   */
+  assumptions: z.array(DecisionAssumptionSchema).default([]),
 });
 export type Decision = z.infer<typeof DecisionSchema>;
 
