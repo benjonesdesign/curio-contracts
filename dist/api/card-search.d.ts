@@ -162,6 +162,26 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
             marketGbp: number | null;
         }[] | null;
     }>, "many">;
+    /**
+     * Which catalogues we COULD NOT REACH for this search — game ids, empty when every catalogue
+     * answered.
+     *
+     * ⚠️ A response without this cannot tell "we looked and found nothing" apart from "we couldn't
+     * look", and clients then render the second as the first. On 2026-08-29 pokemontcg.io 500ed for
+     * hours, every provider call resolved to `[]` behind a timeout, the route returned 200 with an
+     * empty list, and a seller standing in a shop was told Pikachu is not a card.
+     *
+     * This is the SECOND instance of that exact shape — `/api/quick-scan` returned
+     * `value: { typical: null }` for both "no comps" and "the pricing service is down", which hid an
+     * INTERNAL_SERVICE_KEY outage for a fortnight. Two instances is a pattern, so treat a nullable
+     * or empty field that can mean two things as a defect on sight.
+     *
+     * A client MUST distinguish them: `results: [], cataloguesUnavailable: []` is a genuine no-match,
+     * and `results: [], cataloguesUnavailable: ["pokemon"]` is an outage and must never be phrased as
+     * "no cards found". A PARTIAL list matters too — results present alongside a non-empty
+     * `cataloguesUnavailable` is an incomplete answer, not a complete one.
+     */
+    cataloguesUnavailable: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
     results: {
         number: string | null;
@@ -183,6 +203,7 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
             marketGbp: number | null;
         }[] | null;
     }[];
+    cataloguesUnavailable: string[];
 }, {
     results: {
         number: string | null;
@@ -204,5 +225,6 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
             marketGbp: number | null;
         }[] | null;
     }[];
+    cataloguesUnavailable?: string[] | undefined;
 }>;
 export type CardSearchResponse = z.infer<typeof CardSearchResponseSchema>;

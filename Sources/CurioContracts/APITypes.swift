@@ -796,9 +796,22 @@ public struct CardSearchRequest: Codable, Sendable {
 
 public struct CardSearchResponse: Codable, Sendable {
     public let results: [CardSearchResult]
+    public let cataloguesUnavailable: [String]
 
-    public init(results: [CardSearchResult]) {
+    enum CodingKeys: String, CodingKey {
+        case results
+        case cataloguesUnavailable
+    }
+
+    public init(results: [CardSearchResult], cataloguesUnavailable: [String]) {
         self.results = results
+        self.cataloguesUnavailable = cataloguesUnavailable
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.results = try c.decode([CardSearchResult].self, forKey: .results)
+        self.cataloguesUnavailable = try c.decodeIfPresent([String].self, forKey: .cataloguesUnavailable) ?? []
     }
 }
 

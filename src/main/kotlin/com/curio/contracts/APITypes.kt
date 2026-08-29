@@ -1069,6 +1069,7 @@ public data class CardSearchRequest(
 @Serializable
 public data class CardSearchResponse(
     val results: List<CardSearchResult>,
+    val cataloguesUnavailable: List<String> = emptyList(),
 )
 
 @Serializable
