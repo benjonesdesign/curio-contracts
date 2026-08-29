@@ -84,4 +84,48 @@ class DecideRoundTripTest {
         assertEquals(emptyList(), d.candidates)
         assertEquals(false, d.conditionAssessed)
     }
+
+    // ── Provenance composes BESIDE the decision, never inside it ────────────────────────────
+    @Test
+    fun `Decision carries no provenance — it is a fact about the INPUT, not an engine output`() {
+        // Same reasoning that kept identity out. Where a price came from is true whether or not a
+        // decision was reachable, and folding it in would give /api/decide a field the engine does
+        // not produce -- which is how required-but-unpopulated fields get born.
+        val fields = Decision::class.java.declaredFields.map { it.name }
+        for (forbidden in listOf("price", "priceSource", "priceConfidence", "currencyNote", "gradeEV", "explanation")) {
+            assertTrue(forbidden !in fields, "Decision must not carry $forbidden")
+        }
+    }
+
+    @Test
+    fun `provenance survives even when there is NO decision`() {
+        // The case the migration would have silently broken: an unpriceable card still has a
+        // provenance answer, and the pill is what marks a figure as true-for-a-UK-seller.
+        val body = """
+            {"identified": true, "candidates": [], "decision": null,
+             "decisionUnavailable": "no_market_value",
+             "price": {"source": "ebay-uk-sold", "confidence": "low", "currencyNote": null}}
+        """.trimIndent()
+        val d = json.decodeFromString<QuickScanResponse>(body)
+        assertNull(d.decision)
+        assertEquals("ebay-uk-sold", d.price?.source)
+    }
+
+    @Test
+    fun `a decide response carries decision and provenance together`() {
+        val body = """
+            {"decision": $decision,
+             "price": {"source": "poketrace-ebay", "confidence": "medium", "currencyNote": "Converted from USD"}}
+        """.trimIndent()
+        val d = json.decodeFromString<DecideResponse>(body)
+        assertEquals(RecommendedRoute.LIST_SINGLE, d.decision.route)
+        assertEquals("Converted from USD", d.price.currencyNote)
+        assertNull(d.gradeEV)
+    }
+
+    @Test
+    fun `setCode reaches the request — the OCR'd set signal a collapsed call would have dropped`() {
+        val d = json.decodeFromString<QuickScanRequest>("""{"cardNumber": "138/221", "setCode": "SFD"}""")
+        assertEquals("SFD", d.setCode)
+    }
 }

@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.1.32
+Two additions, both from the iOS lane blocking on a migration rather than working around it.
+
+- **`price` (provenance) and optional `gradeEV`, BESIDE `decision`** on `DecideResponse` and
+  `QuickScanResponse`.
+
+  `Decision` is **not** a superset of `RecommendResponse`: `priceSource`, `priceConfidence`,
+  `currencyNote`, `gradeEV` and `explanation` all live on the latter and none on the former. A
+  client moving its hero from `/api/recommend` to `/api/decide` as instructed would have retired the
+  English `why` — the intent — and **silently dropped price provenance and the grade-EV line with
+  it.** The provenance pill is what marks a figure as true-for-a-UK-seller rather than a raw US
+  price; losing it as a side effect of a copy migration is the worst way to lose it, because nobody
+  would have been deciding to.
+
+  It sits **beside** `decision`, not inside, for the same reason identity does in
+  `QuickScanResponse`: **provenance is a fact about the INPUT, not an output of the engine.** Where
+  a price came from is true whether or not a decision was reachable — and there is a test asserting
+  provenance survives a null decision.
+
+  `explanation` is the one that SHOULD retire, and does: it is English, the contract deliberately
+  does not own it, and `RouteReason` + `AlternativeReason` + `@curio/copy` replace it.
+
+- **`setCode` on `QuickScanRequestSchema`**, mirroring `CatalogueLookupRequestSchema`.
+
+  Optional in type, not in effect: it is W15 Tier 0's **strongest set signal**, tried ahead of the
+  name-first resolver. Without it, a client collapsing its card-search call into this one would
+  throw the OCR'd set code away and resolve on a bare number — **the cross-game-collision case that
+  produced the "Windsinger" match.** That trades identification accuracy for a rate-limit saving,
+  and for a first-time anonymous user a wrong card is worse than a second request. With it, the
+  collapse is safe *and* the bucket saving lands.
+
+
 ## v0.1.31
 - **`decisionUnavailable` on `QuickScanResponse`** — why there is no decision, present exactly when
   `decision` is null.

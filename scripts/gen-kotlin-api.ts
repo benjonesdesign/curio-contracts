@@ -31,6 +31,7 @@ import {
   DecideRequestSchema, DecideResponseSchema, DecisionSchema, DecisionEconomicsSchema,
   DecisionAlternativeSchema, QuickScanRequestSchema, QuickScanResponseSchema,
   QuickScanCandidateSchema, RouteReasonSchema, AlternativeReasonSchema, DegradedReasonSchema,
+  PriceProvenanceSchema, DecisionGradeEVSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema } from "../src/api/common.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
@@ -70,6 +71,8 @@ registerName(RouteReasonSchema, "RouteReason");
 registerName(AlternativeReasonSchema, "AlternativeReason");
 registerName(DegradedReasonSchema, "DegradedReason");
 registerName(LiquiditySchema, "Liquidity");
+registerName(PriceProvenanceSchema, "PriceProvenance");
+registerName(DecisionGradeEVSchema, "DecisionGradeEV");
 registerName(DecisionSchema, "Decision");
 registerName(DecisionEconomicsSchema, "DecisionEconomics");
 registerName(DecisionAlternativeSchema, "DecisionAlternative");

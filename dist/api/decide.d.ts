@@ -159,6 +159,51 @@ export declare const DecisionSchema: z.ZodObject<{
     degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
 }>;
 export type Decision = z.infer<typeof DecisionSchema>;
+export declare const PriceProvenanceSchema: z.ZodObject<{
+    /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+    source: z.ZodNullable<z.ZodString>;
+    /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+    confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+    /** Set when the figure was converted from another currency, so a UK seller is told. */
+    currencyNote: z.ZodNullable<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    source: string | null;
+    confidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
+}, {
+    source: string | null;
+    confidence: "high" | "medium" | "low" | null;
+    currencyNote: string | null;
+}>;
+export type PriceProvenance = z.infer<typeof PriceProvenanceSchema>;
+/** Whether-to-grade economics. Optional and flag-gated — ADR 0016 parks the real numbers on
+ *  Marketplace Insights, so this is present only where a caller has them. */
+export declare const DecisionGradeEVSchema: z.ZodObject<{
+    gradeEVGbp: z.ZodNullable<z.ZodNumber>;
+    psa10PriceGbp: z.ZodNullable<z.ZodNumber>;
+    p10: z.ZodNullable<z.ZodNumber>;
+    p9: z.ZodNullable<z.ZodNumber>;
+    gradingCostGbp: z.ZodNullable<z.ZodNumber>;
+    rawNetGbp: z.ZodNullable<z.ZodNumber>;
+    confidence: z.ZodNullable<z.ZodEnum<["medium", "low"]>>;
+}, "strip", z.ZodTypeAny, {
+    confidence: "medium" | "low" | null;
+    psa10PriceGbp: number | null;
+    p10: number | null;
+    p9: number | null;
+    gradingCostGbp: number | null;
+    rawNetGbp: number | null;
+    gradeEVGbp: number | null;
+}, {
+    confidence: "medium" | "low" | null;
+    psa10PriceGbp: number | null;
+    p10: number | null;
+    p9: number | null;
+    gradingCostGbp: number | null;
+    rawNetGbp: number | null;
+    gradeEVGbp: number | null;
+}>;
+export type DecisionGradeEV = z.infer<typeof DecisionGradeEVSchema>;
 export declare const DecideRequestSchema: z.ZodObject<{
     /** The card to decide about, when the seller already owns it. */
     physicalCardId: z.ZodOptional<z.ZodString>;
@@ -365,6 +410,48 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     }>;
+    /** Where the market value came from. Beside the decision, never inside it — see above. */
+    price: z.ZodObject<{
+        /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+        source: z.ZodNullable<z.ZodString>;
+        /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+        confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+        /** Set when the figure was converted from another currency, so a UK seller is told. */
+        currencyNote: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }>;
+    gradeEV: z.ZodOptional<z.ZodObject<{
+        gradeEVGbp: z.ZodNullable<z.ZodNumber>;
+        psa10PriceGbp: z.ZodNullable<z.ZodNumber>;
+        p10: z.ZodNullable<z.ZodNumber>;
+        p9: z.ZodNullable<z.ZodNumber>;
+        gradingCostGbp: z.ZodNullable<z.ZodNumber>;
+        rawNetGbp: z.ZodNullable<z.ZodNumber>;
+        confidence: z.ZodNullable<z.ZodEnum<["medium", "low"]>>;
+    }, "strip", z.ZodTypeAny, {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    }, {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     decision: {
         confidence: "high" | "medium" | "low";
@@ -390,6 +477,20 @@ export declare const DecideResponseSchema: z.ZodObject<{
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     };
+    price: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    };
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
 }, {
     decision: {
         confidence: "high" | "medium" | "low";
@@ -415,12 +516,37 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     };
+    price: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    };
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
 }>;
 export type DecideResponse = z.infer<typeof DecideResponseSchema>;
 export declare const QuickScanRequestSchema: z.ZodObject<{
     name: z.ZodOptional<z.ZodString>;
     setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     cardNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    /**
+     * The set code read off the card, e.g. "BS", "SFD". Mirrors `CatalogueLookupRequestSchema`.
+     *
+     * ⚠️ NOT optional in effect, even though it is optional in type. It is W15 Tier 0's STRONGEST
+     * set signal, tried ahead of the name-first resolver. Without it here, a client collapsing its
+     * card-search call into this one would throw the OCR'd set code away and resolve on a bare
+     * number — the cross-game-collision case that produced the "Windsinger" match. That trades
+     * identification accuracy for a rate-limit saving, and for a first-time anonymous user a WRONG
+     * CARD is worse than a second request.
+     */
+    setCode: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     /** A narrowing HINT, never a precondition — number+set is decisive for ~99.3% of the catalogue
      *  across all games combined. */
     game: z.ZodOptional<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>;
@@ -434,6 +560,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     name?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
@@ -442,6 +569,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     name?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
@@ -685,6 +813,48 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
      * for every card tried, and the response could not distinguish "these cards have no price" from
      * "the price path is down". Diagnosing it required guessing.
      */
+    /** Where the market value came from. Null when there was no price to have provenance about. */
+    price: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+        source: z.ZodNullable<z.ZodString>;
+        /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+        confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
+        /** Set when the figure was converted from another currency, so a UK seller is told. */
+        currencyNote: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }, {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    }>>>;
+    gradeEV: z.ZodOptional<z.ZodObject<{
+        gradeEVGbp: z.ZodNullable<z.ZodNumber>;
+        psa10PriceGbp: z.ZodNullable<z.ZodNumber>;
+        p10: z.ZodNullable<z.ZodNumber>;
+        p9: z.ZodNullable<z.ZodNumber>;
+        gradingCostGbp: z.ZodNullable<z.ZodNumber>;
+        rawNetGbp: z.ZodNullable<z.ZodNumber>;
+        confidence: z.ZodNullable<z.ZodEnum<["medium", "low"]>>;
+    }, "strip", z.ZodTypeAny, {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    }, {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    }>>;
     decisionUnavailable: z.ZodOptional<z.ZodNullable<z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>>>;
     /** Whether a condition assessment fed the decision, or the default was assumed. */
     conditionAssessed: z.ZodDefault<z.ZodBoolean>;
@@ -731,6 +901,20 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         cardNumber?: string | null | undefined;
         image?: string | null | undefined;
     } | null | undefined;
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
 }, {
     decision: {
@@ -773,6 +957,20 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         setName?: string | null | undefined;
         cardNumber?: string | null | undefined;
         image?: string | null | undefined;
+    } | null | undefined;
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
     } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
     conditionAssessed?: boolean | undefined;
