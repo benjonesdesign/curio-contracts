@@ -1822,6 +1822,70 @@ public enum DecisionUnavailable: String, Codable, Sendable {
     case pricingUnavailable = "pricing_unavailable"
 }
 
+public struct RepriceApplyRequest: Codable, Sendable {
+    public let items: [Item]
+    public let environment: Environment?
+
+    public init(items: [Item], environment: Environment?) {
+        self.items = items
+        self.environment = environment
+    }
+}
+
+public struct Item: Codable, Sendable {
+    public let physicalCardId: String
+    public let newPriceGbp: Double
+
+    public init(physicalCardId: String, newPriceGbp: Double) {
+        self.physicalCardId = physicalCardId
+        self.newPriceGbp = newPriceGbp
+    }
+}
+
+public enum Environment: String, Codable, Sendable {
+    case ebayProduction = "ebay_production"
+    case ebaySandbox = "ebay_sandbox"
+}
+
+public struct RepriceApplyResponse: Codable, Sendable {
+    public let results: [RepriceApplyResult]
+
+    public init(results: [RepriceApplyResult]) {
+        self.results = results
+    }
+}
+
+public struct RepriceApplyResult: Codable, Sendable {
+    public let physicalCardId: String
+    public let ok: Bool
+    public let channels: [RepriceChannelOutcome]
+    public let error: String?
+
+    public init(physicalCardId: String, ok: Bool, channels: [RepriceChannelOutcome], error: String?) {
+        self.physicalCardId = physicalCardId
+        self.ok = ok
+        self.channels = channels
+        self.error = error
+    }
+}
+
+public struct RepriceChannelOutcome: Codable, Sendable {
+    public let channel: Channel2
+    public let ok: Bool
+    public let error: String?
+
+    public init(channel: Channel2, ok: Bool, error: String?) {
+        self.channel = channel
+        self.ok = ok
+        self.error = error
+    }
+}
+
+public enum Channel2: String, Codable, Sendable {
+    case ebay = "ebay"
+    case cardtrader = "cardtrader"
+}
+
 public struct QuickScanRequest: Codable, Sendable {
     public let name: String?
     public let setName: String?

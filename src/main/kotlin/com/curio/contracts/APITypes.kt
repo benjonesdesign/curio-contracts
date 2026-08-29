@@ -2477,6 +2477,106 @@ public object DecisionUnavailableSerializer : KSerializer<DecisionUnavailable> {
 }
 
 @Serializable
+public data class RepriceApplyRequest(
+    val items: List<Item>,
+    val environment: Environment? = null,
+)
+
+@Serializable
+public data class Item(
+    val physicalCardId: String,
+    val newPriceGbp: Double,
+)
+
+@Serializable(with = EnvironmentSerializer::class)
+public sealed interface Environment {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object EBAY_PRODUCTION : Environment {
+        override val rawValue: String get() = "ebay_production"
+    }
+    public object EBAY_SANDBOX : Environment {
+        override val rawValue: String get() = "ebay_sandbox"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Environment
+
+    public companion object {
+        public fun from(raw: String): Environment = when (raw) {
+            "ebay_production" -> EBAY_PRODUCTION
+            "ebay_sandbox" -> EBAY_SANDBOX
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object EnvironmentSerializer : KSerializer<Environment> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Environment", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Environment = Environment.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Environment) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class RepriceApplyResponse(
+    val results: List<RepriceApplyResult>,
+)
+
+@Serializable
+public data class RepriceApplyResult(
+    val physicalCardId: String,
+    val ok: Boolean,
+    val channels: List<RepriceChannelOutcome>,
+    val error: String? = null,
+)
+
+@Serializable
+public data class RepriceChannelOutcome(
+    val channel: Channel2,
+    val ok: Boolean,
+    val error: String? = null,
+)
+
+@Serializable(with = Channel2Serializer::class)
+public sealed interface Channel2 {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object EBAY : Channel2 {
+        override val rawValue: String get() = "ebay"
+    }
+    public object CARDTRADER : Channel2 {
+        override val rawValue: String get() = "cardtrader"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Channel2
+
+    public companion object {
+        public fun from(raw: String): Channel2 = when (raw) {
+            "ebay" -> EBAY
+            "cardtrader" -> CARDTRADER
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object Channel2Serializer : KSerializer<Channel2> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Channel2", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Channel2 = Channel2.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Channel2) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class QuickScanRequest(
     val name: String? = null,
     val setName: String? = null,
