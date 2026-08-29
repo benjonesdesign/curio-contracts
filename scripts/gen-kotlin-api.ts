@@ -35,6 +35,10 @@ import {
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema } from "../src/api/common.js";
+import {
+  RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
+  RepriceChannelOutcomeSchema,
+} from "../src/api/reprice.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
@@ -83,6 +87,8 @@ registerName(DecisionAlternativeSchema, "DecisionAlternative");
 // generic a type to ship to three platforms.
 registerName(DecisionAssumptionCodeSchema, "DecisionAssumptionCode");
 registerName(DecisionAssumptionSchema, "DecisionAssumption");
+registerName(RepriceChannelOutcomeSchema, "RepriceChannelOutcome");
+registerName(RepriceApplyResultSchema, "RepriceApplyResult");
 registerName(QuickScanCandidateSchema, "QuickScanCandidate");
 // Same reasoning: one shared ShotQualityDescriptor class, not a duplicate emitted only because
 // it's nested inside CaptureCommitRequest.shotQuality.
@@ -139,6 +145,8 @@ emitKotlin(DecideRequestSchema, "DecideRequest");
 emitKotlin(DecideResponseSchema, "DecideResponse");
 emitKotlin(DecideBatchRequestSchema, "DecideBatchRequest");
 emitKotlin(DecideBatchResponseSchema, "DecideBatchResponse");
+emitKotlin(RepriceApplyRequestSchema, "RepriceApplyRequest");
+emitKotlin(RepriceApplyResponseSchema, "RepriceApplyResponse");
 emitKotlin(QuickScanRequestSchema, "QuickScanRequest");
 emitKotlin(QuickScanResponseSchema, "QuickScanResponse");
 

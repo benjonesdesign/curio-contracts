@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.1.36
+- **`/api/reprice-apply` gets a contract module.** `reprice.ts` covered only the *flags* shape;
+  apply's request and response were local types in the route. Permitted by the CLAUDE.md rule, and
+  the wrong call for a route that **writes prices to live marketplace listings** and is consumed by
+  three platforms.
+
+  ⚠️ The comment that matters, preserved in the module: **the route writes
+  `physical_cards.suggested_price` itself, and only when a channel succeeds. No client may also
+  write it.** A client that optimistically updated the DB would silently diverge our record from the
+  listing the moment a channel call failed — an unlisted card, an expired token, a rejected price —
+  which is *exactly* the divergence this feature exists to close. Per-channel outcomes are reported
+  so a client can render what happened; they are not an invitation to reconcile the record.
+
+- **`environment` on the apply request**, so the call can be proven in **sandbox** before it is
+  trusted against a real listing.
+
+  `lib/channels/ebay.ts` hardcoded `"ebay_production"` while `/api/ebay-draft` — a route that exists
+  precisely so publishing can be tested without touching real listings — has always used the
+  sandbox. So the **one untested money-writing call in the system was the one call that could not be
+  exercised anywhere but production.** Exactly inverted.
+
+  Sandbox is necessary and **not sufficient**: eBay's sandbox diverges from production on policies
+  and fees, so a production check is still required. It should be the second test, not the first.
+
+**Tagged rather than accumulated**, against the cadence rule added in the README this morning,
+because the alternative is a published contract its own server does not validate against — which is
+the precise defect just fixed on `/api/quick-scan`, the only route with a request contract that
+didn't check itself against it. The rule's purpose is to stop tagging shapes nobody consumes; this
+one has a consumer the moment it exists.
+
+
 ## v0.1.35
 - **`expectedNetGbp` on `DecisionAlternative`.** An alternative without its number is a *label*, not
   a choice — "Bundle" against "List individually" tells a seller nothing, while "Bundle" against

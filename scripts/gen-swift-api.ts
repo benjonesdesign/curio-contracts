@@ -32,6 +32,10 @@ import {
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema } from "../src/api/common.js";
+import {
+  RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
+  RepriceChannelOutcomeSchema,
+} from "../src/api/reprice.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
@@ -80,6 +84,8 @@ registerName(DecisionAlternativeSchema, "DecisionAlternative");
 // generic a type to ship to three platforms.
 registerName(DecisionAssumptionCodeSchema, "DecisionAssumptionCode");
 registerName(DecisionAssumptionSchema, "DecisionAssumption");
+registerName(RepriceChannelOutcomeSchema, "RepriceChannelOutcome");
+registerName(RepriceApplyResultSchema, "RepriceApplyResult");
 registerName(QuickScanCandidateSchema, "QuickScanCandidate");
 // Same reasoning: one shared ShotQualityDescriptor struct, not a duplicate emitted only because
 // it's nested inside CaptureCommitRequest.shotQuality.
@@ -136,6 +142,8 @@ emitSwift(DecideRequestSchema, "DecideRequest");
 emitSwift(DecideResponseSchema, "DecideResponse");
 emitSwift(DecideBatchRequestSchema, "DecideBatchRequest");
 emitSwift(DecideBatchResponseSchema, "DecideBatchResponse");
+emitSwift(RepriceApplyRequestSchema, "RepriceApplyRequest");
+emitSwift(RepriceApplyResponseSchema, "RepriceApplyResponse");
 emitSwift(QuickScanRequestSchema, "QuickScanRequest");
 emitSwift(QuickScanResponseSchema, "QuickScanResponse");
 
