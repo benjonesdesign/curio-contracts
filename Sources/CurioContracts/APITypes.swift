@@ -1572,9 +1572,13 @@ public enum CollectionType4: String, Codable, Sendable {
 
 public struct DecideResponse: Codable, Sendable {
     public let decision: Decision
+    public let price: PriceProvenance
+    public let gradeEV: DecisionGradeEV?
 
-    public init(decision: Decision) {
+    public init(decision: Decision, price: PriceProvenance, gradeEV: DecisionGradeEV?) {
         self.decision = decision
+        self.price = price
+        self.gradeEV = gradeEV
     }
 }
 
@@ -1688,19 +1692,53 @@ public enum DegradedReason: String, Codable, Sendable {
     case compatibleCountUnknown = "compatible_count_unknown"
 }
 
+public struct PriceProvenance: Codable, Sendable {
+    public let source: String?
+    public let confidence: GameConfidence?
+    public let currencyNote: String?
+
+    public init(source: String?, confidence: GameConfidence?, currencyNote: String?) {
+        self.source = source
+        self.confidence = confidence
+        self.currencyNote = currencyNote
+    }
+}
+
+public struct DecisionGradeEV: Codable, Sendable {
+    public let gradeEVGbp: Double?
+    public let psa10PriceGbp: Double?
+    public let p10: Double?
+    public let p9: Double?
+    public let gradingCostGbp: Double?
+    public let rawNetGbp: Double?
+    public let confidence: GradeEVConfidence?
+
+    public init(gradeEVGbp: Double?, psa10PriceGbp: Double?, p10: Double?, p9: Double?, gradingCostGbp: Double?, rawNetGbp: Double?, confidence: GradeEVConfidence?) {
+        self.gradeEVGbp = gradeEVGbp
+        self.psa10PriceGbp = psa10PriceGbp
+        self.p10 = p10
+        self.p9 = p9
+        self.gradingCostGbp = gradingCostGbp
+        self.rawNetGbp = rawNetGbp
+        self.confidence = confidence
+    }
+}
+
 public struct QuickScanRequest: Codable, Sendable {
     public let name: String?
     public let setName: String?
     public let cardNumber: String?
+    public let setCode: String?
     public let game: Game?
     public let condition: Condition?
     public let finish: String?
     public let targetMarginPct: Double?
 
-    public init(name: String?, setName: String?, cardNumber: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?) {
+    public init(name: String?, setName: String?, cardNumber: String?, setCode: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?) {
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
+        self.setCode = setCode
         self.game = game
         self.condition = condition
         self.finish = finish
@@ -1713,6 +1751,8 @@ public struct QuickScanResponse: Codable, Sendable {
     public let candidates: [QuickScanCandidate]
     public let match: QuickScanCandidate?
     public let decision: Decision?
+    public let price: PriceProvenance?
+    public let gradeEV: DecisionGradeEV?
     public let decisionUnavailable: DecisionUnavailable?
     public let conditionAssessed: Bool
 
@@ -1721,15 +1761,19 @@ public struct QuickScanResponse: Codable, Sendable {
         case candidates
         case match
         case decision
+        case price
+        case gradeEV
         case decisionUnavailable
         case conditionAssessed
     }
 
-    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool) {
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool) {
         self.identified = identified
         self.candidates = candidates
         self.match = match
         self.decision = decision
+        self.price = price
+        self.gradeEV = gradeEV
         self.decisionUnavailable = decisionUnavailable
         self.conditionAssessed = conditionAssessed
     }
@@ -1740,6 +1784,8 @@ public struct QuickScanResponse: Codable, Sendable {
         self.candidates = try c.decodeIfPresent([QuickScanCandidate].self, forKey: .candidates) ?? []
         self.match = try c.decodeIfPresent(QuickScanCandidate.self, forKey: .match)
         self.decision = try c.decodeIfPresent(Decision.self, forKey: .decision)
+        self.price = try c.decodeIfPresent(PriceProvenance.self, forKey: .price)
+        self.gradeEV = try c.decodeIfPresent(DecisionGradeEV.self, forKey: .gradeEV)
         self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable.self, forKey: .decisionUnavailable)
         self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
     }

@@ -2116,6 +2116,8 @@ public object CollectionType4Serializer : KSerializer<CollectionType4> {
 @Serializable
 public data class DecideResponse(
     val decision: Decision,
+    val price: PriceProvenance,
+    val gradeEV: DecisionGradeEV? = null,
 )
 
 @Serializable
@@ -2285,10 +2287,29 @@ public object DegradedReasonSerializer : KSerializer<DegradedReason> {
 }
 
 @Serializable
+public data class PriceProvenance(
+    val source: String? = null,
+    val confidence: GameConfidence? = null,
+    val currencyNote: String? = null,
+)
+
+@Serializable
+public data class DecisionGradeEV(
+    val gradeEVGbp: Double? = null,
+    val psa10PriceGbp: Double? = null,
+    val p10: Double? = null,
+    val p9: Double? = null,
+    val gradingCostGbp: Double? = null,
+    val rawNetGbp: Double? = null,
+    val confidence: GradeEVConfidence? = null,
+)
+
+@Serializable
 public data class QuickScanRequest(
     val name: String? = null,
     val setName: String? = null,
     val cardNumber: String? = null,
+    val setCode: String? = null,
     val game: Game? = null,
     val condition: Condition? = null,
     val finish: String? = null,
@@ -2301,6 +2322,8 @@ public data class QuickScanResponse(
     val candidates: List<QuickScanCandidate> = emptyList(),
     val match: QuickScanCandidate? = null,
     val decision: Decision? = null,
+    val price: PriceProvenance? = null,
+    val gradeEV: DecisionGradeEV? = null,
     val decisionUnavailable: DecisionUnavailable? = null,
     val conditionAssessed: Boolean = false,
 )

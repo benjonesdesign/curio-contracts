@@ -13,7 +13,7 @@
 // an ambiguous card has no decision to make, because there is no card to price yet.
 import { z } from "zod";
 import { ConditionSchema, ConfidenceSchema, GameIdSchema, LiquiditySchema } from "./common.js";
-import { PricingSettingsSchema, RecommendedRouteSchema } from "./recommend.js";
+import { GradeEVConfidenceSchema, PricingSettingsSchema, RecommendedRouteSchema } from "./recommend.js";
 /** Why a route was chosen. A CODE — the shared engine does not own English; each platform renders
  *  its own copy from @curio/copy. */
 export const RouteReasonSchema = z.enum([
@@ -105,6 +105,44 @@ export const DecisionSchema = z.object({
     degraded: z.boolean(),
     degradedReasons: z.array(DegradedReasonSchema).default([]),
 });
+// ── Provenance: a fact about the INPUT, deliberately BESIDE the decision ────────────────────
+//
+// `Decision` is not a superset of `RecommendResponse`. `priceSource`, `priceConfidence`,
+// `currencyNote`, `gradeEV` and `explanation` all live on the latter and none on the former, so a
+// client migrating its hero from /api/recommend to /api/decide as instructed would have retired the
+// English `why` — the intent — and SILENTLY DROPPED PRICE PROVENANCE AND THE GRADE-EV LINE with it.
+//
+// The provenance pill is what marks a figure as true-for-a-UK-seller rather than a raw US price.
+// Losing it as a side effect of a copy migration is the worst way to lose it, because nobody would
+// have been deciding to.
+//
+// It sits BESIDE `decision` rather than inside it, for the same reason identity does in
+// QuickScanResponse: **provenance is a fact about the INPUT, not an output of the engine.** Where
+// a price came from is true whether or not a decision was reachable — and folding it in would
+// give /api/decide a field the engine does not produce, which is how required-but-unpopulated
+// fields get born.
+//
+// `explanation` is the one that SHOULD retire, and does: it is English, the contract deliberately
+// does not own it, and RouteReason + AlternativeReason + @curio/copy replace it.
+export const PriceProvenanceSchema = z.object({
+    /** The price's own source id, e.g. "ebay-uk-sold", "poketrace-ebay". */
+    source: z.string().nullable(),
+    /** How much the price itself is trusted — distinct from the DECISION's confidence. */
+    confidence: ConfidenceSchema.nullable(),
+    /** Set when the figure was converted from another currency, so a UK seller is told. */
+    currencyNote: z.string().nullable(),
+});
+/** Whether-to-grade economics. Optional and flag-gated — ADR 0016 parks the real numbers on
+ *  Marketplace Insights, so this is present only where a caller has them. */
+export const DecisionGradeEVSchema = z.object({
+    gradeEVGbp: z.number().nullable(),
+    psa10PriceGbp: z.number().nullable(),
+    p10: z.number().nullable(),
+    p9: z.number().nullable(),
+    gradingCostGbp: z.number().nullable(),
+    rawNetGbp: z.number().nullable(),
+    confidence: GradeEVConfidenceSchema.nullable(),
+});
 // ── POST /api/decide — authenticated ────────────────────────────────────────────────────────
 export const DecideRequestSchema = z.object({
     /** The card to decide about, when the seller already owns it. */
@@ -141,12 +179,28 @@ export const DecideRequestSchema = z.object({
      *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
     pricingSettings: PricingSettingsSchema.optional(),
 });
-export const DecideResponseSchema = z.object({ decision: DecisionSchema });
+export const DecideResponseSchema = z.object({
+    decision: DecisionSchema,
+    /** Where the market value came from. Beside the decision, never inside it — see above. */
+    price: PriceProvenanceSchema,
+    gradeEV: DecisionGradeEVSchema.optional(),
+});
 // ── POST /api/quick-scan — anonymous ────────────────────────────────────────────────────────
 export const QuickScanRequestSchema = z.object({
     name: z.string().optional(),
     setName: z.string().nullable().optional(),
     cardNumber: z.string().nullable().optional(),
+    /**
+     * The set code read off the card, e.g. "BS", "SFD". Mirrors `CatalogueLookupRequestSchema`.
+     *
+     * ⚠️ NOT optional in effect, even though it is optional in type. It is W15 Tier 0's STRONGEST
+     * set signal, tried ahead of the name-first resolver. Without it here, a client collapsing its
+     * card-search call into this one would throw the OCR'd set code away and resolve on a bare
+     * number — the cross-game-collision case that produced the "Windsinger" match. That trades
+     * identification accuracy for a rate-limit saving, and for a first-time anonymous user a WRONG
+     * CARD is worse than a second request.
+     */
+    setCode: z.string().nullable().optional(),
     /** A narrowing HINT, never a precondition — number+set is decisive for ~99.3% of the catalogue
      *  across all games combined. */
     game: GameIdSchema.optional(),
@@ -205,6 +259,9 @@ export const QuickScanResponseSchema = z.object({
      * for every card tried, and the response could not distinguish "these cards have no price" from
      * "the price path is down". Diagnosing it required guessing.
      */
+    /** Where the market value came from. Null when there was no price to have provenance about. */
+    price: PriceProvenanceSchema.nullable().optional(),
+    gradeEV: DecisionGradeEVSchema.optional(),
     decisionUnavailable: z.enum([
         /** Identity did not resolve — nothing to price yet. Expected, not a fault. */
         "identity_unresolved",
