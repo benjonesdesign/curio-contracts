@@ -1594,6 +1594,7 @@ public struct Decision: Codable, Sendable {
     public let offerPctAtMax: Double
     public let degraded: Bool
     public let degradedReasons: [DegradedReason]
+    public let assumptions: [DecisionAssumption]
 
     enum CodingKeys: String, CodingKey {
         case route
@@ -1607,9 +1608,10 @@ public struct Decision: Codable, Sendable {
         case offerPctAtMax
         case degraded
         case degradedReasons
+        case assumptions
     }
 
-    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double, minAcceptGbp: Double, offerPctAtMax: Double, degraded: Bool, degradedReasons: [DegradedReason]) {
+    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double, minAcceptGbp: Double, offerPctAtMax: Double, degraded: Bool, degradedReasons: [DegradedReason], assumptions: [DecisionAssumption]) {
         self.route = route
         self.reason = reason
         self.alternatives = alternatives
@@ -1621,6 +1623,7 @@ public struct Decision: Codable, Sendable {
         self.offerPctAtMax = offerPctAtMax
         self.degraded = degraded
         self.degradedReasons = degradedReasons
+        self.assumptions = assumptions
     }
 
     public init(from decoder: Decoder) throws {
@@ -1636,6 +1639,7 @@ public struct Decision: Codable, Sendable {
         self.offerPctAtMax = try c.decode(Double.self, forKey: .offerPctAtMax)
         self.degraded = try c.decode(Bool.self, forKey: .degraded)
         self.degradedReasons = try c.decodeIfPresent([DegradedReason].self, forKey: .degradedReasons) ?? []
+        self.assumptions = try c.decodeIfPresent([DecisionAssumption].self, forKey: .assumptions) ?? []
     }
 }
 
@@ -1651,10 +1655,12 @@ public enum RouteReason: String, Codable, Sendable {
 public struct DecisionAlternative: Codable, Sendable {
     public let route: RecommendedRoute
     public let reason: AlternativeReason
+    public let expectedNetGbp: Double?
 
-    public init(route: RecommendedRoute, reason: AlternativeReason) {
+    public init(route: RecommendedRoute, reason: AlternativeReason, expectedNetGbp: Double?) {
         self.route = route
         self.reason = reason
+        self.expectedNetGbp = expectedNetGbp
     }
 }
 
@@ -1690,6 +1696,29 @@ public enum DegradedReason: String, Codable, Sendable {
     case noSaleCount = "no_sale_count"
     case feesUnknown = "fees_unknown"
     case compatibleCountUnknown = "compatible_count_unknown"
+}
+
+public struct DecisionAssumption: Codable, Sendable {
+    public let code: DecisionAssumptionCode
+    public let value: String?
+    public let valueGbp: Double?
+
+    public init(code: DecisionAssumptionCode, value: String?, valueGbp: Double?) {
+        self.code = code
+        self.value = value
+        self.valueGbp = valueGbp
+    }
+}
+
+public enum DecisionAssumptionCode: String, Codable, Sendable {
+    case channel = "channel"
+    case sellerType = "seller_type"
+    case vatRegistered = "vat_registered"
+    case condition = "condition"
+    case postage = "postage"
+    case packaging = "packaging"
+    case taxRate = "tax_rate"
+    case costBasis = "cost_basis"
 }
 
 public struct PriceProvenance: Codable, Sendable {

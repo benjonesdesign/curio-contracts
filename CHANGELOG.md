@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.1.35
+- **`expectedNetGbp` on `DecisionAlternative`.** An alternative without its number is a *label*, not
+  a choice — "Bundle" against "List individually" tells a seller nothing, while "Bundle" against
+  "List individually (nets ~£8.10)" is a comparison they can actually make. **The figure is the
+  comparison**, so losing it was a regression in decision quality rather than in polish.
+
+  Null where the net genuinely cannot be computed for that route rather than where it merely was
+  not: a bundle's or bulk lot's proceeds depend on the whole lot, so quoting *this card's* net
+  beside "Bundle" would be a number answering a different question.
+
+- **`assumptions` — the successor to `/api/recommend`'s English `assumptions: string[]`.**
+
+  iOS deleted its assumptions surface during the hero migration and deliberately did **not** backfill
+  it from `degradedReasons`. That was right: *"what was missing"* and *"what was assumed"* are
+  different claims, and a decision can be entirely un-degraded and still rest on assumptions the
+  seller never stated.
+
+  **The shape is decided now, ahead of the channel work, so it isn't a second bump.** W21 decision
+  7.1 requires the assumed default channel to be **labelled as an assumption and never presented as
+  a choice the seller made** — which needs exactly this surface. `channel` is already in the code
+  list; the engine populates it when channel reaches `SellerCostModel` (W21 step 1). Everything else
+  is populatable today.
+
+  Codes carry a **raw token** (`"ebay"`, `"private"`, `"NM"`) and never a rendered sentence — the
+  label comes from `@curio/copy`, so the server doesn't become the owner of English for three
+  platforms. Monetary assumptions carry `valueGbp` so each client formats in its own locale.
+
+  **Only genuinely assumed things appear.** A value the seller chose, or that came from their profile
+  or their eBay policy, is not an assumption and must not be listed as one — that distinction is the
+  entire point.
+
+
 ## v0.1.34
 - **`/api/decide` gains a BATCH mode** — the named retirement condition for `/api/recommend`.
 

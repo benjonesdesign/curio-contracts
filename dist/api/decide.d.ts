@@ -17,12 +17,27 @@ export declare const DegradedReasonSchema: z.ZodEnum<["no_sale_count", "fees_unk
 export declare const DecisionAlternativeSchema: z.ZodObject<{
     route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
     reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+    /**
+     * What this alternative nets, when that is knowable.
+     *
+     * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+     * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+     * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+     * was a regression in decision quality rather than in polish.
+     *
+     * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+     * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+     * quoting this card's net beside "Bundle" would be a number that answers a different question.
+     */
+    expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+    expectedNetGbp?: number | null | undefined;
 }, {
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+    expectedNetGbp?: number | null | undefined;
 }>;
 export declare const DecisionEconomicsSchema: z.ZodObject<{
     marketValueGbp: z.ZodNumber;
@@ -37,33 +52,89 @@ export declare const DecisionEconomicsSchema: z.ZodObject<{
     expectedNetGbp: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     marketValueGbp: number;
+    expectedNetGbp: number;
     feeGbp: number;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
     taxProvisionGbp: number;
-    expectedNetGbp: number;
 }, {
     marketValueGbp: number;
+    expectedNetGbp: number;
     feeGbp: number;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
     taxProvisionGbp: number;
-    expectedNetGbp: number;
 }>;
+/**
+ * What the engine had to fill in for itself, because the seller had not said.
+ *
+ * The successor to `/api/recommend`'s `assumptions: string[]`, which was English and so could not
+ * live in the contract. iOS deleted its assumptions surface during the hero migration and
+ * deliberately did NOT backfill it from `degradedReasons` — correctly, because "what was missing"
+ * and "what was ASSUMED" are different claims and conflating them is the near-enough mapping this
+ * project has spent a fortnight removing. A decision can be complete (nothing degraded) and still
+ * rest on assumptions.
+ *
+ * ⚠️ THE SHAPE IS DECIDED NOW, AHEAD OF THE CHANNEL WORK, so it is not a second contract bump.
+ * W21 decision 7.1 requires that the assumed default channel be LABELLED AS AN ASSUMPTION and never
+ * presented as a choice the seller made — which needs exactly this surface. `channel` is in the
+ * code list already; the engine starts populating it when channel reaches SellerCostModel (W21
+ * step 1). Everything else here is populatable today.
+ *
+ * ONLY genuinely assumed things appear. A value the seller chose, or that came from their profile
+ * or their eBay policy, is not an assumption and must not be listed as one — the entire point is
+ * the distinction.
+ */
+export declare const DecisionAssumptionCodeSchema: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+export declare const DecisionAssumptionSchema: z.ZodObject<{
+    code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+    /**
+     * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+     * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+     * server does not become the owner of English for three platforms.
+     */
+    value: z.ZodNullable<z.ZodString>;
+    /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+    valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+}, "strip", z.ZodTypeAny, {
+    value: string | null;
+    code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+    valueGbp?: number | null | undefined;
+}, {
+    value: string | null;
+    code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+    valueGbp?: number | null | undefined;
+}>;
+export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
 export declare const DecisionSchema: z.ZodObject<{
     route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
     reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
     alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+        /**
+         * What this alternative nets, when that is knowable.
+         *
+         * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+         * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+         * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+         * was a regression in decision quality rather than in polish.
+         *
+         * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+         * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+         * quoting this card's net beside "Bundle" would be a number that answers a different question.
+         */
+        expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, "strip", z.ZodTypeAny, {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
     }, {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
     }>, "many">>;
     confidence: z.ZodEnum<["high", "medium", "low"]>;
     liquidity: z.ZodEnum<["high", "medium", "low"]>;
@@ -80,20 +151,20 @@ export declare const DecisionSchema: z.ZodObject<{
         expectedNetGbp: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         marketValueGbp: number;
+        expectedNetGbp: number;
         feeGbp: number;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
         taxProvisionGbp: number;
-        expectedNetGbp: number;
     }, {
         marketValueGbp: number;
+        expectedNetGbp: number;
         feeGbp: number;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
         taxProvisionGbp: number;
-        expectedNetGbp: number;
     }>;
     /** ACQUISITION: the most the seller should PAY for this card. */
     maxBuyGbp: z.ZodNumber;
@@ -111,6 +182,29 @@ export declare const DecisionSchema: z.ZodObject<{
      */
     degraded: z.ZodBoolean;
     degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+    /**
+     * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+     * un-degraded and still rest on assumptions the seller never stated.
+     */
+    assumptions: z.ZodDefault<z.ZodArray<z.ZodObject<{
+        code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+        /**
+         * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+         * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+         * server does not become the owner of English for three platforms.
+         */
+        value: z.ZodNullable<z.ZodString>;
+        /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+        valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    }, "strip", z.ZodTypeAny, {
+        value: string | null;
+        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }, {
+        value: string | null;
+        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     confidence: "high" | "medium" | "low";
     liquidity: "high" | "medium" | "low";
@@ -118,16 +212,22 @@ export declare const DecisionSchema: z.ZodObject<{
     alternatives: {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
     }[];
     economics: {
         marketValueGbp: number;
+        expectedNetGbp: number;
         feeGbp: number;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
         taxProvisionGbp: number;
-        expectedNetGbp: number;
     };
+    assumptions: {
+        value: string | null;
+        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }[];
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
     maxBuyGbp: number;
     minAcceptGbp: number;
@@ -140,12 +240,12 @@ export declare const DecisionSchema: z.ZodObject<{
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     economics: {
         marketValueGbp: number;
+        expectedNetGbp: number;
         feeGbp: number;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
         taxProvisionGbp: number;
-        expectedNetGbp: number;
     };
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
     maxBuyGbp: number;
@@ -155,6 +255,12 @@ export declare const DecisionSchema: z.ZodObject<{
     alternatives?: {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
+    }[] | undefined;
+    assumptions?: {
+        value: string | null;
+        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
     }[] | undefined;
     degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
 }>;
@@ -310,12 +416,27 @@ export declare const DecideResponseSchema: z.ZodObject<{
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
             route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
             reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+            /**
+             * What this alternative nets, when that is knowable.
+             *
+             * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+             * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+             * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+             * was a regression in decision quality rather than in polish.
+             *
+             * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+             * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+             * quoting this card's net beside "Bundle" would be a number that answers a different question.
+             */
+            expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
@@ -332,20 +453,20 @@ export declare const DecideResponseSchema: z.ZodObject<{
             expectedNetGbp: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }>;
         /** ACQUISITION: the most the seller should PAY for this card. */
         maxBuyGbp: z.ZodNumber;
@@ -363,6 +484,29 @@ export declare const DecideResponseSchema: z.ZodObject<{
          */
         degraded: z.ZodBoolean;
         degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+        /**
+         * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+         * un-degraded and still rest on assumptions the seller never stated.
+         */
+        assumptions: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+            /**
+             * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+             * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+             * server does not become the owner of English for three platforms.
+             */
+            value: z.ZodNullable<z.ZodString>;
+            /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+            valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        }, "strip", z.ZodTypeAny, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }>, "many">>;
     }, "strip", z.ZodTypeAny, {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
@@ -370,16 +514,22 @@ export declare const DecideResponseSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -392,12 +542,12 @@ export declare const DecideResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -407,6 +557,12 @@ export declare const DecideResponseSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     }>;
@@ -460,16 +616,22 @@ export declare const DecideResponseSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -498,12 +660,12 @@ export declare const DecideResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -513,6 +675,12 @@ export declare const DecideResponseSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     };
@@ -691,12 +859,27 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
             route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
             reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+            /**
+             * What this alternative nets, when that is knowable.
+             *
+             * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+             * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+             * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+             * was a regression in decision quality rather than in polish.
+             *
+             * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+             * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+             * quoting this card's net beside "Bundle" would be a number that answers a different question.
+             */
+            expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
@@ -713,20 +896,20 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             expectedNetGbp: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }>;
         /** ACQUISITION: the most the seller should PAY for this card. */
         maxBuyGbp: z.ZodNumber;
@@ -744,6 +927,29 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
          */
         degraded: z.ZodBoolean;
         degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+        /**
+         * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+         * un-degraded and still rest on assumptions the seller never stated.
+         */
+        assumptions: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+            /**
+             * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+             * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+             * server does not become the owner of English for three platforms.
+             */
+            value: z.ZodNullable<z.ZodString>;
+            /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+            valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        }, "strip", z.ZodTypeAny, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }>, "many">>;
     }, "strip", z.ZodTypeAny, {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
@@ -751,16 +957,22 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -773,12 +985,12 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -788,6 +1000,12 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     }>>;
@@ -817,16 +1035,22 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -848,12 +1072,12 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -863,6 +1087,12 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     } | null;
@@ -888,12 +1118,27 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
                 route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
                 reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+                /**
+                 * What this alternative nets, when that is knowable.
+                 *
+                 * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+                 * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+                 * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+                 * was a regression in decision quality rather than in polish.
+                 *
+                 * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+                 * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+                 * quoting this card's net beside "Bundle" would be a number that answers a different question.
+                 */
+                expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             }, "strip", z.ZodTypeAny, {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
             }, {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
             }>, "many">>;
             confidence: z.ZodEnum<["high", "medium", "low"]>;
             liquidity: z.ZodEnum<["high", "medium", "low"]>;
@@ -910,20 +1155,20 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 expectedNetGbp: z.ZodNumber;
             }, "strip", z.ZodTypeAny, {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             }, {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             }>;
             /** ACQUISITION: the most the seller should PAY for this card. */
             maxBuyGbp: z.ZodNumber;
@@ -941,6 +1186,29 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
              */
             degraded: z.ZodBoolean;
             degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+            /**
+             * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+             * un-degraded and still rest on assumptions the seller never stated.
+             */
+            assumptions: z.ZodDefault<z.ZodArray<z.ZodObject<{
+                code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+                /**
+                 * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+                 * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+                 * server does not become the owner of English for three platforms.
+                 */
+                value: z.ZodNullable<z.ZodString>;
+                /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+                valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            }, "strip", z.ZodTypeAny, {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }, {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }>, "many">>;
         }, "strip", z.ZodTypeAny, {
             confidence: "high" | "medium" | "low";
             liquidity: "high" | "medium" | "low";
@@ -948,16 +1216,22 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
             }[];
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
             minAcceptGbp: number;
@@ -970,12 +1244,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
@@ -985,6 +1259,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
         }>>;
@@ -1014,16 +1294,22 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
             }[];
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
             minAcceptGbp: number;
@@ -1045,12 +1331,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
@@ -1060,6 +1346,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
         } | null;
@@ -1080,16 +1372,22 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
             }[];
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
             minAcceptGbp: number;
@@ -1113,12 +1411,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
+                expectedNetGbp: number;
                 feeGbp: number;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
                 taxProvisionGbp: number;
-                expectedNetGbp: number;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
             maxBuyGbp: number;
@@ -1128,6 +1426,12 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
                 reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
         } | null;
@@ -1371,12 +1675,27 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
             route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
             reason: z.ZodEnum<["net_negative_after_costs", "bundle_shares_postage", "list_ungraded_instead", "list_now_accept_slower", "list_alone_instead"]>;
+            /**
+             * What this alternative nets, when that is knowable.
+             *
+             * NOT cosmetic. An alternative without its number is a label, not a choice — "Bundle" against
+             * "List individually" tells a seller nothing, while "Bundle" against "List individually (nets
+             * ~£8.10)" is a comparison they can actually make. The figure IS the comparison, and dropping it
+             * was a regression in decision quality rather than in polish.
+             *
+             * NULL where the net genuinely cannot be computed for that route rather than where it was merely
+             * not calculated: a bundle's or bulk lot's proceeds depend on the whole lot, not on this card, so
+             * quoting this card's net beside "Bundle" would be a number that answers a different question.
+             */
+            expectedNetGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }, {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
@@ -1393,20 +1712,20 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             expectedNetGbp: z.ZodNumber;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }, {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         }>;
         /** ACQUISITION: the most the seller should PAY for this card. */
         maxBuyGbp: z.ZodNumber;
@@ -1424,6 +1743,29 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
          */
         degraded: z.ZodBoolean;
         degradedReasons: z.ZodDefault<z.ZodArray<z.ZodEnum<["no_sale_count", "fees_unknown", "compatible_count_unknown"]>, "many">>;
+        /**
+         * What the engine assumed. Distinct from `degradedReasons`: a decision can be entirely
+         * un-degraded and still rest on assumptions the seller never stated.
+         */
+        assumptions: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            code: z.ZodEnum<["channel", "seller_type", "vat_registered", "condition", "postage", "packaging", "tax_rate", "cost_basis"]>;
+            /**
+             * The assumed value as a RAW TOKEN where one exists ("ebay", "private", "NM"), never a rendered
+             * sentence — the label comes from @curio/copy, same as every other code in this module, so the
+             * server does not become the owner of English for three platforms.
+             */
+            value: z.ZodNullable<z.ZodString>;
+            /** Monetary assumptions carry their figure, so each client formats it in its own locale. */
+            valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        }, "strip", z.ZodTypeAny, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }, {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }>, "many">>;
     }, "strip", z.ZodTypeAny, {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
@@ -1431,16 +1773,22 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -1453,12 +1801,12 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -1468,6 +1816,12 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     }>>;
@@ -1547,16 +1901,22 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         alternatives: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
         }[];
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
         minAcceptGbp: number;
@@ -1598,12 +1958,12 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
+            expectedNetGbp: number;
             feeGbp: number;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
             taxProvisionGbp: number;
-            expectedNetGbp: number;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
         maxBuyGbp: number;
@@ -1613,6 +1973,12 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     } | null;

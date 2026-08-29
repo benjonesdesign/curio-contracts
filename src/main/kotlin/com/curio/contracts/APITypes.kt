@@ -2133,6 +2133,7 @@ public data class Decision(
     val offerPctAtMax: Double,
     val degraded: Boolean,
     val degradedReasons: List<DegradedReason> = emptyList(),
+    val assumptions: List<DecisionAssumption> = emptyList(),
 )
 
 @Serializable(with = RouteReasonSerializer::class)
@@ -2189,6 +2190,7 @@ public object RouteReasonSerializer : KSerializer<RouteReason> {
 public data class DecisionAlternative(
     val route: RecommendedRoute,
     val reason: AlternativeReason,
+    val expectedNetGbp: Double? = null,
 )
 
 @Serializable(with = AlternativeReasonSerializer::class)
@@ -2282,6 +2284,71 @@ public object DegradedReasonSerializer : KSerializer<DegradedReason> {
         PrimitiveSerialDescriptor("DegradedReason", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): DegradedReason = DegradedReason.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: DegradedReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class DecisionAssumption(
+    val code: DecisionAssumptionCode,
+    val value: String? = null,
+    val valueGbp: Double? = null,
+)
+
+@Serializable(with = DecisionAssumptionCodeSerializer::class)
+public sealed interface DecisionAssumptionCode {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CHANNEL : DecisionAssumptionCode {
+        override val rawValue: String get() = "channel"
+    }
+    public object SELLER_TYPE : DecisionAssumptionCode {
+        override val rawValue: String get() = "seller_type"
+    }
+    public object VAT_REGISTERED : DecisionAssumptionCode {
+        override val rawValue: String get() = "vat_registered"
+    }
+    public object CONDITION : DecisionAssumptionCode {
+        override val rawValue: String get() = "condition"
+    }
+    public object POSTAGE : DecisionAssumptionCode {
+        override val rawValue: String get() = "postage"
+    }
+    public object PACKAGING : DecisionAssumptionCode {
+        override val rawValue: String get() = "packaging"
+    }
+    public object TAX_RATE : DecisionAssumptionCode {
+        override val rawValue: String get() = "tax_rate"
+    }
+    public object COST_BASIS : DecisionAssumptionCode {
+        override val rawValue: String get() = "cost_basis"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : DecisionAssumptionCode
+
+    public companion object {
+        public fun from(raw: String): DecisionAssumptionCode = when (raw) {
+            "channel" -> CHANNEL
+            "seller_type" -> SELLER_TYPE
+            "vat_registered" -> VAT_REGISTERED
+            "condition" -> CONDITION
+            "postage" -> POSTAGE
+            "packaging" -> PACKAGING
+            "tax_rate" -> TAX_RATE
+            "cost_basis" -> COST_BASIS
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object DecisionAssumptionCodeSerializer : KSerializer<DecisionAssumptionCode> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("DecisionAssumptionCode", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): DecisionAssumptionCode = DecisionAssumptionCode.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: DecisionAssumptionCode) {
         encoder.encodeString(value.rawValue)
     }
 }
