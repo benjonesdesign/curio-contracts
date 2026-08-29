@@ -185,6 +185,49 @@ export const DecideResponseSchema = z.object({
     price: PriceProvenanceSchema,
     gradeEV: DecisionGradeEVSchema.optional(),
 });
+// ── POST /api/decide — BATCH ────────────────────────────────────────────────────────────────
+//
+// The named retirement condition for /api/recommend (see RouteEconomics in ./recommend.ts).
+// `app/add/multiple/ReviewListStep.tsx` prices a whole capture at once, so it could not move to a
+// single-card route however much the single-card shape was preferred — which is why the legacy
+// shape kept two live web callers and could not be deleted.
+//
+// One request, one settings object, N cards: identical to RecommendBatchRequest's own reasoning —
+// the seller's cost model is an ACCOUNT-wide preference and does not vary card-to-card within one
+// review session. Per-card values are per-card; the fee position is not.
+export const DecideBatchCardSchema = z.object({
+    /** Caller-assigned id (e.g. the client-side listing id) — echoed back to match results up. */
+    id: z.string(),
+    marketValueGbp: z.number().nullable(),
+    costBasisGbp: z.number().nullable(),
+    condition: ConditionSchema.optional(),
+    isVintage: z.boolean().nullable().optional(),
+    saleCount: z.number().int().nullable().optional(),
+    priceSource: z.string().nullable().optional(),
+    /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
+    compatibleCount: z.number().int().nullable().optional(),
+    collectionType: z.enum(["personal", "resale"]).optional(),
+});
+export const DecideBatchRequestSchema = z.object({
+    cards: z.array(DecideBatchCardSchema).min(1).max(200),
+    /** Applies to the whole batch — a seller preference, not a per-card fact. */
+    targetMarginPct: z.number().optional(),
+    pricingSettings: PricingSettingsSchema.optional(),
+});
+export const DecideBatchResultSchema = z.object({
+    id: z.string(),
+    /**
+     * NULL when that card has no market value yet — the same principle as quick-scan's null
+     * decision: a decision computed from a value we do not have is a guess wearing a number. One
+     * unpriceable card does not fail the batch.
+     */
+    decision: DecisionSchema.nullable(),
+    decisionUnavailable: z.enum(["identity_unresolved", "no_market_value", "pricing_unavailable"]).nullable().optional(),
+    price: PriceProvenanceSchema.nullable().optional(),
+});
+export const DecideBatchResponseSchema = z.object({
+    results: z.array(DecideBatchResultSchema),
+});
 // ── POST /api/quick-scan — anonymous ────────────────────────────────────────────────────────
 export const QuickScanRequestSchema = z.object({
     name: z.string().optional(),

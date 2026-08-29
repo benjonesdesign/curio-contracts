@@ -28,7 +28,8 @@ import {
   DecideRequestSchema, DecideResponseSchema, DecisionSchema, DecisionEconomicsSchema,
   DecisionAlternativeSchema, QuickScanRequestSchema, QuickScanResponseSchema,
   QuickScanCandidateSchema, RouteReasonSchema, AlternativeReasonSchema, DegradedReasonSchema,
-  PriceProvenanceSchema, DecisionGradeEVSchema,
+  PriceProvenanceSchema, DecisionGradeEVSchema, DecideBatchRequestSchema,
+  DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema } from "../src/api/common.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
@@ -68,6 +69,8 @@ registerName(RouteReasonSchema, "RouteReason");
 registerName(AlternativeReasonSchema, "AlternativeReason");
 registerName(DegradedReasonSchema, "DegradedReason");
 registerName(LiquiditySchema, "Liquidity");
+registerName(DecideBatchResultSchema, "DecideBatchResult");
+registerName(DecideBatchCardSchema, "DecideBatchCard");
 registerName(PriceProvenanceSchema, "PriceProvenance");
 registerName(DecisionGradeEVSchema, "DecisionGradeEV");
 registerName(DecisionSchema, "Decision");
@@ -127,6 +130,8 @@ emitSwift(ProfilePatchSchema, "ProfilePatch");
 
 emitSwift(DecideRequestSchema, "DecideRequest");
 emitSwift(DecideResponseSchema, "DecideResponse");
+emitSwift(DecideBatchRequestSchema, "DecideBatchRequest");
+emitSwift(DecideBatchResponseSchema, "DecideBatchResponse");
 emitSwift(QuickScanRequestSchema, "QuickScanRequest");
 emitSwift(QuickScanResponseSchema, "QuickScanResponse");
 
