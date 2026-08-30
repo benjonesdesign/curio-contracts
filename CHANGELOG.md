@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.39 — a printing is one card in one SET at one number
+
+Search grouped on `game::name`, dropping set and number, so every Charizard in every set collapsed
+into one row and the app reported **"Charizard GX — 24 printings"** for 24 different cards at
+different prices.
+
+- `CardSearchRequest.setName` — the set filter. The set is the differentiator: the seller is
+  holding the card and can read the set off it, so they already know the answer and only need to
+  find the row.
+- `CardSearchResponse.setsPresent` — the filter's options, so the control can be offered without a
+  second round trip. A seller cannot pick from a list they cannot see.
+- `printingCount` / `printings` documented against canon: **a printing is one card in one set at one
+  number, and holo/reverse-holo are FINISHES on that row.** That differs from TCGplayer's product
+  grouping, which splits each finish into its own product — the route's own comment had been citing
+  TCGplayer to justify a collapse this project deliberately does not use.
+
+`printingCount` is almost always 1 now, and that is correct rather than a regression: the axis that
+would legitimately produce several printings is finish, and `catalogue_cards.finishes` is empty on
+every Pokémon row.
+
 ## v0.1.38 — the `*Rate` / `*Pct` unit convention, enforced
 
 `*Rate` is a fraction (0–1), `*Pct` is a percentage (0–100). The suffix is the unit. Both appear in

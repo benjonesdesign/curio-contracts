@@ -787,31 +787,37 @@ public struct RecommendBatchResult: Codable, Sendable {
 public struct CardSearchRequest: Codable, Sendable {
     public let q: String
     public let game: String?
+    public let setName: String?
 
-    public init(q: String, game: String?) {
+    public init(q: String, game: String?, setName: String?) {
         self.q = q
         self.game = game
+        self.setName = setName
     }
 }
 
 public struct CardSearchResponse: Codable, Sendable {
     public let results: [CardSearchResult]
     public let cataloguesUnavailable: [String]
+    public let setsPresent: [String]
 
     enum CodingKeys: String, CodingKey {
         case results
         case cataloguesUnavailable
+        case setsPresent
     }
 
-    public init(results: [CardSearchResult], cataloguesUnavailable: [String]) {
+    public init(results: [CardSearchResult], cataloguesUnavailable: [String], setsPresent: [String]) {
         self.results = results
         self.cataloguesUnavailable = cataloguesUnavailable
+        self.setsPresent = setsPresent
     }
 
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.results = try c.decode([CardSearchResult].self, forKey: .results)
         self.cataloguesUnavailable = try c.decodeIfPresent([String].self, forKey: .cataloguesUnavailable) ?? []
+        self.setsPresent = try c.decodeIfPresent([String].self, forKey: .setsPresent) ?? []
     }
 }
 
