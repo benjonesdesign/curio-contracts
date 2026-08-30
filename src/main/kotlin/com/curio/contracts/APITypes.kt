@@ -2599,8 +2599,9 @@ public data class QuickScanResponse(
     val decision: Decision? = null,
     val price: PriceProvenance? = null,
     val gradeEV: DecisionGradeEV? = null,
-    val decisionUnavailable: DecisionUnavailable2? = null,
+    val decisionUnavailable: DecisionUnavailable? = null,
     val conditionAssessed: Boolean = false,
+    val editionAmbiguity: EditionAmbiguity? = null,
 )
 
 @Serializable
@@ -2615,40 +2616,36 @@ public data class QuickScanCandidate(
     val image: String? = null,
 )
 
-@Serializable(with = DecisionUnavailable2Serializer::class)
-public sealed interface DecisionUnavailable2 {
+@Serializable(with = EditionAmbiguitySerializer::class)
+public sealed interface EditionAmbiguity {
     /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
      *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
     public val rawValue: String
 
-    public object IDENTITY_UNRESOLVED : DecisionUnavailable2 {
-        override val rawValue: String get() = "identity_unresolved"
+    public object FIRST_EDITION_SHADOWLESS_UNLIMITED : EditionAmbiguity {
+        override val rawValue: String get() = "first_edition_shadowless_unlimited"
     }
-    public object NO_MARKET_VALUE : DecisionUnavailable2 {
-        override val rawValue: String get() = "no_market_value"
-    }
-    public object PRICING_UNAVAILABLE : DecisionUnavailable2 {
-        override val rawValue: String get() = "pricing_unavailable"
+    public object FIRST_EDITION_UNLIMITED : EditionAmbiguity {
+        override val rawValue: String get() = "first_edition_unlimited"
     }
 
     /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
-    public data class Unknown(override val rawValue: String) : DecisionUnavailable2
+    public data class Unknown(override val rawValue: String) : EditionAmbiguity
 
     public companion object {
-        public fun from(raw: String): DecisionUnavailable2 = when (raw) {
-            "identity_unresolved" -> IDENTITY_UNRESOLVED
-            "no_market_value" -> NO_MARKET_VALUE
-            "pricing_unavailable" -> PRICING_UNAVAILABLE
+        public fun from(raw: String): EditionAmbiguity = when (raw) {
+            "first_edition_shadowless_unlimited" -> FIRST_EDITION_SHADOWLESS_UNLIMITED
+            "first_edition_unlimited" -> FIRST_EDITION_UNLIMITED
             else -> Unknown(raw)
         }
     }
 }
 
-public object DecisionUnavailable2Serializer : KSerializer<DecisionUnavailable2> {
+public object EditionAmbiguitySerializer : KSerializer<EditionAmbiguity> {
     override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("DecisionUnavailable2", PrimitiveKind.STRING)
-    override fun deserialize(decoder: Decoder): DecisionUnavailable2 = DecisionUnavailable2.from(decoder.decodeString())
-    override fun serialize(encoder: Encoder, value: DecisionUnavailable2) {
+        PrimitiveSerialDescriptor("EditionAmbiguity", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): EditionAmbiguity = EditionAmbiguity.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: EditionAmbiguity) {
         encoder.encodeString(value.rawValue)
     }
 }

@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.1.40 — one DecisionUnavailable, and /api/card-value gets a contract
+
+**Fixes a build break in v0.1.39.** The enum was hand-declared inline in both
+`QuickScanResponseSchema` and `DecideBatchResultSchema`. The emitters cannot know two structurally
+identical inline enums are the same type, so Kotlin got `DecisionUnavailable` **and**
+`DecisionUnavailable2`, `QuickScanResponse.getDecisionUnavailable()` returned the `2` variant, and
+Android's code written against the plain name stopped compiling. Now declared once in `common.ts`
+and `registerName()`d, exactly as `Liquidity` was.
+
+**The second time, so this release adds the rule and not just the fix.** v0.1.29 fixed
+`Liquidity`/`Liquidity2` the same way and stopped there; because only the instance was fixed,
+the next inline declaration recreated it. `src/generated-names.test.ts` now fails on ANY generated
+type name ending in a digit — a digit means the emitter invented a name because two schemas
+collided, and which one gets the bare name depends on emit order, so an unrelated field can swap
+them silently.
+
+That guard found **14 more**, carried as an explicit debt list. They are two different defects:
+*true duplicates* (`CollectionType2..5` are all `["personal","resale"]` — hoist them) and *name
+collisions* (`Source` is vision/seller, `Source2` is stripe/apple, `Source3` is
+ios_capture/web_add_flow/other — **rename, never merge**).
+
+**`/api/card-value` gets a contract module** — the fifth uncovered route, and the carrier of a
+safety disclosure:
+
+- `EditionAmbiguitySchema` + `CardValueResponse.editionAmbiguity` — what a price cannot
+  distinguish. `catalogue_cards` has no edition column, no provider is ever asked, and the price
+  cache key means a 1st Edition and an Unlimited **share a cache entry**.
+- **`QuickScanResponse.editionAmbiguity`**, forwarded. It was computed in `/api/card-value` and
+  dropped by quick-scan's own local interface, so iOS could render the warning and Android
+  structurally could not — a T1 parity gap on the disclosure that tells a seller their Base
+  Charizard may be worth thousands more than we are saying.
+
 ## v0.1.39 — a printing is one card in one SET at one number
 
 Search grouped on `game::name`, dropping set and number, so every Charizard in every set collapsed

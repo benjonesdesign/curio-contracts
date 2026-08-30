@@ -1474,8 +1474,8 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     cardNumber?: string | null | undefined;
     setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
-    targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
+    targetMarginPct?: number | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     name?: string | undefined;
@@ -1483,8 +1483,8 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     cardNumber?: string | null | undefined;
     setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
-    targetMarginPct?: number | undefined;
     finish?: string | null | undefined;
+    targetMarginPct?: number | undefined;
 }>;
 export type QuickScanRequest = z.infer<typeof QuickScanRequestSchema>;
 export declare const QuickScanCandidateSchema: z.ZodObject<{
@@ -1883,6 +1883,15 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
     decisionUnavailable: z.ZodOptional<z.ZodNullable<z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>>>;
     /** Whether a condition assessment fed the decision, or the default was assumed. */
     conditionAssessed: z.ZodDefault<z.ZodBoolean>;
+    /**
+     * What the price behind this scan cannot distinguish — forwarded from /api/card-value.
+     *
+     * Present here because Quick Scan is where a seller sees a number FIRST, and often the only
+     * place they see one. It was computed in /api/card-value and dropped by quick-scan's own local
+     * interface before this response was built, so iOS could render the warning and Android
+     * structurally could not — a T1 parity gap on a safety disclosure.
+     */
+    editionAmbiguity: z.ZodDefault<z.ZodNullable<z.ZodEnum<["first_edition_shadowless_unlimited", "first_edition_unlimited"]>>>;
 }, "strip", z.ZodTypeAny, {
     candidates: {
         name: string;
@@ -1894,6 +1903,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         cardNumber?: string | null | undefined;
         image?: string | null | undefined;
     }[];
+    editionAmbiguity: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null;
     decision: {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
@@ -2012,6 +2022,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         rawNetGbp: number | null;
         gradeEVGbp: number | null;
     } | undefined;
+    editionAmbiguity?: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null | undefined;
     price?: {
         source: string | null;
         confidence: "high" | "medium" | "low" | null;
