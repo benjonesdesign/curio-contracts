@@ -12,7 +12,8 @@
 // block, and a decision that is NULL when identity is unresolved. Not an empty decision, absent —
 // an ambiguous card has no decision to make, because there is no card to price yet.
 import { z } from "zod";
-import { ConditionSchema, ConfidenceSchema, GameIdSchema, LiquiditySchema } from "./common.js";
+import { ConditionSchema, ConfidenceSchema, DecisionUnavailableSchema, GameIdSchema, LiquiditySchema } from "./common.js";
+import { EditionAmbiguitySchema } from "./card-value.js";
 import { GradeEVConfidenceSchema, PricingSettingsSchema, RecommendedRouteSchema } from "./recommend.js";
 
 /** Why a route was chosen. A CODE — the shared engine does not own English; each platform renders
@@ -351,7 +352,7 @@ export const DecideBatchResultSchema = z.object({
    * unpriceable card does not fail the batch.
    */
   decision: DecisionSchema.nullable(),
-  decisionUnavailable: z.enum(["identity_unresolved", "no_market_value", "pricing_unavailable"]).nullable().optional(),
+  decisionUnavailable: DecisionUnavailableSchema.nullable().optional(),
   price: PriceProvenanceSchema.nullable().optional(),
 });
 export type DecideBatchResult = z.infer<typeof DecideBatchResultSchema>;
@@ -479,15 +480,17 @@ export const QuickScanResponseSchema = z.object({
   /** Where the market value came from. Null when there was no price to have provenance about. */
   price: PriceProvenanceSchema.nullable().optional(),
   gradeEV: DecisionGradeEVSchema.optional(),
-  decisionUnavailable: z.enum([
-    /** Identity did not resolve — nothing to price yet. Expected, not a fault. */
-    "identity_unresolved",
-    /** Card identified, but no market value is known for it. A real answer about a real card. */
-    "no_market_value",
-    /** The pricing path itself failed. An OUTAGE — never show this as "no data for this card". */
-    "pricing_unavailable",
-  ]).nullable().optional(),
+  decisionUnavailable: DecisionUnavailableSchema.nullable().optional(),
   /** Whether a condition assessment fed the decision, or the default was assumed. */
   conditionAssessed: z.boolean().default(false),
+  /**
+   * What the price behind this scan cannot distinguish — forwarded from /api/card-value.
+   *
+   * Present here because Quick Scan is where a seller sees a number FIRST, and often the only
+   * place they see one. It was computed in /api/card-value and dropped by quick-scan's own local
+   * interface before this response was built, so iOS could render the warning and Android
+   * structurally could not — a T1 parity gap on a safety disclosure.
+   */
+  editionAmbiguity: EditionAmbiguitySchema.nullable().default(null),
 });
 export type QuickScanResponse = z.infer<typeof QuickScanResponseSchema>;

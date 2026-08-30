@@ -1934,8 +1934,9 @@ public struct QuickScanResponse: Codable, Sendable {
     public let decision: Decision?
     public let price: PriceProvenance?
     public let gradeEV: DecisionGradeEV?
-    public let decisionUnavailable: DecisionUnavailable2?
+    public let decisionUnavailable: DecisionUnavailable?
     public let conditionAssessed: Bool
+    public let editionAmbiguity: EditionAmbiguity?
 
     enum CodingKeys: String, CodingKey {
         case identified
@@ -1946,9 +1947,10 @@ public struct QuickScanResponse: Codable, Sendable {
         case gradeEV
         case decisionUnavailable
         case conditionAssessed
+        case editionAmbiguity
     }
 
-    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable2?, conditionAssessed: Bool) {
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool, editionAmbiguity: EditionAmbiguity?) {
         self.identified = identified
         self.candidates = candidates
         self.match = match
@@ -1957,6 +1959,7 @@ public struct QuickScanResponse: Codable, Sendable {
         self.gradeEV = gradeEV
         self.decisionUnavailable = decisionUnavailable
         self.conditionAssessed = conditionAssessed
+        self.editionAmbiguity = editionAmbiguity
     }
 
     public init(from decoder: Decoder) throws {
@@ -1967,8 +1970,9 @@ public struct QuickScanResponse: Codable, Sendable {
         self.decision = try c.decodeIfPresent(Decision.self, forKey: .decision)
         self.price = try c.decodeIfPresent(PriceProvenance.self, forKey: .price)
         self.gradeEV = try c.decodeIfPresent(DecisionGradeEV.self, forKey: .gradeEV)
-        self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable2.self, forKey: .decisionUnavailable)
+        self.decisionUnavailable = try c.decodeIfPresent(DecisionUnavailable.self, forKey: .decisionUnavailable)
         self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
+        self.editionAmbiguity = try c.decodeIfPresent(EditionAmbiguity.self, forKey: .editionAmbiguity)
     }
 }
 
@@ -1994,8 +1998,7 @@ public struct QuickScanCandidate: Codable, Sendable {
     }
 }
 
-public enum DecisionUnavailable2: String, Codable, Sendable {
-    case identityUnresolved = "identity_unresolved"
-    case noMarketValue = "no_market_value"
-    case pricingUnavailable = "pricing_unavailable"
+public enum EditionAmbiguity: String, Codable, Sendable {
+    case firstEditionShadowlessUnlimited = "first_edition_shadowless_unlimited"
+    case firstEditionUnlimited = "first_edition_unlimited"
 }

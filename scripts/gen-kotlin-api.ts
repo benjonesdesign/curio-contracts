@@ -34,7 +34,8 @@ import {
   PriceProvenanceSchema, DecisionGradeEVSchema, DecisionAssumptionSchema, DecisionAssumptionCodeSchema, DecideBatchRequestSchema,
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
-import { LiquiditySchema } from "../src/api/common.js";
+import { LiquiditySchema, DecisionUnavailableSchema } from "../src/api/common.js";
+import { EditionAmbiguitySchema } from "../src/api/card-value.js";
 import {
   RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
   RepriceChannelOutcomeSchema,
@@ -76,6 +77,8 @@ registerName(RouteReasonSchema, "RouteReason");
 registerName(AlternativeReasonSchema, "AlternativeReason");
 registerName(DegradedReasonSchema, "DegradedReason");
 registerName(LiquiditySchema, "Liquidity");
+registerName(DecisionUnavailableSchema, "DecisionUnavailable");
+registerName(EditionAmbiguitySchema, "EditionAmbiguity");
 registerName(DecideBatchResultSchema, "DecideBatchResult");
 registerName(DecideBatchCardSchema, "DecideBatchCard");
 registerName(PriceProvenanceSchema, "PriceProvenance");
