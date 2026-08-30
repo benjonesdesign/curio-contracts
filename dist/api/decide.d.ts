@@ -340,7 +340,7 @@ export declare const DecideRequestSchema: z.ZodObject<{
      * Three consumers before it ships: the appraise screen's target-return picker, Best Offer's
      * auto-decline floor, and W20's auction start price.
      */
-    targetMarginPct: z.ZodOptional<z.ZodNumber>;
+    targetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
     /** Explicit settings override; omitted falls back to the account's saved profile. Prefer
      *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
     pricingSettings: z.ZodOptional<z.ZodObject<{
@@ -769,7 +769,7 @@ export declare const DecideBatchRequestSchema: z.ZodObject<{
         compatibleCount?: number | null | undefined;
     }>, "many">;
     /** Applies to the whole batch — a seller preference, not a per-card fact. */
-    targetMarginPct: z.ZodOptional<z.ZodNumber>;
+    targetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
     pricingSettings: z.ZodOptional<z.ZodObject<{
         ebayFeeRate: z.ZodNumber;
         ebayFeeFixed: z.ZodNumber;
@@ -1466,7 +1466,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     finish: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     /** As on DecideRequest — a seller preference, not a cost assertion. More useful here, if
      *  anything: an anonymous scanner has no saved profile to default from. */
-    targetMarginPct: z.ZodOptional<z.ZodNumber>;
+    targetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     name?: string | undefined;
