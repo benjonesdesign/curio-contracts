@@ -100,11 +100,11 @@ export declare const DecisionAssumptionSchema: z.ZodObject<{
     valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     value: string | null;
-    code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+    code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
     valueGbp?: number | null | undefined;
 }, {
     value: string | null;
-    code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+    code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
     valueGbp?: number | null | undefined;
 }>;
 export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
@@ -198,11 +198,11 @@ export declare const DecisionSchema: z.ZodObject<{
         valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, "strip", z.ZodTypeAny, {
         value: string | null;
-        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
         valueGbp?: number | null | undefined;
     }, {
         value: string | null;
-        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
         valueGbp?: number | null | undefined;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
@@ -225,7 +225,7 @@ export declare const DecisionSchema: z.ZodObject<{
     };
     assumptions: {
         value: string | null;
-        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
         valueGbp?: number | null | undefined;
     }[];
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -259,7 +259,7 @@ export declare const DecisionSchema: z.ZodObject<{
     }[] | undefined;
     assumptions?: {
         value: string | null;
-        code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
         valueGbp?: number | null | undefined;
     }[] | undefined;
     degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -500,11 +500,11 @@ export declare const DecideResponseSchema: z.ZodObject<{
             valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
@@ -527,7 +527,7 @@ export declare const DecideResponseSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -561,7 +561,7 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -629,7 +629,7 @@ export declare const DecideResponseSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -679,7 +679,7 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -943,11 +943,11 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
@@ -970,7 +970,7 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1004,7 +1004,7 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1048,7 +1048,7 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1091,7 +1091,7 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1202,11 +1202,11 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             }, "strip", z.ZodTypeAny, {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }, {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }>, "many">>;
         }, "strip", z.ZodTypeAny, {
@@ -1229,7 +1229,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             };
             assumptions: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1263,7 +1263,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[] | undefined;
             assumptions?: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1307,7 +1307,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             };
             assumptions: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1350,7 +1350,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[] | undefined;
             assumptions?: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1385,7 +1385,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             };
             assumptions: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1430,7 +1430,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[] | undefined;
             assumptions?: {
                 value: string | null;
-                code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
                 valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1759,11 +1759,11 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         }, "strip", z.ZodTypeAny, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }, {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
@@ -1786,7 +1786,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1820,7 +1820,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
@@ -1924,7 +1924,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         };
         assumptions: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
@@ -1987,7 +1987,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[] | undefined;
         assumptions?: {
             value: string | null;
-            code: "condition" | "channel" | "seller_type" | "vat_registered" | "postage" | "packaging" | "tax_rate" | "cost_basis";
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;

@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.1.41 — CardValueResponse's full shape
+
+**Completes v0.1.40. Bump straight to this; v0.1.40 is safe but incomplete.**
+
+v0.1.40 declared `CardValueResponse` from the fields that mattered for the disclosure and missed
+two that are genuinely on the wire: the legacy `economics` coefficients block and `owned`. Zod
+strips unknown keys, so the moment `/api/card-value` began *validating* against its own contract,
+both vanished from the response.
+
+Caught by wiring the route to the contract rather than by review — which is the argument for
+covering a route rather than describing it. The same gap in the other direction is what put us
+here: quick-scan's hand-kept six-field mirror of an eleven-field response silently dropped
+`editionAmbiguity`.
+
+`economics` is declared with a warning, not an endorsement: it is legacy, nothing new should
+consume it, and a client computing its own economics from raw coefficients is what ADR 0026 exists
+to stop. But it IS on the wire, and an undeclared field is a silently-stripped one.
+
 ## v0.1.40 — one DecisionUnavailable, and /api/card-value gets a contract
 
 **Fixes a build break in v0.1.39.** The enum was hand-declared inline in both
