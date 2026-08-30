@@ -62,4 +62,28 @@ export const CardValueResponseSchema = z.object({
     tcgId: z.string().nullable(),
     /** See EditionAmbiguitySchema. Null when there is nothing to disclose. */
     editionAmbiguity: EditionAmbiguitySchema.nullable().default(null),
+    /**
+     * ⚠️ LEGACY coefficients, for installed builds that predate /api/decide. Nothing new should
+     * consume this — a client computing its own economics from raw coefficients is exactly what
+     * ADR 0026 exists to stop. Declared here because it IS on the wire and an undeclared field is a
+     * silently-stripped one; declaring it is not an endorsement.
+     */
+    economics: z.object({
+        feeRate: z.number(),
+        feeFixed: z.number(),
+        postage: z.number(),
+        packaging: z.number(),
+        taxRate: z.number(),
+        sellerType: z.string(),
+        vatRegistered: z.boolean(),
+        /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
+         *  response stops being a set of unattributed constants. */
+        feeBasis: z.string(),
+    }).nullable().optional(),
+    /** Do you already hold one? Powers "You already own N" + jump-to-it. An anonymous caller owns
+     *  nothing by definition, so this is `{count: 0, physicalCardId: null}` rather than absent. */
+    owned: z.object({
+        count: z.number().int(),
+        physicalCardId: z.string().nullable(),
+    }).nullable().optional(),
 });

@@ -71,6 +71,54 @@ export declare const CardValueResponseSchema: z.ZodObject<{
     tcgId: z.ZodNullable<z.ZodString>;
     /** See EditionAmbiguitySchema. Null when there is nothing to disclose. */
     editionAmbiguity: z.ZodDefault<z.ZodNullable<z.ZodEnum<["first_edition_shadowless_unlimited", "first_edition_unlimited"]>>>;
+    /**
+     * ⚠️ LEGACY coefficients, for installed builds that predate /api/decide. Nothing new should
+     * consume this — a client computing its own economics from raw coefficients is exactly what
+     * ADR 0026 exists to stop. Declared here because it IS on the wire and an undeclared field is a
+     * silently-stripped one; declaring it is not an endorsement.
+     */
+    economics: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        feeRate: z.ZodNumber;
+        feeFixed: z.ZodNumber;
+        postage: z.ZodNumber;
+        packaging: z.ZodNumber;
+        taxRate: z.ZodNumber;
+        sellerType: z.ZodString;
+        vatRegistered: z.ZodBoolean;
+        /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
+         *  response stops being a set of unattributed constants. */
+        feeBasis: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        taxRate: number;
+        feeRate: number;
+        feeFixed: number;
+        postage: number;
+        packaging: number;
+        sellerType: string;
+        vatRegistered: boolean;
+        feeBasis: string;
+    }, {
+        taxRate: number;
+        feeRate: number;
+        feeFixed: number;
+        postage: number;
+        packaging: number;
+        sellerType: string;
+        vatRegistered: boolean;
+        feeBasis: string;
+    }>>>;
+    /** Do you already hold one? Powers "You already own N" + jump-to-it. An anonymous caller owns
+     *  nothing by definition, so this is `{count: 0, physicalCardId: null}` rather than absent. */
+    owned: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        count: z.ZodNumber;
+        physicalCardId: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        physicalCardId: string | null;
+        count: number;
+    }, {
+        physicalCardId: string | null;
+        count: number;
+    }>>>;
 }, "strip", z.ZodTypeAny, {
     game: string | null;
     confidence: "high" | "medium" | "low" | null;
@@ -88,6 +136,20 @@ export declare const CardValueResponseSchema: z.ZodObject<{
     possibleFinishes: string[] | null;
     finishUsed: string | null;
     editionAmbiguity: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null;
+    economics?: {
+        taxRate: number;
+        feeRate: number;
+        feeFixed: number;
+        postage: number;
+        packaging: number;
+        sellerType: string;
+        vatRegistered: boolean;
+        feeBasis: string;
+    } | null | undefined;
+    owned?: {
+        physicalCardId: string | null;
+        count: number;
+    } | null | undefined;
 }, {
     game: string | null;
     confidence: "high" | "medium" | "low" | null;
@@ -104,6 +166,20 @@ export declare const CardValueResponseSchema: z.ZodObject<{
     priceWarning: string | null;
     possibleFinishes: string[] | null;
     finishUsed: string | null;
+    economics?: {
+        taxRate: number;
+        feeRate: number;
+        feeFixed: number;
+        postage: number;
+        packaging: number;
+        sellerType: string;
+        vatRegistered: boolean;
+        feeBasis: string;
+    } | null | undefined;
     editionAmbiguity?: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null | undefined;
+    owned?: {
+        physicalCardId: string | null;
+        count: number;
+    } | null | undefined;
 }>;
 export type CardValueResponse = z.infer<typeof CardValueResponseSchema>;
