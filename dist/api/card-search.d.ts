@@ -2,12 +2,22 @@ import { z } from "zod";
 export declare const CardSearchRequestSchema: z.ZodObject<{
     q: z.ZodString;
     game: z.ZodOptional<z.ZodString>;
+    /**
+     * Narrow to one set — the set filter (search-ux.md §P1 "The wall").
+     *
+     * The set is the DIFFERENTIATOR for a card search: the seller is holding the card and can read
+     * the set off it, so they already know the answer and only need to find the row. Matched
+     * case-insensitively against the result's `setName`.
+     */
+    setName: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     q: string;
     game?: string | undefined;
+    setName?: string | undefined;
 }, {
     q: string;
     game?: string | undefined;
+    setName?: string | undefined;
 }>;
 export type CardSearchRequest = z.infer<typeof CardSearchRequestSchema>;
 export declare const CardSearchResultSchema: z.ZodObject<{
@@ -21,8 +31,22 @@ export declare const CardSearchResultSchema: z.ZodObject<{
     /** Multi-TCG: which game this hit belongs to + its display name (cross-game search). */
     game: z.ZodNullable<z.ZodString>;
     gameDisplayName: z.ZodNullable<z.ZodString>;
-    /** Printing-collapse: this row is one card; the server nests each printing here so the list
-     * isn't a dozen near-duplicate rows. */
+    /**
+     * Printings of THIS card — one card, in one set, at one number.
+     *
+     * ⚠️ Under canon a printing is one card in one set at one number, and holo / reverse-holo are
+     * FINISHES on that row, not separate printings. That differs from TCGplayer's product grouping,
+     * which splits each finish into its own product — do not reach for TCGplayer's model to justify
+     * collapsing rows here.
+     *
+     * Almost always 1 today, and that is CORRECT rather than a bug: the axis that would legitimately
+     * produce several printings of one card is finish, and `catalogue_cards.finishes` is empty on
+     * every Pokémon row. Until something populates it, a card has one printing.
+     *
+     * Until 2026-08-29 the server grouped on `game::name` alone, so every Charizard in every set
+     * collapsed into one row and the app reported "Charizard GX — 24 printings" for 24 DIFFERENT
+     * cards at different prices.
+     */
     printingCount: z.ZodNullable<z.ZodNumber>;
     printings: z.ZodNullable<z.ZodArray<z.ZodObject<{
         tcgId: z.ZodString;
@@ -98,8 +122,22 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         /** Multi-TCG: which game this hit belongs to + its display name (cross-game search). */
         game: z.ZodNullable<z.ZodString>;
         gameDisplayName: z.ZodNullable<z.ZodString>;
-        /** Printing-collapse: this row is one card; the server nests each printing here so the list
-         * isn't a dozen near-duplicate rows. */
+        /**
+         * Printings of THIS card — one card, in one set, at one number.
+         *
+         * ⚠️ Under canon a printing is one card in one set at one number, and holo / reverse-holo are
+         * FINISHES on that row, not separate printings. That differs from TCGplayer's product grouping,
+         * which splits each finish into its own product — do not reach for TCGplayer's model to justify
+         * collapsing rows here.
+         *
+         * Almost always 1 today, and that is CORRECT rather than a bug: the axis that would legitimately
+         * produce several printings of one card is finish, and `catalogue_cards.finishes` is empty on
+         * every Pokémon row. Until something populates it, a card has one printing.
+         *
+         * Until 2026-08-29 the server grouped on `game::name` alone, so every Charizard in every set
+         * collapsed into one row and the app reported "Charizard GX — 24 printings" for 24 DIFFERENT
+         * cards at different prices.
+         */
         printingCount: z.ZodNullable<z.ZodNumber>;
         printings: z.ZodNullable<z.ZodArray<z.ZodObject<{
             tcgId: z.ZodString;
@@ -182,6 +220,14 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
      * `cataloguesUnavailable` is an incomplete answer, not a complete one.
      */
     cataloguesUnavailable: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    /**
+     * Every distinct set present in the results BEFORE `setName` narrowed them, most-hit first.
+     *
+     * The set filter's options, so a client can offer it without a second round trip — and so the
+     * filter can be offered at all, since a seller cannot pick from a list they can't see. Returned
+     * even when `setName` was supplied, so the control keeps its full option list after a choice.
+     */
+    setsPresent: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
     results: {
         number: string | null;
@@ -204,6 +250,7 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         }[] | null;
     }[];
     cataloguesUnavailable: string[];
+    setsPresent: string[];
 }, {
     results: {
         number: string | null;
@@ -226,5 +273,6 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
         }[] | null;
     }[];
     cataloguesUnavailable?: string[] | undefined;
+    setsPresent?: string[] | undefined;
 }>;
 export type CardSearchResponse = z.infer<typeof CardSearchResponseSchema>;

@@ -1064,12 +1064,14 @@ public data class RecommendBatchResult(
 public data class CardSearchRequest(
     val q: String,
     val game: String? = null,
+    val setName: String? = null,
 )
 
 @Serializable
 public data class CardSearchResponse(
     val results: List<CardSearchResult>,
     val cataloguesUnavailable: List<String> = emptyList(),
+    val setsPresent: List<String> = emptyList(),
 )
 
 @Serializable
