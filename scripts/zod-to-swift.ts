@@ -116,6 +116,17 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
   if (schema instanceof z.ZodDefault) {
     return resolve(schema._def.innerType, hintName);
   }
+  // A `.refine()` / `.transform()` wrapper. Refinements are SERVER-SIDE VALIDATION and change
+  // nothing about the decoded type, so the generated struct takes the inner type and the native
+  // clients are unaffected — a 400 is how they learn the value was out of range.
+  //
+  // Unhandled until 2026-08-29, which meant the contract could not use `.refine()` AT ALL: the
+  // first attempt (bounding `targetMarginPct` so a rate sent as a percentage is rejected) failed
+  // the build. A validation vocabulary the generator silently forbids is one nobody reaches for,
+  // and the constraints it forbids here are exactly the unit checks on money fields.
+  if (schema instanceof z.ZodEffects) {
+    return resolve(schema._def.schema, hintName);
+  }
   if (schema instanceof z.ZodString) return "String";
   if (schema instanceof z.ZodNumber) return isIntSchema(schema) ? "Int" : "Double";
   if (schema instanceof z.ZodBoolean) return "Bool";

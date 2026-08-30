@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.1.38 — the `*Rate` / `*Pct` unit convention, enforced
+
+`*Rate` is a fraction (0–1), `*Pct` is a percentage (0–100). The suffix is the unit. Both appear in
+the same request bodies, and confusing them is a money bug in the dangerous direction: a client
+sending `0.25` for `targetMarginPct` meaning 25% asked for **0.25%**, which collapses the target,
+RAISES max-buy, and tells a seller to overpay.
+
+- `targetMarginPct` is bounded 0–1000 and rejects anything in `(0, 1)` — that range is a rate sent
+  by mistake. `0` stays legal; "accept any profit at all" is a real position for a liquidation.
+- **`minProfitPct` violates the convention** — it holds a RATE (0.25 = 25%), which is why the app
+  multiplies it by 100 when deriving `targetMarginPct` from it. The two sit in the same money model
+  with opposite units and the same suffix, which is the real hazard. It keeps its name because it
+  is on the wire to three platforms and a rename is a breaking decode; it is BOUNDED to 0–1
+  instead, so sending `25` is a loud 400 rather than a silent 2,500% target.
+
+**Generator fix, needed to land the above:** both the Swift and Kotlin emitters threw on
+`ZodEffects`, so the contract could not use `.refine()` **at all** — the first attempt at this
+constraint failed the build. Refinements are server-side validation and don't change the decoded
+type, so both now unwrap to the inner schema. A validation vocabulary the generator silently
+forbids is one nobody reaches for, and what it forbade here was precisely the unit checks on money
+fields.
+
 ## v0.1.37 — card search can finally say it failed
 
 **Tagged immediately rather than accumulated, during a live P0.** pokemontcg.io has been 500ing for

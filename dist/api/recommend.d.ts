@@ -1,10 +1,20 @@
 import { z } from "zod";
 export declare const PricingSettingsSchema: z.ZodObject<{
+    /** Fraction of the sale, not a percentage — 0.128 is 12.8%. */
     ebayFeeRate: z.ZodNumber;
     ebayFeeFixed: z.ZodNumber;
     packagingCost: z.ZodNumber;
     shippingCost: z.ZodNumber;
+    /** Fraction — 0.20 is 20%. Income/corporation tax on PROFIT, never VAT (ADR 0025). */
     taxRate: z.ZodNumber;
+    /**
+     * ⚠️ MISNAMED: a RATE (0.25 = 25%), despite the `Pct` suffix. See the convention note above.
+     *
+     * Bounded to 0–1 so sending `25` — the natural mistake, given the name — fails loudly instead of
+     * quietly requesting a 2,500% margin. That direction is at least the safe one (it makes max-buy
+     * collapse, so a seller walks away rather than overpays), but a rejected request beats a wrong
+     * number either way.
+     */
     minProfitPct: z.ZodNumber;
     minSaleValue: z.ZodNumber;
     postageCost: z.ZodNumber;
@@ -33,11 +43,21 @@ export declare const RecommendRequestSchema: z.ZodObject<{
     /** Explicit override; otherwise derived server-side from the card's set name. */
     isVintage: z.ZodOptional<z.ZodBoolean>;
     pricingSettings: z.ZodOptional<z.ZodObject<{
+        /** Fraction of the sale, not a percentage — 0.128 is 12.8%. */
         ebayFeeRate: z.ZodNumber;
         ebayFeeFixed: z.ZodNumber;
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
+        /** Fraction — 0.20 is 20%. Income/corporation tax on PROFIT, never VAT (ADR 0025). */
         taxRate: z.ZodNumber;
+        /**
+         * ⚠️ MISNAMED: a RATE (0.25 = 25%), despite the `Pct` suffix. See the convention note above.
+         *
+         * Bounded to 0–1 so sending `25` — the natural mistake, given the name — fails loudly instead of
+         * quietly requesting a 2,500% margin. That direction is at least the safe one (it makes max-buy
+         * collapse, so a seller walks away rather than overpays), but a rejected request beats a wrong
+         * number either way.
+         */
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;
@@ -354,11 +374,21 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
     /** One seller's settings apply to the whole batch — not per-card, it's an account-wide
      *  preference, not something that varies card-to-card within one review session. */
     pricingSettings: z.ZodOptional<z.ZodObject<{
+        /** Fraction of the sale, not a percentage — 0.128 is 12.8%. */
         ebayFeeRate: z.ZodNumber;
         ebayFeeFixed: z.ZodNumber;
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
+        /** Fraction — 0.20 is 20%. Income/corporation tax on PROFIT, never VAT (ADR 0025). */
         taxRate: z.ZodNumber;
+        /**
+         * ⚠️ MISNAMED: a RATE (0.25 = 25%), despite the `Pct` suffix. See the convention note above.
+         *
+         * Bounded to 0–1 so sending `25` — the natural mistake, given the name — fails loudly instead of
+         * quietly requesting a 2,500% margin. That direction is at least the safe one (it makes max-buy
+         * collapse, so a seller walks away rather than overpays), but a rejected request beats a wrong
+         * number either way.
+         */
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;

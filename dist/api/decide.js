@@ -234,7 +234,28 @@ export const DecideRequestSchema = z.object({
      * Three consumers before it ships: the appraise screen's target-return picker, Best Offer's
      * auto-decline floor, and W20's auction start price.
      */
-    targetMarginPct: z.number().optional(),
+    targetMarginPct: z.number()
+        .min(0)
+        .max(1000)
+        // A PERCENTAGE (25 = 25%), per the `*Rate`/`*Pct` convention on PricingSettingsSchema.
+        //
+        // The gap this closes: `targetMarginPct: 0.25` from a client meaning 25% is a legal number, so
+        // it was accepted and applied as 0.25% — a target so small it barely constrains anything, which
+        // RAISES max-buy and tells a seller they can pay more. Same direction as every money bug this
+        // fortnight, and undetectable from the response, which looks like a perfectly ordinary
+        // decision.
+        //
+        // The hazard is right next door: `minProfitPct` on the same money model is a RATE (0.25 = 25%),
+        // so 0.25 is genuinely correct there and genuinely wrong here. Anything in (0, 1) is therefore
+        // read as a rate sent by mistake and rejected. 0 stays legal — "accept any profit at all" is a
+        // real position for a liquidation — and the ceiling is generous because a 500% target on a
+        // 50p buy is ordinary.
+        .refine((v) => v === 0 || v >= 1, {
+        message: "targetMarginPct is a percentage (25 = 25%), not a rate. A value between 0 and 1 " +
+            "looks like a rate — did you mean " + "100x that? (minProfitPct IS a rate, which is " +
+            "the likely source of the confusion.)",
+    })
+        .optional(),
     /** Explicit settings override; omitted falls back to the account's saved profile. Prefer
      *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
     pricingSettings: PricingSettingsSchema.optional(),
@@ -271,7 +292,28 @@ export const DecideBatchCardSchema = z.object({
 export const DecideBatchRequestSchema = z.object({
     cards: z.array(DecideBatchCardSchema).min(1).max(200),
     /** Applies to the whole batch — a seller preference, not a per-card fact. */
-    targetMarginPct: z.number().optional(),
+    targetMarginPct: z.number()
+        .min(0)
+        .max(1000)
+        // A PERCENTAGE (25 = 25%), per the `*Rate`/`*Pct` convention on PricingSettingsSchema.
+        //
+        // The gap this closes: `targetMarginPct: 0.25` from a client meaning 25% is a legal number, so
+        // it was accepted and applied as 0.25% — a target so small it barely constrains anything, which
+        // RAISES max-buy and tells a seller they can pay more. Same direction as every money bug this
+        // fortnight, and undetectable from the response, which looks like a perfectly ordinary
+        // decision.
+        //
+        // The hazard is right next door: `minProfitPct` on the same money model is a RATE (0.25 = 25%),
+        // so 0.25 is genuinely correct there and genuinely wrong here. Anything in (0, 1) is therefore
+        // read as a rate sent by mistake and rejected. 0 stays legal — "accept any profit at all" is a
+        // real position for a liquidation — and the ceiling is generous because a 500% target on a
+        // 50p buy is ordinary.
+        .refine((v) => v === 0 || v >= 1, {
+        message: "targetMarginPct is a percentage (25 = 25%), not a rate. A value between 0 and 1 " +
+            "looks like a rate — did you mean " + "100x that? (minProfitPct IS a rate, which is " +
+            "the likely source of the confusion.)",
+    })
+        .optional(),
     pricingSettings: PricingSettingsSchema.optional(),
 });
 export const DecideBatchResultSchema = z.object({
@@ -311,7 +353,28 @@ export const QuickScanRequestSchema = z.object({
     finish: z.string().nullable().optional(),
     /** As on DecideRequest — a seller preference, not a cost assertion. More useful here, if
      *  anything: an anonymous scanner has no saved profile to default from. */
-    targetMarginPct: z.number().optional(),
+    targetMarginPct: z.number()
+        .min(0)
+        .max(1000)
+        // A PERCENTAGE (25 = 25%), per the `*Rate`/`*Pct` convention on PricingSettingsSchema.
+        //
+        // The gap this closes: `targetMarginPct: 0.25` from a client meaning 25% is a legal number, so
+        // it was accepted and applied as 0.25% — a target so small it barely constrains anything, which
+        // RAISES max-buy and tells a seller they can pay more. Same direction as every money bug this
+        // fortnight, and undetectable from the response, which looks like a perfectly ordinary
+        // decision.
+        //
+        // The hazard is right next door: `minProfitPct` on the same money model is a RATE (0.25 = 25%),
+        // so 0.25 is genuinely correct there and genuinely wrong here. Anything in (0, 1) is therefore
+        // read as a rate sent by mistake and rejected. 0 stays legal — "accept any profit at all" is a
+        // real position for a liquidation — and the ceiling is generous because a 500% target on a
+        // 50p buy is ordinary.
+        .refine((v) => v === 0 || v >= 1, {
+        message: "targetMarginPct is a percentage (25 = 25%), not a rate. A value between 0 and 1 " +
+            "looks like a rate — did you mean " + "100x that? (minProfitPct IS a rate, which is " +
+            "the likely source of the confusion.)",
+    })
+        .optional(),
 });
 export const QuickScanCandidateSchema = z.object({
     game: GameIdSchema.nullable().optional(),
