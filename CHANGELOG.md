@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.1.42 — a dash that might be an outage
+
+`CardSearchResponse.pricesUnavailable`. True when a `marketGbp: null` on the page may be an outage
+rather than a card we genuinely have no price for.
+
+iOS saw the symptom on device before the field existed: a card **priced at 09:22 and dashed at
+09:24 on the same query**, with the response looking complete both times. Two causes, both silent:
+
+- a catalogue provider flapped, so the row came from `catalogue_cards` — which carries identity and
+  **has no price column at all**; and
+- the FX lookup failed, which nulls every non-GBP price on the page at once.
+
+This is the same conflation as `cataloguesUnavailable`, one layer down: a dash meant both "no
+market for this card" and "we could not price it", and nothing told them apart. A client must not
+render a bare dash when this is true.
+
+Also ships `suite-integrity.test.ts`: a floor on the test-FILE count and a ban on undocumented
+`.skip`. A file that fails to load already exits 1; a file DELETED or `.skip`ped does not, and
+nothing distinguished "this check was removed" from "this check never existed".
+
 ## v0.1.41 — CardValueResponse's full shape
 
 **Completes v0.1.40. Bump straight to this; v0.1.40 is safe but incomplete.**

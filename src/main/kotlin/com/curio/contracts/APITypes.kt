@@ -1072,6 +1072,7 @@ public data class CardSearchResponse(
     val results: List<CardSearchResult>,
     val cataloguesUnavailable: List<String> = emptyList(),
     val setsPresent: List<String> = emptyList(),
+    val pricesUnavailable: Boolean = false,
 )
 
 @Serializable
