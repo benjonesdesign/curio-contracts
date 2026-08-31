@@ -800,17 +800,20 @@ public struct CardSearchResponse: Codable, Sendable {
     public let results: [CardSearchResult]
     public let cataloguesUnavailable: [String]
     public let setsPresent: [String]
+    public let pricesUnavailable: Bool
 
     enum CodingKeys: String, CodingKey {
         case results
         case cataloguesUnavailable
         case setsPresent
+        case pricesUnavailable
     }
 
-    public init(results: [CardSearchResult], cataloguesUnavailable: [String], setsPresent: [String]) {
+    public init(results: [CardSearchResult], cataloguesUnavailable: [String], setsPresent: [String], pricesUnavailable: Bool) {
         self.results = results
         self.cataloguesUnavailable = cataloguesUnavailable
         self.setsPresent = setsPresent
+        self.pricesUnavailable = pricesUnavailable
     }
 
     public init(from decoder: Decoder) throws {
@@ -818,6 +821,7 @@ public struct CardSearchResponse: Codable, Sendable {
         self.results = try c.decode([CardSearchResult].self, forKey: .results)
         self.cataloguesUnavailable = try c.decodeIfPresent([String].self, forKey: .cataloguesUnavailable) ?? []
         self.setsPresent = try c.decodeIfPresent([String].self, forKey: .setsPresent) ?? []
+        self.pricesUnavailable = try c.decodeIfPresent(Bool.self, forKey: .pricesUnavailable) ?? false
     }
 }
 

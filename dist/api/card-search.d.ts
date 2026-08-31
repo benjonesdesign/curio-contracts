@@ -228,6 +228,20 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
      * even when `setName` was supplied, so the control keeps its full option list after a choice.
      */
     setsPresent: z.ZodDefault<z.ZodArray<z.ZodString, "many">>;
+    /**
+     * True when a `marketGbp: null` on this page may be an OUTAGE rather than a card we genuinely
+     * have no price for. A dash means two different things and this is how a client tells them apart.
+     *
+     * Set when either half of pricing failed:
+     *   • a catalogue provider flapped, so the row came from our own `catalogue_cards` — which
+     *     carries IDENTITY and has no price column at all; or
+     *   • the FX rate could not be fetched, which nulls every non-GBP price on the page at once.
+     *
+     * ⚠️ A client MUST NOT render a bare dash when this is true. iOS observed the symptom before the
+     * field existed: a card priced at 09:22 and dashed at 09:24 on the same query, with the response
+     * looking complete both times. Say "price unavailable right now", not nothing.
+     */
+    pricesUnavailable: z.ZodDefault<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     results: {
         number: string | null;
@@ -251,6 +265,7 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
     }[];
     cataloguesUnavailable: string[];
     setsPresent: string[];
+    pricesUnavailable: boolean;
 }, {
     results: {
         number: string | null;
@@ -274,5 +289,6 @@ export declare const CardSearchResponseSchema: z.ZodObject<{
     }[];
     cataloguesUnavailable?: string[] | undefined;
     setsPresent?: string[] | undefined;
+    pricesUnavailable?: boolean | undefined;
 }>;
 export type CardSearchResponse = z.infer<typeof CardSearchResponseSchema>;
