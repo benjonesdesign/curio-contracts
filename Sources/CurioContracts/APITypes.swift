@@ -136,10 +136,40 @@ public struct IdentifyResponse: Codable, Sendable {
     }
 }
 
-public enum GameConfidence: String, Codable, Sendable {
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
+public enum GameConfidence: Codable, Sendable, Equatable, Hashable {
+    case high
+    case medium
+    case low
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .high: return "high"
+        case .medium: return "medium"
+        case .low: return "low"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "high": self = .high
+        case "medium": self = .medium
+        case "low": self = .low
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ImageRoles: Codable, Sendable {
@@ -176,16 +206,76 @@ public struct Flaw: Codable, Sendable {
     }
 }
 
-public enum Side: String, Codable, Sendable {
-    case front = "front"
-    case back = "back"
-    case unknown = "unknown"
+public enum Side: Codable, Sendable, Equatable, Hashable {
+    case front
+    case back
+    case unknown
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .front: return "front"
+        case .back: return "back"
+        case .unknown: return "unknown"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "front": self = .front
+        case "back": self = .back
+        case "unknown": self = .unknown
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Severity: String, Codable, Sendable {
-    case minor = "minor"
-    case moderate = "moderate"
-    case major = "major"
+public enum Severity: Codable, Sendable, Equatable, Hashable {
+    case minor
+    case moderate
+    case major
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .minor: return "minor"
+        case .moderate: return "moderate"
+        case .major: return "major"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "minor": self = .minor
+        case "moderate": self = .moderate
+        case "major": self = .major
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct FieldSources: Codable, Sendable {
@@ -198,9 +288,37 @@ public struct FieldSources: Codable, Sendable {
     }
 }
 
-public enum Source: String, Codable, Sendable {
-    case vision = "vision"
-    case seller = "seller"
+public enum Source: Codable, Sendable, Equatable, Hashable {
+    case vision
+    case seller
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .vision: return "vision"
+        case .seller: return "seller"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "vision": self = .vision
+        case "seller": self = .seller
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ApiUsage: Codable, Sendable {
@@ -230,14 +348,70 @@ public struct ApiUsage: Codable, Sendable {
     }
 }
 
-public enum Model: String, Codable, Sendable {
-    case gpt4o = "gpt-4o"
-    case gpt4oMini = "gpt-4o-mini"
+public enum Model: Codable, Sendable, Equatable, Hashable {
+    case gpt4o
+    case gpt4oMini
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .gpt4o: return "gpt-4o"
+        case .gpt4oMini: return "gpt-4o-mini"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "gpt-4o": self = .gpt4o
+        case "gpt-4o-mini": self = .gpt4oMini
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Tier: String, Codable, Sendable {
-    case tier0 = "tier0"
-    case vision = "vision"
+public enum Tier: Codable, Sendable, Equatable, Hashable {
+    case tier0
+    case vision
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .tier0: return "tier0"
+        case .vision: return "vision"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "tier0": self = .tier0
+        case "vision": self = .vision
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct IdentifyAmbiguousResponse: Codable, Sendable {
@@ -250,8 +424,34 @@ public struct IdentifyAmbiguousResponse: Codable, Sendable {
     }
 }
 
-public enum IdentifyAmbiguousTier: String, Codable, Sendable {
-    case ambiguous = "ambiguous"
+public enum IdentifyAmbiguousTier: Codable, Sendable, Equatable, Hashable {
+    case ambiguous
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ambiguous: return "ambiguous"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ambiguous": self = .ambiguous
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct IdentifyCandidate: Codable, Sendable {
@@ -320,9 +520,37 @@ public struct Detail: Codable, Sendable {
     }
 }
 
-public enum Side2: String, Codable, Sendable {
-    case front = "front"
-    case back = "back"
+public enum Side2: Codable, Sendable, Equatable, Hashable {
+    case front
+    case back
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .front: return "front"
+        case .back: return "back"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "front": self = .front
+        case "back": self = .back
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ImageUrls: Codable, Sendable {
@@ -351,9 +579,37 @@ public struct Detail2: Codable, Sendable {
     }
 }
 
-public enum Side3: String, Codable, Sendable {
-    case front = "front"
-    case back = "back"
+public enum Side3: Codable, Sendable, Equatable, Hashable {
+    case front
+    case back
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .front: return "front"
+        case .back: return "back"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "front": self = .front
+        case "back": self = .back
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct InlineImages: Codable, Sendable {
@@ -380,9 +636,37 @@ public struct Detail3: Codable, Sendable {
     }
 }
 
-public enum Side4: String, Codable, Sendable {
-    case front = "front"
-    case back = "back"
+public enum Side4: Codable, Sendable, Equatable, Hashable {
+    case front
+    case back
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .front: return "front"
+        case .back: return "back"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "front": self = .front
+        case "back": self = .back
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct CatalogueLookupMatch: Codable, Sendable {
@@ -407,15 +691,55 @@ public struct CatalogueLookupMatch: Codable, Sendable {
     }
 }
 
-public enum Game: String, Codable, Sendable {
-    case pokemon = "pokemon"
-    case pokemonJp = "pokemon-jp"
-    case mtg = "mtg"
-    case yugioh = "yugioh"
-    case lorcana = "lorcana"
-    case onePiece = "one-piece"
-    case digimon = "digimon"
-    case dbsFusion = "dbs-fusion"
+public enum Game: Codable, Sendable, Equatable, Hashable {
+    case pokemon
+    case pokemonJp
+    case mtg
+    case yugioh
+    case lorcana
+    case onePiece
+    case digimon
+    case dbsFusion
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .pokemon: return "pokemon"
+        case .pokemonJp: return "pokemon-jp"
+        case .mtg: return "mtg"
+        case .yugioh: return "yugioh"
+        case .lorcana: return "lorcana"
+        case .onePiece: return "one-piece"
+        case .digimon: return "digimon"
+        case .dbsFusion: return "dbs-fusion"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "pokemon": self = .pokemon
+        case "pokemon-jp": self = .pokemonJp
+        case "mtg": self = .mtg
+        case "yugioh": self = .yugioh
+        case "lorcana": self = .lorcana
+        case "one-piece": self = .onePiece
+        case "digimon": self = .digimon
+        case "dbs-fusion": self = .dbsFusion
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct Ocr: Codable, Sendable {
@@ -428,9 +752,37 @@ public struct Ocr: Codable, Sendable {
     }
 }
 
-public enum CollectionType: String, Codable, Sendable {
-    case personal = "personal"
-    case resale = "resale"
+public enum CollectionType: Codable, Sendable, Equatable, Hashable {
+    case personal
+    case resale
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .personal: return "personal"
+        case .resale: return "resale"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "personal": self = .personal
+        case "resale": self = .resale
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ShotQualityDescriptor: Codable, Sendable {
@@ -461,24 +813,118 @@ public struct ShotQualityDescriptor: Codable, Sendable {
     }
 }
 
-public enum Side5: String, Codable, Sendable {
-    case front = "front"
-    case back = "back"
+public enum Side5: Codable, Sendable, Equatable, Hashable {
+    case front
+    case back
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .front: return "front"
+        case .back: return "back"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "front": self = .front
+        case "back": self = .back
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Orientation: String, Codable, Sendable {
-    case correct = "correct"
-    case rotated90 = "rotated_90"
-    case rotated180 = "rotated_180"
-    case rotated270 = "rotated_270"
-    case unknown = "unknown"
+public enum Orientation: Codable, Sendable, Equatable, Hashable {
+    case correct
+    case rotated90
+    case rotated180
+    case rotated270
+    case unknown
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .correct: return "correct"
+        case .rotated90: return "rotated_90"
+        case .rotated180: return "rotated_180"
+        case .rotated270: return "rotated_270"
+        case .unknown: return "unknown"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "correct": self = .correct
+        case "rotated_90": self = .rotated90
+        case "rotated_180": self = .rotated180
+        case "rotated_270": self = .rotated270
+        case "unknown": self = .unknown
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Exposure: String, Codable, Sendable {
-    case under = "under"
-    case over = "over"
-    case ok = "ok"
-    case unknown = "unknown"
+public enum Exposure: Codable, Sendable, Equatable, Hashable {
+    case under
+    case over
+    case ok
+    case unknown
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .under: return "under"
+        case .over: return "over"
+        case .ok: return "ok"
+        case .unknown: return "unknown"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "under": self = .under
+        case "over": self = .over
+        case "ok": self = .ok
+        case "unknown": self = .unknown
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct CaptureCommitResponse: Codable, Sendable {
@@ -625,14 +1071,52 @@ public struct RecommendResponse: Codable, Sendable {
     }
 }
 
-public enum RecommendedRoute: String, Codable, Sendable {
-    case listSingle = "list_single"
-    case bundle = "bundle"
-    case bulk = "bulk"
-    case hold = "hold"
-    case gradeReview = "grade_review"
-    case restorationReview = "restoration_review"
-    case doNotList = "do_not_list"
+public enum RecommendedRoute: Codable, Sendable, Equatable, Hashable {
+    case listSingle
+    case bundle
+    case bulk
+    case hold
+    case gradeReview
+    case restorationReview
+    case doNotList
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .listSingle: return "list_single"
+        case .bundle: return "bundle"
+        case .bulk: return "bulk"
+        case .hold: return "hold"
+        case .gradeReview: return "grade_review"
+        case .restorationReview: return "restoration_review"
+        case .doNotList: return "do_not_list"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "list_single": self = .listSingle
+        case "bundle": self = .bundle
+        case "bulk": self = .bulk
+        case "hold": self = .hold
+        case "grade_review": self = .gradeReview
+        case "restoration_review": self = .restorationReview
+        case "do_not_list": self = .doNotList
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct Alternative: Codable, Sendable {
@@ -680,15 +1164,73 @@ public struct Economics: Codable, Sendable {
     }
 }
 
-public enum Liquidity: String, Codable, Sendable {
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
+public enum Liquidity: Codable, Sendable, Equatable, Hashable {
+    case high
+    case medium
+    case low
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .high: return "high"
+        case .medium: return "medium"
+        case .low: return "low"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "high": self = .high
+        case "medium": self = .medium
+        case "low": self = .low
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum GradeEVConfidence: String, Codable, Sendable {
-    case medium = "medium"
-    case low = "low"
+public enum GradeEVConfidence: Codable, Sendable, Equatable, Hashable {
+    case medium
+    case low
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .medium: return "medium"
+        case .low: return "low"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "medium": self = .medium
+        case "low": self = .low
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct RecommendBatchRequest: Codable, Sendable {
@@ -729,9 +1271,37 @@ public struct RecommendBatchCardInput: Codable, Sendable {
     }
 }
 
-public enum CollectionType2: String, Codable, Sendable {
-    case personal = "personal"
-    case resale = "resale"
+public enum CollectionType2: Codable, Sendable, Equatable, Hashable {
+    case personal
+    case resale
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .personal: return "personal"
+        case .resale: return "resale"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "personal": self = .personal
+        case "resale": self = .resale
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct RecommendBatchResponse: Codable, Sendable {
@@ -983,8 +1553,34 @@ public struct CertLookupRequest: Codable, Sendable {
     }
 }
 
-public enum Grader: String, Codable, Sendable {
-    case pSA = "PSA"
+public enum Grader: Codable, Sendable, Equatable, Hashable {
+    case pSA
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .pSA: return "PSA"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "PSA": self = .pSA
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct CertLookupResponse: Codable, Sendable {
@@ -1017,8 +1613,34 @@ public struct CertLookupResponse: Codable, Sendable {
     }
 }
 
-public enum Grader2: String, Codable, Sendable {
-    case pSA = "PSA"
+public enum Grader2: Codable, Sendable, Equatable, Hashable {
+    case pSA
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .pSA: return "PSA"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "PSA": self = .pSA
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ChannelListingRequest: Codable, Sendable {
@@ -1035,8 +1657,34 @@ public struct ChannelListingRequest: Codable, Sendable {
     }
 }
 
-public enum Channel: String, Codable, Sendable {
-    case cardtrader = "cardtrader"
+public enum Channel: Codable, Sendable, Equatable, Hashable {
+    case cardtrader
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .cardtrader: return "cardtrader"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "cardtrader": self = .cardtrader
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ChannelListingResponse: Codable, Sendable {
@@ -1055,9 +1703,37 @@ public struct ChannelListingResponse: Codable, Sendable {
     }
 }
 
-public enum Status: String, Codable, Sendable {
-    case listed = "listed"
-    case failed = "failed"
+public enum Status: Codable, Sendable, Equatable, Hashable {
+    case listed
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .listed: return "listed"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "listed": self = .listed
+        case "failed": self = .failed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct CatalogueLookupRequest: Codable, Sendable {
@@ -1121,25 +1797,121 @@ public struct Entitlement: Codable, Sendable {
     }
 }
 
-public enum Tier2: String, Codable, Sendable {
-    case free = "free"
-    case starter = "starter"
-    case growth = "growth"
-    case pro = "pro"
+public enum Tier2: Codable, Sendable, Equatable, Hashable {
+    case free
+    case starter
+    case growth
+    case pro
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .free: return "free"
+        case .starter: return "starter"
+        case .growth: return "growth"
+        case .pro: return "pro"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "free": self = .free
+        case "starter": self = .starter
+        case "growth": self = .growth
+        case "pro": self = .pro
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Status2: String, Codable, Sendable {
-    case active = "active"
-    case trialing = "trialing"
-    case pastDue = "past_due"
-    case grace = "grace"
-    case canceled = "canceled"
-    case expired = "expired"
+public enum Status2: Codable, Sendable, Equatable, Hashable {
+    case active
+    case trialing
+    case pastDue
+    case grace
+    case canceled
+    case expired
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .active: return "active"
+        case .trialing: return "trialing"
+        case .pastDue: return "past_due"
+        case .grace: return "grace"
+        case .canceled: return "canceled"
+        case .expired: return "expired"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "active": self = .active
+        case "trialing": self = .trialing
+        case "past_due": self = .pastDue
+        case "grace": self = .grace
+        case "canceled": self = .canceled
+        case "expired": self = .expired
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Source2: String, Codable, Sendable {
-    case stripe = "stripe"
-    case apple = "apple"
+public enum Source2: Codable, Sendable, Equatable, Hashable {
+    case stripe
+    case apple
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .stripe: return "stripe"
+        case .apple: return "apple"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "stripe": self = .stripe
+        case "apple": self = .apple
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct VerificationEventRequest: Codable, Sendable {
@@ -1162,21 +1934,109 @@ public struct VerificationEventRequest: Codable, Sendable {
     }
 }
 
-public enum Kind: String, Codable, Sendable {
-    case identity = "identity"
-    case condition = "condition"
+public enum Kind: Codable, Sendable, Equatable, Hashable {
+    case identity
+    case condition
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .identity: return "identity"
+        case .condition: return "condition"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "identity": self = .identity
+        case "condition": self = .condition
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Verdict: String, Codable, Sendable {
-    case confirmed = "confirmed"
-    case notPresent = "not_present"
-    case unsure = "unsure"
+public enum Verdict: Codable, Sendable, Equatable, Hashable {
+    case confirmed
+    case notPresent
+    case unsure
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .confirmed: return "confirmed"
+        case .notPresent: return "not_present"
+        case .unsure: return "unsure"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "confirmed": self = .confirmed
+        case "not_present": self = .notPresent
+        case "unsure": self = .unsure
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Source3: String, Codable, Sendable {
-    case iosCapture = "ios_capture"
-    case webAddFlow = "web_add_flow"
-    case other = "other"
+public enum Source3: Codable, Sendable, Equatable, Hashable {
+    case iosCapture
+    case webAddFlow
+    case other
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .iosCapture: return "ios_capture"
+        case .webAddFlow: return "web_add_flow"
+        case .other: return "other"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ios_capture": self = .iosCapture
+        case "web_add_flow": self = .webAddFlow
+        case "other": self = .other
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct VerificationEventResponse: Codable, Sendable {
@@ -1217,16 +2077,76 @@ public struct InspectionDepthHintResponse: Codable, Sendable {
     }
 }
 
-public enum DepthTier: String, Codable, Sendable {
-    case minimal = "minimal"
-    case standard = "standard"
-    case thorough = "thorough"
+public enum DepthTier: Codable, Sendable, Equatable, Hashable {
+    case minimal
+    case standard
+    case thorough
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .minimal: return "minimal"
+        case .standard: return "standard"
+        case .thorough: return "thorough"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "minimal": self = .minimal
+        case "standard": self = .standard
+        case "thorough": self = .thorough
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum Confidence: String, Codable, Sendable {
-    case high = "high"
-    case medium = "medium"
-    case low = "low"
+public enum Confidence: Codable, Sendable, Equatable, Hashable {
+    case high
+    case medium
+    case low
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .high: return "high"
+        case .medium: return "medium"
+        case .low: return "low"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "high": self = .high
+        case "medium": self = .medium
+        case "low": self = .low
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct SignedPhotoUrlRequest: Codable, Sendable {
@@ -1289,12 +2209,46 @@ public struct PricingRule: Codable, Sendable {
     }
 }
 
-public enum Rounding: String, Codable, Sendable {
-    case none = "none"
-    case nearest10p = "nearest_10p"
-    case nearest50p = "nearest_50p"
-    case nearestPound = "nearest_pound"
-    case charm99 = "charm_99"
+public enum Rounding: Codable, Sendable, Equatable, Hashable {
+    case none
+    case nearest10p
+    case nearest50p
+    case nearestPound
+    case charm99
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .none: return "none"
+        case .nearest10p: return "nearest_10p"
+        case .nearest50p: return "nearest_50p"
+        case .nearestPound: return "nearest_pound"
+        case .charm99: return "charm_99"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "none": self = .none
+        case "nearest_10p": self = .nearest10p
+        case "nearest_50p": self = .nearest50p
+        case "nearest_pound": self = .nearestPound
+        case "charm_99": self = .charm99
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct PricingRuleInput: Codable, Sendable {
@@ -1397,9 +2351,37 @@ public struct PricingBreakdownRequest: Codable, Sendable {
     }
 }
 
-public enum CollectionType3: String, Codable, Sendable {
-    case personal = "personal"
-    case resale = "resale"
+public enum CollectionType3: Codable, Sendable, Equatable, Hashable {
+    case personal
+    case resale
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .personal: return "personal"
+        case .resale: return "resale"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "personal": self = .personal
+        case "resale": self = .resale
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct PricingBreakdownResponse: Codable, Sendable {
@@ -1436,9 +2418,37 @@ public struct PricingBreakdownResponse: Codable, Sendable {
     }
 }
 
-public enum PriceKind: String, Codable, Sendable {
-    case realised = "realised"
-    case asking = "asking"
+public enum PriceKind: Codable, Sendable, Equatable, Hashable {
+    case realised
+    case asking
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .realised: return "realised"
+        case .asking: return "asking"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "realised": self = .realised
+        case "asking": self = .asking
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct ProfileResponse: Codable, Sendable {
@@ -1461,14 +2471,70 @@ public struct ProfileResponse: Codable, Sendable {
     }
 }
 
-public enum SellerType: String, Codable, Sendable {
-    case `private` = "private"
-    case business = "business"
+public enum SellerType: Codable, Sendable, Equatable, Hashable {
+    case `private`
+    case business
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .`private`: return "private"
+        case .business: return "business"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "private": self = .`private`
+        case "business": self = .business
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum SellerTypeSource: String, Codable, Sendable {
-    case manual = "manual"
-    case auto = "auto"
+public enum SellerTypeSource: Codable, Sendable, Equatable, Hashable {
+    case manual
+    case auto
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .manual: return "manual"
+        case .auto: return "auto"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "manual": self = .manual
+        case "auto": self = .auto
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DispatchAddress: Codable, Sendable {
@@ -1579,18 +2645,82 @@ public struct DecideRequest: Codable, Sendable {
     }
 }
 
-public enum Condition: String, Codable, Sendable {
-    case nM = "NM"
-    case lP = "LP"
-    case mP = "MP"
-    case hP = "HP"
-    case dMG = "DMG"
-    case graded = "Graded"
+public enum Condition: Codable, Sendable, Equatable, Hashable {
+    case nM
+    case lP
+    case mP
+    case hP
+    case dMG
+    case graded
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .nM: return "NM"
+        case .lP: return "LP"
+        case .mP: return "MP"
+        case .hP: return "HP"
+        case .dMG: return "DMG"
+        case .graded: return "Graded"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "NM": self = .nM
+        case "LP": self = .lP
+        case "MP": self = .mP
+        case "HP": self = .hP
+        case "DMG": self = .dMG
+        case "Graded": self = .graded
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
-public enum CollectionType4: String, Codable, Sendable {
-    case personal = "personal"
-    case resale = "resale"
+public enum CollectionType4: Codable, Sendable, Equatable, Hashable {
+    case personal
+    case resale
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .personal: return "personal"
+        case .resale: return "resale"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "personal": self = .personal
+        case "resale": self = .resale
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DecideResponse: Codable, Sendable {
@@ -1666,13 +2796,49 @@ public struct Decision: Codable, Sendable {
     }
 }
 
-public enum RouteReason: String, Codable, Sendable {
-    case belowBulkFloor = "below_bulk_floor"
-    case netBelowMinimum = "net_below_minimum"
-    case gradeWorthReviewing = "grade_worth_reviewing"
-    case thinMarket = "thin_market"
-    case bundleLotAvailable = "bundle_lot_available"
-    case soundSingleListing = "sound_single_listing"
+public enum RouteReason: Codable, Sendable, Equatable, Hashable {
+    case belowBulkFloor
+    case netBelowMinimum
+    case gradeWorthReviewing
+    case thinMarket
+    case bundleLotAvailable
+    case soundSingleListing
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .belowBulkFloor: return "below_bulk_floor"
+        case .netBelowMinimum: return "net_below_minimum"
+        case .gradeWorthReviewing: return "grade_worth_reviewing"
+        case .thinMarket: return "thin_market"
+        case .bundleLotAvailable: return "bundle_lot_available"
+        case .soundSingleListing: return "sound_single_listing"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "below_bulk_floor": self = .belowBulkFloor
+        case "net_below_minimum": self = .netBelowMinimum
+        case "grade_worth_reviewing": self = .gradeWorthReviewing
+        case "thin_market": self = .thinMarket
+        case "bundle_lot_available": self = .bundleLotAvailable
+        case "sound_single_listing": self = .soundSingleListing
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DecisionAlternative: Codable, Sendable {
@@ -1687,12 +2853,46 @@ public struct DecisionAlternative: Codable, Sendable {
     }
 }
 
-public enum AlternativeReason: String, Codable, Sendable {
-    case netNegativeAfterCosts = "net_negative_after_costs"
-    case bundleSharesPostage = "bundle_shares_postage"
-    case listUngradedInstead = "list_ungraded_instead"
-    case listNowAcceptSlower = "list_now_accept_slower"
-    case listAloneInstead = "list_alone_instead"
+public enum AlternativeReason: Codable, Sendable, Equatable, Hashable {
+    case netNegativeAfterCosts
+    case bundleSharesPostage
+    case listUngradedInstead
+    case listNowAcceptSlower
+    case listAloneInstead
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .netNegativeAfterCosts: return "net_negative_after_costs"
+        case .bundleSharesPostage: return "bundle_shares_postage"
+        case .listUngradedInstead: return "list_ungraded_instead"
+        case .listNowAcceptSlower: return "list_now_accept_slower"
+        case .listAloneInstead: return "list_alone_instead"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "net_negative_after_costs": self = .netNegativeAfterCosts
+        case "bundle_shares_postage": self = .bundleSharesPostage
+        case "list_ungraded_instead": self = .listUngradedInstead
+        case "list_now_accept_slower": self = .listNowAcceptSlower
+        case "list_alone_instead": self = .listAloneInstead
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DecisionEconomics: Codable, Sendable {
@@ -1715,10 +2915,40 @@ public struct DecisionEconomics: Codable, Sendable {
     }
 }
 
-public enum DegradedReason: String, Codable, Sendable {
-    case noSaleCount = "no_sale_count"
-    case feesUnknown = "fees_unknown"
-    case compatibleCountUnknown = "compatible_count_unknown"
+public enum DegradedReason: Codable, Sendable, Equatable, Hashable {
+    case noSaleCount
+    case feesUnknown
+    case compatibleCountUnknown
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .noSaleCount: return "no_sale_count"
+        case .feesUnknown: return "fees_unknown"
+        case .compatibleCountUnknown: return "compatible_count_unknown"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "no_sale_count": self = .noSaleCount
+        case "fees_unknown": self = .feesUnknown
+        case "compatible_count_unknown": self = .compatibleCountUnknown
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DecisionAssumption: Codable, Sendable {
@@ -1733,15 +2963,55 @@ public struct DecisionAssumption: Codable, Sendable {
     }
 }
 
-public enum DecisionAssumptionCode: String, Codable, Sendable {
-    case channel = "channel"
-    case sellerType = "seller_type"
-    case vatRegistered = "vat_registered"
-    case condition = "condition"
-    case postage = "postage"
-    case packaging = "packaging"
-    case taxRate = "tax_rate"
-    case costBasis = "cost_basis"
+public enum DecisionAssumptionCode: Codable, Sendable, Equatable, Hashable {
+    case channel
+    case sellerType
+    case vatRegistered
+    case condition
+    case postage
+    case packaging
+    case taxRate
+    case costBasis
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .channel: return "channel"
+        case .sellerType: return "seller_type"
+        case .vatRegistered: return "vat_registered"
+        case .condition: return "condition"
+        case .postage: return "postage"
+        case .packaging: return "packaging"
+        case .taxRate: return "tax_rate"
+        case .costBasis: return "cost_basis"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "channel": self = .channel
+        case "seller_type": self = .sellerType
+        case "vat_registered": self = .vatRegistered
+        case "condition": self = .condition
+        case "postage": self = .postage
+        case "packaging": self = .packaging
+        case "tax_rate": self = .taxRate
+        case "cost_basis": self = .costBasis
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct PriceProvenance: Codable, Sendable {
@@ -1812,9 +3082,37 @@ public struct DecideBatchCard: Codable, Sendable {
     }
 }
 
-public enum CollectionType5: String, Codable, Sendable {
-    case personal = "personal"
-    case resale = "resale"
+public enum CollectionType5: Codable, Sendable, Equatable, Hashable {
+    case personal
+    case resale
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .personal: return "personal"
+        case .resale: return "resale"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "personal": self = .personal
+        case "resale": self = .resale
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct DecideBatchResponse: Codable, Sendable {
@@ -1839,10 +3137,40 @@ public struct DecideBatchResult: Codable, Sendable {
     }
 }
 
-public enum DecisionUnavailable: String, Codable, Sendable {
-    case identityUnresolved = "identity_unresolved"
-    case noMarketValue = "no_market_value"
-    case pricingUnavailable = "pricing_unavailable"
+public enum DecisionUnavailable: Codable, Sendable, Equatable, Hashable {
+    case identityUnresolved
+    case noMarketValue
+    case pricingUnavailable
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .identityUnresolved: return "identity_unresolved"
+        case .noMarketValue: return "no_market_value"
+        case .pricingUnavailable: return "pricing_unavailable"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "identity_unresolved": self = .identityUnresolved
+        case "no_market_value": self = .noMarketValue
+        case "pricing_unavailable": self = .pricingUnavailable
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct RepriceApplyRequest: Codable, Sendable {
@@ -1865,9 +3193,37 @@ public struct Item: Codable, Sendable {
     }
 }
 
-public enum Environment: String, Codable, Sendable {
-    case ebayProduction = "ebay_production"
-    case ebaySandbox = "ebay_sandbox"
+public enum Environment: Codable, Sendable, Equatable, Hashable {
+    case ebayProduction
+    case ebaySandbox
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ebayProduction: return "ebay_production"
+        case .ebaySandbox: return "ebay_sandbox"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ebay_production": self = .ebayProduction
+        case "ebay_sandbox": self = .ebaySandbox
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct RepriceApplyResponse: Codable, Sendable {
@@ -1904,9 +3260,37 @@ public struct RepriceChannelOutcome: Codable, Sendable {
     }
 }
 
-public enum Channel2: String, Codable, Sendable {
-    case ebay = "ebay"
-    case cardtrader = "cardtrader"
+public enum Channel2: Codable, Sendable, Equatable, Hashable {
+    case ebay
+    case cardtrader
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ebay: return "ebay"
+        case .cardtrader: return "cardtrader"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ebay": self = .ebay
+        case "cardtrader": self = .cardtrader
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 public struct QuickScanRequest: Codable, Sendable {
@@ -2002,7 +3386,35 @@ public struct QuickScanCandidate: Codable, Sendable {
     }
 }
 
-public enum EditionAmbiguity: String, Codable, Sendable {
-    case firstEditionShadowlessUnlimited = "first_edition_shadowless_unlimited"
-    case firstEditionUnlimited = "first_edition_unlimited"
+public enum EditionAmbiguity: Codable, Sendable, Equatable, Hashable {
+    case firstEditionShadowlessUnlimited
+    case firstEditionUnlimited
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .firstEditionShadowlessUnlimited: return "first_edition_shadowless_unlimited"
+        case .firstEditionUnlimited: return "first_edition_unlimited"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "first_edition_shadowless_unlimited": self = .firstEditionShadowlessUnlimited
+        case "first_edition_unlimited": self = .firstEditionUnlimited
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }

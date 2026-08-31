@@ -44,3 +44,18 @@ jobs:
       # UnknownEnumValueTest — decisions/0027: an unrecognised enum value decodes to Unknown
       # THROUGH ITS CONTAINING RESPONSE TYPE rather than throwing and taking the response with it.
       - run: ./gradlew test --no-daemon
+
+  swift:
+    # The Swift package was generated and committed for months but never COMPILED, let alone run —
+    # there was no Swift job here at all. Kotlin had one, which is exactly why decisions/0027's
+    # forward-compatible decoding shipped on Android and silently never shipped on iOS, on the
+    # platform whose lane reported the problem. A generated artifact nobody builds is a claim.
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      # ForwardCompatibilityTests — decisions/0027: an unrecognised enum value decodes to the
+      # generated fallback case rather than throwing and taking the whole response down; it
+      # round-trips unchanged (item 2a); a domain value literally called "unknown" stays distinct
+      # from it; and an absent defaulted key does not fail the decode (item 4a).
+      - run: swift test
