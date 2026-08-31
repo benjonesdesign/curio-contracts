@@ -74,6 +74,76 @@ function swiftEnumCaseName(value: string): string {
   return escapeSwiftIdentifier(/^[0-9]/.test(camel) ? `v${camel}` : camel);
 }
 
+/**
+ * A generated enum that DECODES FORWARD-COMPATIBLY (decisions/0027 item 1).
+ *
+ * Swift's `Codable` synthesis for a `String`-backed enum throws `DecodingError.dataCorrupted` on an
+ * unrecognised raw value, and the throw propagates to the ENCLOSING OBJECT rather than the field —
+ * so one unknown value anywhere in a response fails the entire decode. A ninth game appearing in a
+ * single candidate of a candidate list takes the whole response down.
+ *
+ * ⚠️ 0027 has been Accepted since 2026-08-27 and Kotlin shipped this; SWIFT NEVER DID. 72 Swift
+ * fields were typed as strict enums with no unknown case, on the platform whose lane REPORTED the
+ * problem. Another accepted decision implemented on one platform and silently absent on the other.
+ *
+ * The shape mirrors Kotlin's sealed interface: every case carries `rawValue`, including the unknown
+ * one, so a value this build does not recognise round-trips back unchanged instead of being
+ * silently dropped (0027 item 2a). Originating one is still forbidden — that is a decision for the
+ * calling code, not the decoder (item 2).
+ *
+ * ⚠️ THIS IS A SOURCE-BREAKING CHANGE FOR CLIENTS, deliberately. An exhaustive `switch` over a
+ * generated enum will no longer compile without handling the unknown case — which is precisely the
+ * point: the calling code is made to decide what an unrecognised value means, visibly, instead of
+ * the decoder deciding by throwing. Ship it as a lockstep release (ADR 0012).
+ */
+function swiftForwardCompatibleEnum(name: string, values: string[]): string {
+  const cases = values.map((v) => ({ id: swiftEnumCaseName(v), raw: v }));
+  // A schema may itself contain a value called "unknown" (capture-commit's orientation/exposure/
+  // side all do). Kotlin can separate them by casing — object UNKNOWN vs data class Unknown — but
+  // Swift case names are lowerCamel and would collide outright, so the generated case takes a name
+  // no domain value has. Asserted rather than assumed: a future schema value called "unrecognised"
+  // would otherwise silently shadow the fallback.
+  let fallback = "unrecognised";
+  const taken = new Set(cases.map((c) => c.id));
+  for (let i = 2; taken.has(fallback); i++) fallback = `unrecognised${i}`;
+
+  const caseDecls = cases.map((c) => `    case ${c.id}`).join("\n");
+  const rawArms = cases.map((c) => `        case .${c.id}: return ${JSON.stringify(c.raw)}`).join("\n");
+  const initArms = cases.map((c) => `        case ${JSON.stringify(c.raw)}: self = .${c.id}`).join("\n");
+
+  return [
+    `public enum ${name}: Codable, Sendable, Equatable, Hashable {`,
+    caseDecls,
+    `    /// A value this build does not know. Carries the wire value so it round-trips unchanged.`,
+    `    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.`,
+    `    case ${fallback}(String)`,
+    ``,
+    `    public var rawValue: String {`,
+    `        switch self {`,
+    rawArms,
+    `        case .${fallback}(let raw): return raw`,
+    `        }`,
+    `    }`,
+    ``,
+    `    public init(rawValue: String) {`,
+    `        switch rawValue {`,
+    initArms,
+    `        default: self = .${fallback}(rawValue)`,
+    `        }`,
+    `    }`,
+    ``,
+    `    public init(from decoder: Decoder) throws {`,
+    `        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))`,
+    `    }`,
+    ``,
+    `    public func encode(to encoder: Encoder) throws {`,
+    `        var container = encoder.singleValueContainer()`,
+    `        try container.encode(rawValue)`,
+    `    }`,
+    `}`,
+  ].join("\n");
+}
+
 // ── Zod defaults are a SERVER-PARSE behaviour, never a wire guarantee (decisions/0027) ─────
 // See the matching comment in zod-to-kotlin.ts for the full reasoning. Short version: a defaulted
 // field's key can legitimately be absent on the wire, and Swift's SYNTHESISED init(from:) ignores
@@ -137,12 +207,7 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     const enumName = uniqueTypeName(structName ?? pascalCase(hintName));
     schemaToName.set(schema, enumName);
     const values = schema._def.values as string[];
-    const cases = values.map((v) => `    case ${swiftEnumCaseName(v)} = "${v}"`).join("\n");
-    emitted.set(enumName, {
-      kind: "enum",
-      name: enumName,
-      code: `public enum ${enumName}: String, Codable, Sendable {\n${cases}\n}`,
-    });
+    emitted.set(enumName, { kind: "enum", name: enumName, code: swiftForwardCompatibleEnum(enumName, values) });
     return enumName;
   }
 

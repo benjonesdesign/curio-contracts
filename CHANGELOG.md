@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.1.43 — Swift decodes forward-compatibly, three days after the ADR said it did
+
+**decisions/0027 has been Accepted since 2026-08-27 and Kotlin shipped it. Swift never did.**
+
+`Game` in Kotlin was a sealed interface with an `Unknown(rawValue)` case. `Game` in Swift was a
+plain `String`-backed enum with eight cases and no fallback — and Swift's synthesised `Codable`
+throws `DecodingError.dataCorrupted` on an unrecognised raw value, propagating to the ENCLOSING
+object. **72 Swift fields were typed as strict generated enums.** A ninth game in one candidate of
+a candidate list would have failed the entire response, on the platform whose lane reported the
+problem in the first place.
+
+Generated Swift enums now carry a `case unrecognised(String)` with `rawValue` on every case, so an
+unknown value decodes, survives, and round-trips unchanged (item 2a). A schema value literally
+called `"unknown"` — orientation, exposure and side all have one — keeps its own case and cannot be
+confused with the fallback.
+
+⚠️ **SOURCE-BREAKING FOR CLIENTS, deliberately.** An exhaustive `switch` over a generated enum no
+longer compiles without handling the unknown case, which is the point: the calling code decides
+what an unrecognised value means, visibly, instead of the decoder deciding by throwing (item 2).
+Lockstep release per ADR 0012.
+
+**Why it went unnoticed for three days is the more useful finding.** The Swift package was
+generated and committed but **never compiled, let alone run** — CI had a Kotlin job and no Swift
+job at all. This release adds `Tests/CurioContractsTests` and a `swift` CI job. A generated artifact
+nobody builds is a claim, not an artifact.
+
 ## v0.1.42 — a dash that might be an outage
 
 `CardSearchResponse.pricesUnavailable`. True when a `marketGbp: null` on the page may be an outage

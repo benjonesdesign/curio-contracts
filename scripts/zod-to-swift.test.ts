@@ -14,7 +14,7 @@ describe("zod-to-swift", () => {
     emitSwift(A, "A");
     emitSwift(B, "B");
     const out = flush();
-    const enumMatches = out.match(/public enum \w+: String, Codable, Sendable \{\n {4}case high/g) ?? [];
+    const enumMatches = out.match(/public enum \w+: Codable, Sendable, Equatable, Hashable \{\n {4}case high/g) ?? [];
     expect(enumMatches).toHaveLength(1);
   });
 
@@ -22,8 +22,14 @@ describe("zod-to-swift", () => {
     const Model = z.enum(["gpt-4o", "gpt-4o-mini"]);
     emitSwift(z.object({ model: Model }), "Req");
     const out = flush();
-    expect(out).toContain('case gpt4o = "gpt-4o"');
-    expect(out).toContain('case gpt4oMini = "gpt-4o-mini"');
+    // The case NAME is sanitised and the raw wire value is preserved — asserted as those two
+    // properties rather than as one literal line, so the next change to the emitted shape (0027's
+    // forward-compatible enums moved the raw value out of the case declaration) updates the
+    // generator without silently hollowing out this test.
+    expect(out).toContain("case gpt4o\n");
+    expect(out).toContain("case gpt4oMini\n");
+    expect(out).toContain('case "gpt-4o": self = .gpt4o');
+    expect(out).toContain('case .gpt4o: return "gpt-4o"');
     expect(out).not.toMatch(/case gpt-4o/);
   });
 
@@ -47,10 +53,11 @@ describe("zod-to-swift", () => {
   it("backtick-escapes an enum case that collides with a Swift keyword", () => {
     emitSwift(z.object({ sellerType: z.enum(["private", "business"]) }), "Req");
     const out = flush();
-    expect(out).toContain('case `private` = "private"');
-    expect(out).not.toMatch(/case private = /);
+    expect(out).toContain("case `private`\n");
+    expect(out).toContain('case "private": self = .`private`');
+    expect(out).not.toMatch(/case private\b(?!`)/);
     // A non-keyword case in the same enum is left unescaped.
-    expect(out).toContain('case business = "business"');
+    expect(out).toContain("case business\n");
   });
 
   it("backtick-escapes a property name that collides with a Swift keyword, and its CodingKey", () => {
