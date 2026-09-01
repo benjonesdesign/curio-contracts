@@ -54,7 +54,9 @@ jobs:
     container: swift:6.0
     steps:
       - uses: actions/checkout@v4
-      # ForwardCompatibilityTests — decisions/0027: an unrecognised enum value decodes to the
+      # GoldenVectorTests — decisions/0026's conformance suite: the SAME vectors/*.json fixtures
+      # TypeScript and Kotlin read, so a parity gap fails here rather than on the morning a ninth
+      # game ships. ForwardCompatibilityTests — decisions/0027: an unrecognised enum value decodes to the
       # generated fallback case rather than throwing and taking the whole response down; it
       # round-trips unchanged (item 2a); a domain value literally called "unknown" stays distinct
       # from it; and an absent defaulted key does not fail the decode (item 4a).

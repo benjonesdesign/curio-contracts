@@ -30,7 +30,7 @@ const IGNORED = new Set(["node_modules", ".git", "dist", "build", ".gradle", "So
  * make a build pass: a drop means a file stopped running, and the question is which check you just
  * lost, not how to get green again.
  */
-const MIN_TEST_FILES = 22;   // TypeScript only; the Swift and Kotlin targets have their own suites
+const MIN_TEST_FILES = 23;   // TypeScript only; the Swift and Kotlin targets have their own suites
 
 function testFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((e) =>

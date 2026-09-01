@@ -1,0 +1,97 @@
+{
+  "$comment": [
+    "GOLDEN VECTORS — decisions/0026's conformance suite, finally existing.",
+    "",
+    "0026 said, in the present tense, 'Every platform runs the same vectors; any platform failing any",
+    "vector fails CI'. No vectors existed. This file is the first of them, and it starts here because",
+    "iOS reported the concrete gap: their decisions/0027 fallback case HAS NEVER EXECUTED. No server",
+    "has ever sent an unrecognised enum, so `.unrecognised` decoding, `.rawValue` on it, and the",
+    "`gameLabel(game.rawValue) ?? \"Pokémon\"` fallback are all unexercised — and that last one would",
+    "label a ninth game 'Pokémon'.",
+    "",
+    "These vectors need no server change and no ninth game to exist. That is the point: the failure",
+    "is reachable from a fixture today, and every platform can be made to face it now rather than",
+    "on the morning a ninth game ships.",
+    "",
+    "THE ASSERTION IS ROUND-TRIP EQUALITY, chosen because it is the same check in three languages",
+    "with no path DSL and no per-language expectation table. Decode the payload, re-encode it, and",
+    "compare. One assertion proves three things at once: it decoded rather than threw (0027 item 1),",
+    "the unrecognised value survived rather than being dropped (item 2a), and nothing else in the",
+    "object was lost on the way.",
+    "",
+    "EVERY VECTOR DECODES THROUGH ITS CONTAINING RESPONSE TYPE, never the enum alone. The failure",
+    "being guarded is a decode error PROPAGATING from a field to the whole object; a fixture that",
+    "decoded the enum directly would pass and prove nothing about the path that actually breaks."
+  ],
+  "vectors": [
+    {
+      "name": "ninth_game_in_catalogue_lookup",
+      "type": "CatalogueLookupResponse",
+      "why": "A game this build has never heard of. The scenario 0027 was written for, and the one that would label a ninth game 'Pokémon' on iOS.",
+      "payload": {
+        "match": {
+          "game": "kryptonite-tcg",
+          "nativeId": "kr-1",
+          "name": "Some Card",
+          "setName": "Some Set",
+          "cardNumber": "1",
+          "rarity": null,
+          "language": "en",
+          "image": null
+        },
+        "confidence": "high",
+        "candidates": []
+      }
+    },
+    {
+      "name": "ninth_game_in_one_candidate_only",
+      "type": "CatalogueLookupResponse",
+      "why": "The shape that bites hardest: a list where most entries are fine. A propagating throw loses the GOOD candidates too, so the picker shows nothing rather than showing fewer.",
+      "payload": {
+        "match": null,
+        "confidence": "low",
+        "candidates": [
+          {
+            "game": "pokemon",
+            "nativeId": "p-1",
+            "name": "Known Card",
+            "setName": "Base",
+            "cardNumber": "4",
+            "rarity": null,
+            "language": "en",
+            "image": null
+          },
+          {
+            "game": "kryptonite-tcg",
+            "nativeId": "kr-2",
+            "name": "Unknown Game Card",
+            "setName": "Unknown Set",
+            "cardNumber": "9",
+            "rarity": null,
+            "language": "en",
+            "image": null
+          }
+        ]
+      }
+    },
+    {
+      "name": "unknown_confidence_in_catalogue_lookup",
+      "type": "CatalogueLookupResponse",
+      "why": "Not just GameId — 0027 item 4 covers EVERY generated enum, and confidence is one. Picked deliberately over a made-up field: an unrecognised value has to be exercised on a real enum, or the vector proves nothing about the generated code.",
+      "payload": {
+        "match": {
+          "game": "pokemon",
+          "nativeId": "p-4",
+          "name": "Charizard",
+          "setName": "Base",
+          "cardNumber": "4",
+          "rarity": null,
+          "language": "en",
+          "image": null
+        },
+        "confidence": "extremely-high",
+        "candidates": []
+      }
+    }
+  ]
+}
