@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.1.44 — "no market value" was being said about a Base Set Pikachu
+
+`CardValueResponse.pricingDegraded`. True when the pricing chain FAILED rather than queried and
+found nothing.
+
+`/api/price`'s provider walk swallowed every provider error into a log line and returned a bare
+`null` for both outcomes, so `/api/quick-scan` could not tell a normal miss from an outage and
+called both `no_market_value`. On 2026-09-01 that told a seller their **Base Set Pikachu** — no
+CardTrader blueprint, and pokemontcg.io returning 500s — has no market value. The card is not
+worthless; we had nothing to look in.
+
+Wrong in the direction that costs a seller the card rather than the margin, and the **seventh**
+instance of the conflated-null shape — this one *inside the field built to fix it*.
+
 ## v0.1.43 — Swift decodes forward-compatibly, three days after the ADR said it did
 
 **decisions/0027 has been Accepted since 2026-08-27 and Kotlin shipped it. Swift never did.**

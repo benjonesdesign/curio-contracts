@@ -69,6 +69,24 @@ export const CardValueResponseSchema = z.object({
   /** See EditionAmbiguitySchema. Null when there is nothing to disclose. */
   editionAmbiguity: EditionAmbiguitySchema.nullable().default(null),
   /**
+   * The pricing chain FAILED, as opposed to querying and finding nothing.
+   *
+   * True when any provider threw, or when none could run a query at all. An absent price then
+   * means "we could not look", NOT "this card has no market" — and a caller must render it as
+   * `pricing_unavailable`, never `no_market_value`.
+   *
+   * ⚠️ These were one value until 2026-09-01. /api/price's provider walk swallowed every error
+   * into a log line and returned a bare null for both outcomes, so Base Set Pikachu — no
+   * CardTrader blueprint, and pokemontcg.io returning 500s — was reported as having NO MARKET
+   * VALUE. The card is not worthless; we had nothing to look in. That is wrong in the direction
+   * that costs a seller the card rather than the margin.
+   *
+   * SEVENTH instance of the conflated-null shape, and this one was inside the field built to fix
+   * it: `decisionUnavailable` exists precisely to separate a normal miss from an outage, and it
+   * was being decided from a signal that could not tell them apart.
+   */
+  pricingDegraded: z.boolean().default(false),
+  /**
    * ⚠️ LEGACY coefficients, for installed builds that predate /api/decide. Nothing new should
    * consume this — a client computing its own economics from raw coefficients is exactly what
    * ADR 0026 exists to stop. Declared here because it IS on the wire and an undeclared field is a
