@@ -3173,6 +3173,303 @@ public enum DecisionUnavailable: Codable, Sendable, Equatable, Hashable {
     }
 }
 
+public struct EbayPublishRequest: Codable, Sendable {
+    public let sku: String
+    public let title: String
+    public let description: String
+    public let condition: String
+    public let priceGbp: Double
+    public let photoUrls: [String]
+    public let aspectValues: [String: JSONValue]
+    public let physicalCardId: String?
+    public let cardId: String?
+    public let game: String
+    public let format: EbayListingFormat
+    public let auctionStartPrice: Double?
+    public let auctionDays: Int
+
+    enum CodingKeys: String, CodingKey {
+        case sku
+        case title
+        case description
+        case condition
+        case priceGbp
+        case photoUrls
+        case aspectValues
+        case physicalCardId
+        case cardId
+        case game
+        case format
+        case auctionStartPrice
+        case auctionDays
+    }
+
+    public init(sku: String, title: String, description: String, condition: String, priceGbp: Double, photoUrls: [String], aspectValues: [String: JSONValue], physicalCardId: String?, cardId: String?, game: String, format: EbayListingFormat, auctionStartPrice: Double?, auctionDays: Int) {
+        self.sku = sku
+        self.title = title
+        self.description = description
+        self.condition = condition
+        self.priceGbp = priceGbp
+        self.photoUrls = photoUrls
+        self.aspectValues = aspectValues
+        self.physicalCardId = physicalCardId
+        self.cardId = cardId
+        self.game = game
+        self.format = format
+        self.auctionStartPrice = auctionStartPrice
+        self.auctionDays = auctionDays
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.sku = try c.decode(String.self, forKey: .sku)
+        self.title = try c.decode(String.self, forKey: .title)
+        self.description = try c.decode(String.self, forKey: .description)
+        self.condition = try c.decode(String.self, forKey: .condition)
+        self.priceGbp = try c.decode(Double.self, forKey: .priceGbp)
+        self.photoUrls = try c.decode([String].self, forKey: .photoUrls)
+        self.aspectValues = try c.decode([String: JSONValue].self, forKey: .aspectValues)
+        self.physicalCardId = try c.decodeIfPresent(String.self, forKey: .physicalCardId)
+        self.cardId = try c.decodeIfPresent(String.self, forKey: .cardId)
+        self.game = try c.decodeIfPresent(String.self, forKey: .game) ?? "pokemon"
+        self.format = try c.decodeIfPresent(EbayListingFormat.self, forKey: .format) ?? EbayListingFormat(rawValue: "FIXED_PRICE")
+        self.auctionStartPrice = try c.decodeIfPresent(Double.self, forKey: .auctionStartPrice)
+        self.auctionDays = try c.decodeIfPresent(Int.self, forKey: .auctionDays) ?? 7
+    }
+}
+
+public enum EbayListingFormat: Codable, Sendable, Equatable, Hashable {
+    case fIXEDPRICE
+    case aUCTION
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .fIXEDPRICE: return "FIXED_PRICE"
+        case .aUCTION: return "AUCTION"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "FIXED_PRICE": self = .fIXEDPRICE
+        case "AUCTION": self = .aUCTION
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct EbayPublishSuccess: Codable, Sendable {
+    public let status: String
+    public let offerId: String
+    public let listingId: String?
+    public let listingUrl: String?
+    public let production: Bool
+
+    public init(status: String, offerId: String, listingId: String?, listingUrl: String?, production: Bool) {
+        self.status = status
+        self.offerId = offerId
+        self.listingId = listingId
+        self.listingUrl = listingUrl
+        self.production = production
+    }
+}
+
+public struct EbayPublishErrorResponse: Codable, Sendable {
+    public let error: EbayPublishError
+
+    public init(error: EbayPublishError) {
+        self.error = error
+    }
+}
+
+public enum EbayPublishError: Codable, Sendable {
+    case unauthenticated(EbayPublishErrorUnauthenticated)
+    case invalidRequest(EbayPublishErrorInvalidRequest)
+    case titleTooLong(EbayPublishErrorTitleTooLong)
+    case gradedNotVerified(EbayPublishErrorGradedNotVerified)
+    case scopeError(EbayPublishErrorScopeError)
+    case noPolicies(EbayPublishErrorNoPolicies)
+    case unmappableCondition(EbayPublishErrorUnmappableCondition)
+    case ebayError(EbayPublishErrorEbayError)
+    case internalError(EbayPublishErrorInternalError)
+    /// A variant this build does not know. Carries the discriminator and the whole payload
+    /// so an unrecognised case round-trips unchanged instead of failing the decode and
+    /// taking the entire response with it. NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(code: String, payload: [String: JSONValue])
+
+    /// The wire discriminator, available without switching.
+    public var code: String {
+        switch self {
+        case .unauthenticated: return "unauthenticated"
+        case .invalidRequest: return "invalid_request"
+        case .titleTooLong: return "title_too_long"
+        case .gradedNotVerified: return "graded_not_verified"
+        case .scopeError: return "scope_error"
+        case .noPolicies: return "no_policies"
+        case .unmappableCondition: return "unmappable_condition"
+        case .ebayError: return "ebay_error"
+        case .internalError: return "internal_error"
+        case .unrecognised(let code, _): return code
+        }
+    }
+
+    private enum DiscriminatorKey: String, CodingKey { case code = "code" }
+
+    public init(from decoder: Decoder) throws {
+        // decodeIfPresent, not decode: a payload with NO discriminator is malformed, and
+        // throwing on it would take the whole response down rather than surfacing an error
+        // the user can act on. Kotlin's generated deserializer degrades to Unknown("") for
+        // the same input; the two must not disagree about a malformed body.
+        let tag = try decoder.container(keyedBy: DiscriminatorKey.self)
+            .decodeIfPresent(String.self, forKey: .code) ?? ""
+        switch tag {
+        case "unauthenticated": self = .unauthenticated(try EbayPublishErrorUnauthenticated(from: decoder))
+        case "invalid_request": self = .invalidRequest(try EbayPublishErrorInvalidRequest(from: decoder))
+        case "title_too_long": self = .titleTooLong(try EbayPublishErrorTitleTooLong(from: decoder))
+        case "graded_not_verified": self = .gradedNotVerified(try EbayPublishErrorGradedNotVerified(from: decoder))
+        case "scope_error": self = .scopeError(try EbayPublishErrorScopeError(from: decoder))
+        case "no_policies": self = .noPolicies(try EbayPublishErrorNoPolicies(from: decoder))
+        case "unmappable_condition": self = .unmappableCondition(try EbayPublishErrorUnmappableCondition(from: decoder))
+        case "ebay_error": self = .ebayError(try EbayPublishErrorEbayError(from: decoder))
+        case "internal_error": self = .internalError(try EbayPublishErrorInternalError(from: decoder))
+        default:
+            self = .unrecognised(code: tag, payload: try [String: JSONValue](from: decoder))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        switch self {
+        case .unauthenticated(let value): try value.encode(to: encoder)
+        case .invalidRequest(let value): try value.encode(to: encoder)
+        case .titleTooLong(let value): try value.encode(to: encoder)
+        case .gradedNotVerified(let value): try value.encode(to: encoder)
+        case .scopeError(let value): try value.encode(to: encoder)
+        case .noPolicies(let value): try value.encode(to: encoder)
+        case .unmappableCondition(let value): try value.encode(to: encoder)
+        case .ebayError(let value): try value.encode(to: encoder)
+        case .internalError(let value): try value.encode(to: encoder)
+        case .unrecognised(_, let payload): try payload.encode(to: encoder)
+        }
+    }
+}
+
+public struct EbayPublishErrorUnauthenticated: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorInvalidRequest: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorTitleTooLong: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let titleLength: Int
+    public let maxLength: Int
+
+    public init(code: String, message: String, titleLength: Int, maxLength: Int) {
+        self.code = code
+        self.message = message
+        self.titleLength = titleLength
+        self.maxLength = maxLength
+    }
+}
+
+public struct EbayPublishErrorGradedNotVerified: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let gradingCompany: String?
+
+    public init(code: String, message: String, gradingCompany: String?) {
+        self.code = code
+        self.message = message
+        self.gradingCompany = gradingCompany
+    }
+}
+
+public struct EbayPublishErrorScopeError: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let reconnectHint: String
+
+    public init(code: String, message: String, reconnectHint: String) {
+        self.code = code
+        self.message = message
+        self.reconnectHint = reconnectHint
+    }
+}
+
+public struct EbayPublishErrorNoPolicies: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorUnmappableCondition: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let condition: String
+
+    public init(code: String, message: String, condition: String) {
+        self.code = code
+        self.message = message
+        self.condition = condition
+    }
+}
+
+public struct EbayPublishErrorEbayError: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let ebayCode: String
+    public let httpStatus: Int
+
+    public init(code: String, message: String, ebayCode: String, httpStatus: Int) {
+        self.code = code
+        self.message = message
+        self.ebayCode = ebayCode
+        self.httpStatus = httpStatus
+    }
+}
+
+public struct EbayPublishErrorInternalError: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
 public struct RepriceApplyRequest: Codable, Sendable {
     public let items: [Item]
     public let environment: Environment?

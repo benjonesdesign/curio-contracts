@@ -25,8 +25,19 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CatalogueLookupResponseSchema } from "./api/catalogue-lookup.js";
+import { EbayPublishErrorResponseSchema } from "./api/ebay-publish.js";
 
-type Vector = { name: string; type: string; why: string; payload: unknown };
+type Vector = {
+  name: string;
+  type: string;
+  why: string;
+  payload: unknown;
+  /** True for a payload the SERVER legitimately accepts and clients must also survive — an
+   *  additive field on a known variant. Zod strips unknown keys rather than rejecting them, so
+   *  asserting rejection on one of these would assert the opposite of the design. Absent means
+   *  the original class: a value the server must refuse to emit. */
+  serverAccepts?: boolean;
+};
 
 const { vectors } = JSON.parse(
   readFileSync(join(__dirname, "..", "vectors", "enum-forward-compat.json"), "utf8"),
@@ -36,6 +47,7 @@ const { vectors } = JSON.parse(
  *  is not here would be skipped silently, which is the failure this whole suite exists to stop. */
 const SCHEMAS: Record<string, { safeParse: (v: unknown) => { success: boolean } }> = {
   CatalogueLookupResponse: CatalogueLookupResponseSchema,
+  EbayPublishErrorResponse: EbayPublishErrorResponseSchema,
 };
 
 describe("golden vectors (decisions/0026)", () => {
@@ -54,7 +66,7 @@ describe("golden vectors (decisions/0026)", () => {
     for (const v of vectors) expect(v.why?.length ?? 0, v.name).toBeGreaterThan(40);
   });
 
-  it.each(vectors.map((v) => [v.name, v] as const))(
+  it.each(vectors.filter((v) => !v.serverAccepts).map((v) => [v.name, v] as const))(
     "%s is REJECTED by the reference implementation, so the value is genuinely unknown",
     (_n, v) => {
       const r = SCHEMAS[v.type].safeParse(v.payload);
@@ -65,6 +77,34 @@ describe("golden vectors (decisions/0026)", () => {
       ).toBe(false);
     },
   );
+
+  it.each(vectors.filter((v) => v.serverAccepts).map((v) => [v.name, v] as const))(
+    "%s is ACCEPTED by the reference implementation, as an additive change should be",
+    (_n, v) => {
+      const r = SCHEMAS[v.type].safeParse(v.payload);
+      expect(
+        r.success,
+        "this payload no longer parses, so the server has become strict about an additive field. " +
+        "That is a breaking change for every older client, not a fixture problem.",
+      ).toBe(true);
+    },
+  );
+
+  it("both vector classes are populated — an empty class asserts nothing", () => {
+    // Without this, deleting every serverAccepts vector would leave a green suite whose
+    // additive-change guard had silently stopped existing.
+    expect(vectors.filter((v) => v.serverAccepts).length).toBeGreaterThan(0);
+    expect(vectors.filter((v) => !v.serverAccepts).length).toBeGreaterThan(0);
+  });
+
+  it("a fully-known ERROR payload DOES parse", () => {
+    // The control for the union vectors. Without it, an EbayPublishErrorResponseSchema that
+    // rejected everything would make all three union vectors pass while proving nothing.
+    const r = EbayPublishErrorResponseSchema.safeParse({
+      error: { code: "title_too_long", message: "Title is 84 characters", titleLength: 84, maxLength: 80 },
+    });
+    expect(r.success, "the control error payload must parse, or the rejections above prove nothing").toBe(true);
+  });
 
   it("a fully-known payload of the same shape DOES parse", () => {
     // Without this, every vector above would pass if the schema simply rejected everything —

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { z } from "zod";
-import { emitSwift, flush, resetForTest } from "./zod-to-swift.js";
+import { emitSwift, flush, resetForTest, registerName } from "./zod-to-swift.js";
 
 beforeEach(() => {
   resetForTest();
@@ -90,5 +90,79 @@ describe("zod-to-swift", () => {
   it("leaves a struct with no defaults on synthesised Codable, unchanged", () => {
     emitSwift(z.object({ a: z.string(), b: z.string().optional() }), "Plain");
     expect(flush()).not.toContain("public init(from decoder: Decoder)");
+  });
+});
+
+// ── z.discriminatedUnion ────────────────────────────────────────────────────────────────────
+//
+// MUTATION-CHECKED 2026-09-02: red against `return "String"` in place of the ZodDiscriminatedUnion
+// branch (the pre-2026-09-02 behaviour was a throw, and a silent widen is the plausible wrong
+// fix), red against dropping the `SWIFT_SHADOWED_TYPE_NAMES` guard, and red against restoring
+// `if (allStringish) return "String"` ahead of the non-string-literal check; green against current.
+describe("zod-to-swift: discriminated unions", () => {
+  const Err = () =>
+    z.discriminatedUnion("code", [
+      z.object({ code: z.literal("rate_limited"), retryAfterSec: z.number().int() }),
+      z.object({ code: z.literal("bad_title"), titleLength: z.number().int() }),
+    ]);
+
+  it("emits an enum with one case per arm plus a forward-compatible fallback", () => {
+    const e = Err();
+    registerName(e, "PublishError");   // as real call sites do — see the shadowing test below
+    emitSwift(z.object({ error: e }), "Resp");
+    const out = flush();
+    expect(out).toContain("case rateLimited(");
+    expect(out).toContain("case badTitle(");
+    // The fallback carries the discriminator AND the payload. A fallback that kept only the tag
+    // would decode without throwing and still lose everything the server sent — which reads as
+    // working right up until someone needs the retryAfterSec from an unknown arm.
+    expect(out).toContain("case unrecognised(code: String, payload: [String: JSONValue])");
+  });
+
+  it("decodes by the discriminator and tolerates its absence", () => {
+    const e = Err();
+    registerName(e, "PublishError");
+    emitSwift(z.object({ error: e }), "Resp");
+    const out = flush();
+    expect(out).toContain('case "rate_limited": self = .rateLimited(');
+    // decodeIfPresent, not decode — Kotlin's generated deserializer degrades on a missing
+    // discriminator, and the two platforms must not disagree about a malformed body.
+    expect(out).toContain("decodeIfPresent(String.self, forKey: .code) ?? \"\"");
+  });
+
+  it("refuses a type name that shadows the Swift standard library", () => {
+    // `z.object({ error: <union> })` takes its name from the field and emits `public enum Error`.
+    // That COMPILES, and from then on every unqualified `Error` in the module means the generated
+    // enum rather than Swift.Error. Refused, because a silent rename of a public type is worse
+    // than a build failure and the generator cannot guess a good name.
+    expect(() => emitSwift(z.object({ error: Err() }), "X")).toThrow(/shadows the Swift standard library/);
+  });
+
+  it("refuses a union of object shapes that is not discriminated", () => {
+    const bad = z.object({ thing: z.union([z.object({ a: z.string() }), z.object({ b: z.string() })]) });
+    expect(() => emitSwift(bad, "Bad")).toThrow(/use z\.discriminatedUnion/);
+  });
+
+  it("types a union of non-string literals by its literal type, not as String", () => {
+    // `z.union([z.literal(3), z.literal(7)])` used to widen to String, which emitted
+    // `decodeIfPresent(String.self, forKey: .days) ?? 7` — Swift that does not compile. The
+    // "unions widen to String" shortcut had simply never met a union that wasn't strings.
+    emitSwift(z.object({ days: z.union([z.literal(3), z.literal(7)]).default(7) }), "Days");
+    expect(flush()).toContain("public let days: Int");
+  });
+
+  it("keeps a heterogeneous scalar union as JSON rather than widening to String", () => {
+    // eBay aspect values are `string | string[]` on the wire. Widening to String decoded the array
+    // arm as a String and threw at runtime; JSONValue holds either, losslessly.
+    emitSwift(z.object({ aspects: z.record(z.union([z.string(), z.array(z.string())])) }), "Aspects");
+    expect(flush()).toContain("public let aspects: [String: JSONValue]");
+  });
+
+  it("emits an enum-typed default as a case, not a bare string", () => {
+    const Fmt = z.enum(["FIXED_PRICE", "AUCTION"]);
+    emitSwift(z.object({ format: Fmt.default("FIXED_PRICE") }), "Listing");
+    // `?? "FIXED_PRICE"` where a Format is expected does not compile. Found by `swift build`,
+    // not by reading the generated output.
+    expect(flush()).toContain('?? Format(rawValue: "FIXED_PRICE")');
   });
 });

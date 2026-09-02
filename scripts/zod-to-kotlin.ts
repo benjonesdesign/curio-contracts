@@ -130,9 +130,17 @@ function forwardCompatibleEnum(name: string, values: string[]): string {
 //
 // So a defaulted field emits with a Kotlin default, which kotlinx uses when the key is absent.
 // Absent and empty both decode, the property stays non-null, and no call site changes.
-function kotlinDefaultLiteral(value: unknown): string | null {
+const KOTLIN_PRIMITIVES = new Set(["String", "Int", "Double", "Boolean", "JsonElement"]);
+
+function kotlinDefaultLiteral(value: unknown, kotlinType: string): string | null {
   if (Array.isArray(value)) return value.length === 0 ? "emptyList()" : null;
   if (value === null) return "null";
+  // A generated sealed-interface enum: the default is a CASE. `from(raw)` is total — it falls
+  // back to Unknown — so this is always well-formed.
+  const bare = kotlinType.endsWith("?") ? kotlinType.slice(0, -1) : kotlinType;
+  if (typeof value === "string" && !KOTLIN_PRIMITIVES.has(bare) && /^[A-Z]/.test(bare)) {
+    return `${bare}.from(${JSON.stringify(value)})`;
+  }
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "boolean") return String(value);
   if (typeof value === "number") return String(value);
@@ -197,9 +205,131 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
   }
 
   if (schema instanceof z.ZodUnion) {
-    // Used in this repo only for "closed enum OR free string" (server may return a value outside
-    // the known set) — widen to String rather than modelling a sealed-class-with-unknown-case.
-    return "String";
+    const opts = schema._def.options as z.ZodTypeAny[];
+    const literals = opts.filter((o): o is z.ZodLiteral<unknown> => o instanceof z.ZodLiteral);
+
+    // A closed set of non-string literals, e.g. `z.union([z.literal(3), z.literal(7)])`. Widening
+    // that to String emitted `val auctionDays: String = 7`. Mirror of the same fix in
+    // zod-to-swift.ts — the "unions widen to String" shortcut had never met a non-string union.
+    if (literals.length === opts.length && opts.length > 0) {
+      const kinds = new Set(literals.map((l) => typeof l._def.value));
+      if (kinds.size === 1) {
+        const kind = [...kinds][0];
+        if (kind === "string") return "String";
+        if (kind === "boolean") return "Boolean";
+        if (kind === "number") {
+          return literals.every((l) => Number.isInteger(l._def.value as number)) ? "Int" : "Double";
+        }
+      }
+      throw new Error(
+        `zod-to-kotlin: union of mixed literal types for "${hintName}" — split the field or use a ` +
+          `discriminated union`
+      );
+    }
+
+    const allStringish = opts.every(
+      (o) =>
+        o instanceof z.ZodString ||
+        o instanceof z.ZodEnum ||
+        (o instanceof z.ZodLiteral && typeof o._def.value === "string")
+    );
+    if (allStringish) return "String";
+
+    // A union of OBJECT shapes has a right answer and this is not it — the decoder cannot know
+    // which arm to take without a discriminator, so refuse and say so.
+    if (opts.some((o) => o instanceof z.ZodObject)) {
+      throw new Error(
+        `zod-to-kotlin: union of object shapes for "${hintName}" (${opts.map((o) => o.constructor.name).join(" | ")}) — ` +
+          `use z.discriminatedUnion so the decoder knows which arm to take`
+      );
+    }
+
+    // A genuinely heterogeneous scalar/array union — eBay's aspect values are `string | string[]`,
+    // which is the wire's shape and not a modelling mistake. Decoded as arbitrary JSON, which
+    // holds either LOSSLESSLY. The old blanket widen-to-String would have decoded the array arm
+    // as a String and thrown at runtime; this is the same shortcut, corrected.
+    return "JsonElement";
+  }
+
+  // A discriminator field. The literal's VALUE is not encoded in the Kotlin type — the subclass
+  // you matched already tells you which variant this is — so the field keeps its underlying type
+  // and the wire value round-trips through the data class unchanged.
+  if (schema instanceof z.ZodLiteral) {
+    const v = schema._def.value;
+    if (typeof v === "string") return "String";
+    if (typeof v === "boolean") return "Boolean";
+    if (typeof v === "number") return Number.isInteger(v) ? "Int" : "Double";
+    throw new Error(`zod-to-kotlin: unsupported literal type for "${hintName}" (${typeof v})`);
+  }
+
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    const unionName = uniqueTypeName(className ?? pascalCase(hintName));
+    schemaToName.set(schema, unionName);
+    emitted.set(unionName, { kind: "sealed enum", name: unionName, code: "" });
+    const discriminator = schema._def.discriminator as string;
+    const variants = (schema._def.options as z.ZodObject<z.ZodRawShape>[]).map((opt) => {
+      const shape = opt._def.shape() as Record<string, z.ZodTypeAny>;
+      const lit = shape[discriminator];
+      if (!(lit instanceof z.ZodLiteral) || typeof lit._def.value !== "string") {
+        throw new Error(
+          `zod-to-kotlin: discriminator "${discriminator}" on "${unionName}" must be a string literal on every option`
+        );
+      }
+      const raw = lit._def.value as string;
+      const payload = resolve(opt, `${unionName}${pascalCase(raw)}`);
+      return { raw, payload };
+    });
+
+    // The generated variant data classes are emitted as standalone top-level types (same as any
+    // other object), so they are made members of the union by an `: UnionName` supertype added
+    // after the fact rather than by nesting — nesting would change every existing emission path.
+    for (const v of variants) {
+      const e = emitted.get(v.payload);
+      if (!e) throw new Error(`zod-to-kotlin: variant "${v.payload}" was not emitted`);
+      emitted.set(v.payload, { ...e, code: e.code.replace(/^(@Serializable\npublic data class \w+\()/m, `$1`).replace(/\n\)$/, `\n) : ${unionName}`) });
+    }
+
+    const kDisc = kotlinFieldName(discriminator);
+    const code = [
+      `@Serializable(with = ${unionName}Serializer::class)`,
+      `public sealed interface ${unionName} {`,
+      `    /** A variant this build does not know. Carries the discriminator and the whole payload`,
+      `     *  so an unrecognised case round-trips unchanged instead of failing the decode and`,
+      `     *  taking the entire response with it. Never originate one — see decisions/0027 item 2a. */`,
+      `    public data class Unknown(val ${kDisc}: String, val payload: JsonObject) : ${unionName}`,
+      `}`,
+      ``,
+      `public object ${unionName}Serializer : KSerializer<${unionName}> {`,
+      `    override val descriptor: SerialDescriptor =`,
+      `        buildClassSerialDescriptor("${unionName}")`,
+      ``,
+      `    override fun deserialize(decoder: Decoder): ${unionName} {`,
+      `        val input = decoder as? JsonDecoder`,
+      `            ?: throw SerializationException("${unionName} can only be decoded from JSON")`,
+      `        val obj = input.decodeJsonElement().jsonObject`,
+      `        return when (val tag = obj["${discriminator}"]?.jsonPrimitive?.contentOrNull) {`,
+      ...variants.map(
+        (v) => `            "${v.raw}" -> input.json.decodeFromJsonElement(${v.payload}.serializer(), obj)`
+      ),
+      `            else -> ${unionName}.Unknown(tag ?: "", obj)`,
+      `        }`,
+      `    }`,
+      ``,
+      `    override fun serialize(encoder: Encoder, value: ${unionName}) {`,
+      `        val output = encoder as? JsonEncoder`,
+      `            ?: throw SerializationException("${unionName} can only be encoded to JSON")`,
+      `        val element: JsonElement = when (value) {`,
+      ...variants.map(
+        (v) => `            is ${v.payload} -> output.json.encodeToJsonElement(${v.payload}.serializer(), value)`
+      ),
+      `            is ${unionName}.Unknown -> value.payload`,
+      `        }`,
+      `        output.encodeJsonElement(element)`,
+      `    }`,
+      `}`,
+    ].join("\n");
+    emitted.set(unionName, { kind: "sealed enum", name: unionName, code });
+    return unionName;
   }
 
   if (schema instanceof z.ZodArray) {
@@ -226,10 +356,13 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     // infinitely — none of our schemas are recursive today, but this is cheap insurance.
     emitted.set(name, { kind: "data class", name, code: "" });
     const fields: DataClassField[] = Object.entries(shape).map(([key, val]) => {
+      // Resolve the type FIRST — a default's Kotlin literal depends on it. See the same note in
+      // zod-to-swift.ts: `.default("FIXED_PRICE")` on an enum-typed field emitted a bare string.
+      const kotlinType = resolve(val, key);
       const zodDefault = val instanceof z.ZodDefault
-        ? kotlinDefaultLiteral((val._def.defaultValue as () => unknown)())
+        ? kotlinDefaultLiteral((val._def.defaultValue as () => unknown)(), kotlinType)
         : null;
-      return { name: key, kotlinType: resolve(val, key), zodDefault };
+      return { name: key, kotlinType, zodDefault };
     });
     const propLines = fields
       .map((f) => {

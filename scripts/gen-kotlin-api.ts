@@ -40,6 +40,10 @@ import {
   RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
   RepriceChannelOutcomeSchema,
 } from "../src/api/reprice.js";
+import {
+  EbayPublishRequestSchema, EbayPublishSuccessSchema, EbayPublishErrorResponseSchema,
+  EbayPublishErrorSchema, EbayListingFormatSchema,
+} from "../src/api/ebay-publish.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
@@ -90,6 +94,12 @@ registerName(DecisionAlternativeSchema, "DecisionAlternative");
 // generic a type to ship to three platforms.
 registerName(DecisionAssumptionCodeSchema, "DecisionAssumptionCode");
 registerName(DecisionAssumptionSchema, "DecisionAssumption");
+// Named explicitly for two reasons. The generator would take "Error" from the field name,
+// which shadows Swift.Error and compiles while changing what every unqualified `Error` in
+// the module means — the generator now refuses that outright. And an error union wants the
+// route in its name: a client holding an `EbayPublishError` knows where it came from.
+registerName(EbayPublishErrorSchema, "EbayPublishError");
+registerName(EbayListingFormatSchema, "EbayListingFormat");
 registerName(RepriceChannelOutcomeSchema, "RepriceChannelOutcome");
 registerName(RepriceApplyResultSchema, "RepriceApplyResult");
 registerName(QuickScanCandidateSchema, "QuickScanCandidate");
@@ -148,6 +158,9 @@ emitKotlin(DecideRequestSchema, "DecideRequest");
 emitKotlin(DecideResponseSchema, "DecideResponse");
 emitKotlin(DecideBatchRequestSchema, "DecideBatchRequest");
 emitKotlin(DecideBatchResponseSchema, "DecideBatchResponse");
+emitKotlin(EbayPublishRequestSchema, "EbayPublishRequest");
+emitKotlin(EbayPublishSuccessSchema, "EbayPublishSuccess");
+emitKotlin(EbayPublishErrorResponseSchema, "EbayPublishErrorResponse");
 emitKotlin(RepriceApplyRequestSchema, "RepriceApplyRequest");
 emitKotlin(RepriceApplyResponseSchema, "RepriceApplyResponse");
 emitKotlin(QuickScanRequestSchema, "QuickScanRequest");
@@ -166,7 +179,15 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 `;
 

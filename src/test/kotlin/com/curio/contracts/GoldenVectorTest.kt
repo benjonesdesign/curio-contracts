@@ -1,4 +1,6 @@
 package com.curio.contracts
+// MUTATION-CHECKED 2026-09-02: red (2 of 7) against `Unknown(tag ?: "", JsonObject(emptyMap()))`
+// in place of `Unknown(tag ?: "", obj)` in the generated union deserializer; green against current.
 
 import kotlinx.serialization.json.*
 import java.io.File
@@ -65,7 +67,11 @@ class GoldenVectorTest {
 
     @Test
     fun `every vector decodes and round-trips unchanged`() {
-        for (v in vectors()) {
+        // Accept-class vectors are excluded: they carry an unknown FIELD on a KNOWN arm, which
+        // decodes and is then dropped on re-encode because a typed data class has nowhere to keep
+        // it. See the fixture's own $comment — that is a real limit of forward compatibility, not
+        // a bug to normalise away, and it is asserted by arm below instead.
+        for (v in vectors().filter { it["serverAccepts"]?.jsonPrimitive?.booleanOrNull != true }) {
             val name = v["name"]!!.jsonPrimitive.content
             val type = v["type"]!!.jsonPrimitive.content
             val payload = v["payload"]!!.jsonObject
@@ -76,6 +82,14 @@ class GoldenVectorTest {
                 "CatalogueLookupResponse" -> {
                     val decoded = json.decodeFromJsonElement(CatalogueLookupResponse.serializer(), payload)
                     val reencoded = encoder.encodeToJsonElement(CatalogueLookupResponse.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "EbayPublishErrorResponse" -> {
+                    val decoded = json.decodeFromJsonElement(EbayPublishErrorResponse.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(EbayPublishErrorResponse.serializer(), decoded)
                     assertEquals(
                         stripNulls(payload), stripNulls(reencoded),
                         "vector $name did not round-trip unchanged",
@@ -99,5 +113,59 @@ class GoldenVectorTest {
         val game = decoded.match?.game
         assertIs<Game.Unknown>(game, "a ninth game must decode to Unknown, not throw")
         assertEquals("kryptonite-tcg", game.rawValue, "rawValue must carry the wire value")
+    }
+
+    // ── Discriminated unions ────────────────────────────────────────────────────────────────
+
+    private fun payloadOf(name: String): JsonObject =
+        vectors().first { it["name"]!!.jsonPrimitive.content == name }["payload"]!!.jsonObject
+
+    @Test
+    fun `an unknown union arm decodes and keeps its payload`() {
+        // eBay's error codes are an OPEN set arriving from upstream, so an arm this build has
+        // never seen is next month rather than a hypothetical — and a hard failure here would
+        // break listing at the moment a seller is trying to sell.
+        val decoded = json.decodeFromJsonElement(
+            EbayPublishErrorResponse.serializer(), payloadOf("unknown_ebay_error_code"))
+        val err = decoded.error
+        assertIs<EbayPublishError.Unknown>(err, "an unknown code must decode to Unknown, not throw")
+        assertEquals("ebay_rate_limited_v3", err.code, "the wire discriminator must survive")
+        // The whole payload is kept, not just the tag — otherwise "unknown error" is all a log or
+        // a support ticket ever gets, and the retryAfterSec the server sent is thrown away.
+        assertEquals(42, err.payload["retryAfterSec"]!!.jsonPrimitive.int,
+            "the unknown arm must keep its data, not just its name")
+    }
+
+    @Test
+    fun `a known arm survives an additive field`() {
+        // A newer server adding a field to a KNOWN arm must not break an older client. The
+        // ordinary case, and the one that fails silently — nobody writes a fixture for a change
+        // they consider harmless.
+        val decoded = json.decodeFromJsonElement(
+            EbayPublishErrorResponse.serializer(), payloadOf("known_ebay_error_with_extra_field"))
+        val err = decoded.error
+        assertIs<EbayPublishErrorTitleTooLong>(err, "a known arm with an extra field must still decode as that arm")
+        assertEquals(84, err.titleLength)
+        assertEquals(80, err.maxLength)
+    }
+
+    @Test
+    fun `a missing discriminator degrades rather than throwing`() {
+        // PARITY, not forward-compatibility. Swift's generated decoder used `decode` and this one
+        // degraded, so the two platforms disagreed about the same malformed body — Swift losing
+        // the whole response, Kotlin surfacing an unknown error. Both degrade now.
+        val decoded = json.decodeFromJsonElement(
+            EbayPublishErrorResponse.serializer(), payloadOf("ebay_error_missing_discriminator"))
+        val err = decoded.error
+        assertIs<EbayPublishError.Unknown>(err, "a body with no discriminator must degrade, not throw")
+        assertEquals("", err.code, "an absent discriminator reads as absent, never as a real code")
+    }
+
+    @Test
+    fun `both vector classes are populated`() {
+        // An empty class asserts nothing.
+        val all = vectors()
+        assertTrue(all.any { it["serverAccepts"]?.jsonPrimitive?.booleanOrNull == true })
+        assertTrue(all.any { it["serverAccepts"]?.jsonPrimitive?.booleanOrNull != true })
     }
 }

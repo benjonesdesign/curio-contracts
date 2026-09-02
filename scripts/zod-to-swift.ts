@@ -149,16 +149,52 @@ function swiftForwardCompatibleEnum(name: string, values: string[]): string {
 // field's key can legitimately be absent on the wire, and Swift's SYNTHESISED init(from:) ignores
 // a property's default value entirely — it calls decode() and throws keyNotFound, taking the whole
 // response with it. A property default is not enough; the struct needs a real init(from:).
-function swiftDefaultLiteral(value: unknown): string | null {
+const SWIFT_PRIMITIVES = new Set(["String", "Int", "Double", "Bool", "JSONValue"]);
+
+function swiftDefaultLiteral(value: unknown, swiftType: string): string | null {
   if (Array.isArray(value)) return value.length === 0 ? "[]" : null;
   if (value === null) return "nil";
+  // A generated enum type: the default is a CASE, not the raw string. `init(rawValue:)` is
+  // non-failable (it falls back to the unrecognised case), so this is always well-formed.
+  const bare = swiftType.endsWith("?") ? swiftType.slice(0, -1) : swiftType;
+  if (typeof value === "string" && !SWIFT_PRIMITIVES.has(bare) && /^[A-Z]/.test(bare)) {
+    return `${bare}(rawValue: ${JSON.stringify(value)})`;
+  }
   if (typeof value === "string") return JSON.stringify(value);
   if (typeof value === "boolean") return String(value);
   if (typeof value === "number") return String(value);
   return null;
 }
 
+// Type names that COMPILE but shadow something in the Swift standard library, so the generated
+// code changes meaning at a distance rather than failing. A union on a field called `error` emits
+// `public enum Error`, and from that point on every unqualified `Error` inside the module means
+// the generated enum, not `Swift.Error` — `catch let e as Error` stops meaning what it reads as.
+//
+// Refused loudly rather than auto-suffixed. The fix is one line at the call site
+// (`registerName(schema, "EbayPublishError")`), the generator cannot guess a good name, and
+// silently renaming a public type is worse than a build failure. No existing schema hits this —
+// checked against the current Sources/CurioContracts/*.swift before adding the guard, so it fails
+// only on something new.
+const SWIFT_SHADOWED_TYPE_NAMES = new Set([
+  "Error", "Result", "Task", "Never", "Optional", "Array", "Dictionary", "Set", "String", "Int",
+  "Double", "Float", "Bool", "Character", "Data", "Date", "URL", "UUID", "Encoder", "Decoder",
+  "Encodable", "Decodable", "Codable", "Sendable", "Equatable", "Hashable", "Comparable", "Any",
+  "AnyObject", "Type", "Protocol", "Range", "Sequence", "Collection", "Iterator", "JSONValue",
+]);
+
 function uniqueTypeName(base: string): string {
+  if (SWIFT_SHADOWED_TYPE_NAMES.has(base)) {
+    throw new Error(
+      `zod-to-swift: refusing to emit a type named "${base}" — it shadows the Swift standard ` +
+        `library, and the shadowing compiles. Give the schema an explicit name at the call site: ` +
+        `registerName(schema, "SomethingSpecific").`
+    );
+  }
+  return uniqueTypeNameInner(base);
+}
+
+function uniqueTypeNameInner(base: string): string {
   if (!emitted.has(base)) return base;
   let i = 2;
   while (emitted.has(`${base}${i}`)) i++;
@@ -212,9 +248,138 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
   }
 
   if (schema instanceof z.ZodUnion) {
-    // Used in this repo only for "closed enum OR free string" (server may return a value outside
-    // the known set) — widen to String rather than modelling a Swift enum-with-unknown-case.
-    return "String";
+    const opts = schema._def.options as z.ZodTypeAny[];
+    const literals = opts.filter((o): o is z.ZodLiteral<unknown> => o instanceof z.ZodLiteral);
+
+    // A closed set of non-string literals, e.g. `z.union([z.literal(3), z.literal(7)])` for
+    // auctionDays. Widening THAT to String emitted a Swift struct that would not compile —
+    // `decodeIfPresent(String.self) ?? 7`. Caught by the first schema to use one (2026-09-02);
+    // the "unions widen to String" shortcut had never met a union that wasn't strings.
+    if (literals.length === opts.length && opts.length > 0) {
+      const kinds = new Set(literals.map((l) => typeof l._def.value));
+      if (kinds.size === 1) {
+        const kind = [...kinds][0];
+        if (kind === "string") return "String";
+        if (kind === "boolean") return "Bool";
+        if (kind === "number") {
+          return literals.every((l) => Number.isInteger(l._def.value as number)) ? "Int" : "Double";
+        }
+      }
+      throw new Error(
+        `zod-to-swift: union of mixed literal types for "${hintName}" — Swift has no equivalent, ` +
+          `split the field or use a discriminated union`
+      );
+    }
+
+    // The original case: "closed enum OR free string" (the server may return a value outside the
+    // known set). Widened to String rather than modelling an enum-with-unknown-case.
+    const allStringish = opts.every(
+      (o) =>
+        o instanceof z.ZodString ||
+        o instanceof z.ZodEnum ||
+        (o instanceof z.ZodLiteral && typeof o._def.value === "string")
+    );
+    if (allStringish) return "String";
+
+    // A union of OBJECT shapes has a right answer and this is not it — the decoder cannot know
+    // which arm to take without a discriminator, so refuse and say so.
+    if (opts.some((o) => o instanceof z.ZodObject)) {
+      throw new Error(
+        `zod-to-swift: union of object shapes for "${hintName}" (${opts.map((o) => o.constructor.name).join(" | ")}) — ` +
+          `use z.discriminatedUnion so the decoder knows which arm to take`
+      );
+    }
+
+    // A genuinely heterogeneous scalar/array union — eBay's aspect values are `string | string[]`,
+    // which is the wire's shape and not a modelling mistake. Decoded as arbitrary JSON, which
+    // holds either LOSSLESSLY. The old blanket widen-to-String would have decoded the array arm
+    // as a String and thrown at runtime; this is the same shortcut, corrected.
+    return "JSONValue";
+  }
+
+  // A discriminator field. The literal's VALUE is not encoded in the Swift type — the enum case
+  // you matched already tells you which variant this is — so the field keeps its underlying type
+  // and the wire value round-trips through the struct unchanged.
+  if (schema instanceof z.ZodLiteral) {
+    const v = schema._def.value;
+    if (typeof v === "string") return "String";
+    if (typeof v === "boolean") return "Bool";
+    if (typeof v === "number") return Number.isInteger(v) ? "Int" : "Double";
+    throw new Error(`zod-to-swift: unsupported literal type for "${hintName}" (${typeof v})`);
+  }
+
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    const unionName = uniqueTypeName(structName ?? pascalCase(hintName));
+    schemaToName.set(schema, unionName);
+    emitted.set(unionName, { kind: "enum", name: unionName, code: "" });
+    const discriminator = schema._def.discriminator as string;
+    const variants = (schema._def.options as z.ZodObject<z.ZodRawShape>[]).map((opt) => {
+      const shape = opt._def.shape() as Record<string, z.ZodTypeAny>;
+      const lit = shape[discriminator];
+      if (!(lit instanceof z.ZodLiteral) || typeof lit._def.value !== "string") {
+        // Zod itself permits non-string discriminators; this generator does not, because the
+        // Swift case name is derived from the value. Refusing loudly beats emitting a union whose
+        // cases are named case1/case2.
+        throw new Error(
+          `zod-to-swift: discriminator "${discriminator}" on "${unionName}" must be a string literal on every option`
+        );
+      }
+      const raw = lit._def.value as string;
+      const payload = resolve(opt, `${unionName}${pascalCase(raw)}`);
+      return { raw, caseName: swiftEnumCaseName(raw), payload };
+    });
+
+    // Same collision rule as the forward-compatible enum: a variant genuinely called
+    // "unrecognised" must not be shadowed by the fallback case.
+    let fallback = "unrecognised";
+    const taken = new Set(variants.map((v) => v.caseName));
+    for (let i = 2; taken.has(fallback); i++) fallback = `unrecognised${i}`;
+
+    const discProp = escapeSwiftIdentifier(swiftFieldName(discriminator));
+    const code = [
+      `public enum ${unionName}: Codable, Sendable {`,
+      ...variants.map((v) => `    case ${v.caseName}(${v.payload})`),
+      `    /// A variant this build does not know. Carries the discriminator and the whole payload`,
+      `    /// so an unrecognised case round-trips unchanged instead of failing the decode and`,
+      `    /// taking the entire response with it. NEVER ORIGINATE ONE — see decisions/0027 item 2a.`,
+      `    case ${fallback}(${discriminator}: String, payload: [String: JSONValue])`,
+      ``,
+      `    /// The wire discriminator, available without switching.`,
+      `    public var ${discProp}: String {`,
+      `        switch self {`,
+      ...variants.map((v) => `        case .${v.caseName}: return ${JSON.stringify(v.raw)}`),
+      `        case .${fallback}(let ${discProp}, _): return ${discProp}`,
+      `        }`,
+      `    }`,
+      ``,
+      `    private enum DiscriminatorKey: String, CodingKey { case ${discProp} = ${JSON.stringify(discriminator)} }`,
+      ``,
+      `    public init(from decoder: Decoder) throws {`,
+      `        // decodeIfPresent, not decode: a payload with NO discriminator is malformed, and`,
+      `        // throwing on it would take the whole response down rather than surfacing an error`,
+      `        // the user can act on. Kotlin's generated deserializer degrades to Unknown("") for`,
+      `        // the same input; the two must not disagree about a malformed body.`,
+      `        let tag = try decoder.container(keyedBy: DiscriminatorKey.self)`,
+      `            .decodeIfPresent(String.self, forKey: .${discProp}) ?? ""`,
+      `        switch tag {`,
+      ...variants.map(
+        (v) => `        case ${JSON.stringify(v.raw)}: self = .${v.caseName}(try ${v.payload}(from: decoder))`
+      ),
+      `        default:`,
+      `            self = .${fallback}(${discriminator}: tag, payload: try [String: JSONValue](from: decoder))`,
+      `        }`,
+      `    }`,
+      ``,
+      `    public func encode(to encoder: Encoder) throws {`,
+      `        switch self {`,
+      ...variants.map((v) => `        case .${v.caseName}(let value): try value.encode(to: encoder)`),
+      `        case .${fallback}(_, let payload): try payload.encode(to: encoder)`,
+      `        }`,
+      `    }`,
+      `}`,
+    ].join("\n");
+    emitted.set(unionName, { kind: "enum", name: unionName, code });
+    return unionName;
   }
 
   if (schema instanceof z.ZodArray) {
@@ -243,10 +408,14 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
     // infinitely — none of our schemas are recursive today, but this is cheap insurance.
     emitted.set(name, { kind: "struct", name, code: "" });
     const fields: StructField[] = Object.entries(shape).map(([key, val]) => {
+      // Resolve the type FIRST: a default's Swift literal depends on it. `.default("FIXED_PRICE")`
+      // on an enum-typed field emitted the bare string `"FIXED_PRICE"` where an `EbayListingFormat`
+      // was expected, which does not compile — found by `swift build`, not by reading the output.
+      const swiftType = resolve(val, key);
       const zodDefault = val instanceof z.ZodDefault
-        ? swiftDefaultLiteral((val._def.defaultValue as () => unknown)())
+        ? swiftDefaultLiteral((val._def.defaultValue as () => unknown)(), swiftType)
         : null;
-      return { name: key, swiftType: resolve(val, key), zodDefault };
+      return { name: key, swiftType, zodDefault };
     });
     const hasDefaults = fields.some((f) => f.zodDefault != null && !f.swiftType.endsWith("?"));
     // `swiftFieldName` stays unescaped so the renamed-vs-not comparison below still compares

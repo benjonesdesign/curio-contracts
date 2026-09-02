@@ -7,6 +7,7 @@ export * from "./api/card-search.js";
 export * from "./api/price.js";
 export * from "./api/cert-lookup.js";
 export * from "./api/channel-listing.js";
+export * from "./api/ebay-publish.js";
 export * from "./api/reprice.js";
 export * from "./api/catalogue-lookup.js";
 export * from "./api/card-value.js";
