@@ -66,11 +66,28 @@ describe("EbayPublishError", () => {
     expect(r.success).toBe(true);
   });
 
+  it("keeps `error` a STRING so existing clients keep rendering a message, not an object", () => {
+    // Three web screens render data.error straight into a toast. If this ever becomes an object,
+    // they show "[object Object]" to a seller mid-publish.
+    const r = EbayPublishErrorResponseSchema.safeParse({
+      error: "Title is 84 characters", code: "title_too_long",
+      failure: { code: "title_too_long", message: "Title is 84 characters", titleLength: 84, maxLength: 80 },
+    });
+    expect(r.success).toBe(true);
+    if (r.success) expect(typeof r.data.error).toBe("string");
+  });
+
+  it("requires the structured failure — the string alone is no longer a complete response", () => {
+    expect(EbayPublishErrorResponseSchema.safeParse({ error: "boom" }).success).toBe(false);
+  });
+
   it("refuses an unknown arm — the SERVER must never emit one", () => {
     // The asymmetry from decisions/0027: strict server, lenient clients. The generated Swift and
     // Kotlin decoders tolerate this exact payload; the reference implementation must not.
     expect(
-      EbayPublishErrorResponseSchema.safeParse({ error: { code: "invented_later", message: "m" } }).success
+      EbayPublishErrorResponseSchema.safeParse({
+        error: "m", failure: { code: "invented_later", message: "m" },
+      }).success
     ).toBe(false);
   });
 });

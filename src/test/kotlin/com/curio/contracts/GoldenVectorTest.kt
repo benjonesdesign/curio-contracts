@@ -127,7 +127,7 @@ class GoldenVectorTest {
         // break listing at the moment a seller is trying to sell.
         val decoded = json.decodeFromJsonElement(
             EbayPublishErrorResponse.serializer(), payloadOf("unknown_ebay_error_code"))
-        val err = decoded.error
+        val err = decoded.failure
         assertIs<EbayPublishError.Unknown>(err, "an unknown code must decode to Unknown, not throw")
         assertEquals("ebay_rate_limited_v3", err.code, "the wire discriminator must survive")
         // The whole payload is kept, not just the tag — otherwise "unknown error" is all a log or
@@ -143,7 +143,7 @@ class GoldenVectorTest {
         // they consider harmless.
         val decoded = json.decodeFromJsonElement(
             EbayPublishErrorResponse.serializer(), payloadOf("known_ebay_error_with_extra_field"))
-        val err = decoded.error
+        val err = decoded.failure
         assertIs<EbayPublishErrorTitleTooLong>(err, "a known arm with an extra field must still decode as that arm")
         assertEquals(84, err.titleLength)
         assertEquals(80, err.maxLength)
@@ -156,7 +156,7 @@ class GoldenVectorTest {
         // the whole response, Kotlin surfacing an unknown error. Both degrade now.
         val decoded = json.decodeFromJsonElement(
             EbayPublishErrorResponse.serializer(), payloadOf("ebay_error_missing_discriminator"))
-        val err = decoded.error
+        val err = decoded.failure
         assertIs<EbayPublishError.Unknown>(err, "a body with no discriminator must degrade, not throw")
         assertEquals("", err.code, "an absent discriminator reads as absent, never as a real code")
     }

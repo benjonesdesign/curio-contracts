@@ -3288,10 +3288,14 @@ public struct EbayPublishSuccess: Codable, Sendable {
 }
 
 public struct EbayPublishErrorResponse: Codable, Sendable {
-    public let error: EbayPublishError
+    public let error: String
+    public let code: String?
+    public let failure: EbayPublishError
 
-    public init(error: EbayPublishError) {
+    public init(error: String, code: String?, failure: EbayPublishError) {
         self.error = error
+        self.code = code
+        self.failure = failure
     }
 }
 

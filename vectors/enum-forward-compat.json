@@ -52,7 +52,12 @@
     "generated type as a dictionary-with-extras, which costs the type safety these contracts exist",
     "for. So the round-trip assertion runs on the refuse-class vectors only, and the accept-class",
     "vectors assert decode-and-arm instead. The practical consequence: a client must never decode a",
-    "payload and re-send it as its own — it would silently strip fields a newer server added."
+    "payload and re-send it as its own — it would silently strip fields a newer server added.",
+    "",
+    "The EbayPublishErrorResponse vectors carry `error` (a plain string) alongside `failure` (the",
+    "union). That is not redundancy in the fixture — it is the wire shape. Three web screens render",
+    "`data.error` directly into a toast, so promoting it to an object would have shown a seller",
+    "'[object Object]' mid-publish. The union is additive; the string stays."
   ],
   "vectors": [
     {
@@ -129,7 +134,9 @@
       "type": "EbayPublishErrorResponse",
       "why": "An eBay error code this build has never seen. eBay's codes are an OPEN set arriving from upstream, so this is not hypothetical — it is what next month looks like, and a hard failure here would break listing at the moment a seller is trying to sell.",
       "payload": {
-        "error": {
+        "error": "Too many calls",
+        "code": "ebay_rate_limited_v3",
+        "failure": {
           "code": "ebay_rate_limited_v3",
           "message": "Too many calls",
           "retryAfterSec": 42
@@ -141,7 +148,9 @@
       "type": "EbayPublishErrorResponse",
       "why": "A KNOWN variant carrying a field this build does not know about. Proves the union does not reject a recognised arm just because a newer server added data to it — additive server changes must not break clients.",
       "payload": {
-        "error": {
+        "error": "Title is 84 characters",
+        "code": "title_too_long",
+        "failure": {
           "code": "title_too_long",
           "message": "Title is 84 characters",
           "titleLength": 84,
@@ -156,7 +165,8 @@
       "type": "EbayPublishErrorResponse",
       "why": "A malformed error body with NO code field. A PARITY vector, not a forward-compat one: Swift threw and Kotlin degraded, so the platforms disagreed about the same malformed input. Both must degrade to the unknown case rather than one taking down the whole response.",
       "payload": {
-        "error": {
+        "error": "something went wrong",
+        "failure": {
           "message": "something went wrong"
         }
       }

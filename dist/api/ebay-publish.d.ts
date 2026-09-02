@@ -170,7 +170,13 @@ export declare const EbayPublishErrorSchema: z.ZodDiscriminatedUnion<"code", [z.
 }>]>;
 export type EbayPublishError = z.infer<typeof EbayPublishErrorSchema>;
 export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
-    error: z.ZodDiscriminatedUnion<"code", [z.ZodObject<{
+    /** The human message. Unchanged, and the only field older clients read. */
+    error: z.ZodString;
+    /** Legacy flat code. Retained for the same reason: clients already read it. Equals
+     *  `failure.code` for every known arm. */
+    code: z.ZodOptional<z.ZodString>;
+    /** The structured failure. New; the only field that carries per-arm data. */
+    failure: z.ZodDiscriminatedUnion<"code", [z.ZodObject<{
         code: z.ZodLiteral<"unauthenticated">;
         message: z.ZodString;
     }, "strip", z.ZodTypeAny, {
@@ -274,7 +280,8 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         message: string;
     }>]>;
 }, "strip", z.ZodTypeAny, {
-    error: {
+    error: string;
+    failure: {
         code: "unauthenticated";
         message: string;
     } | {
@@ -309,8 +316,10 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         code: "internal_error";
         message: string;
     };
+    code?: string | undefined;
 }, {
-    error: {
+    error: string;
+    failure: {
         code: "unauthenticated";
         message: string;
     } | {
@@ -345,5 +354,6 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         code: "internal_error";
         message: string;
     };
+    code?: string | undefined;
 }>;
 export type EbayPublishErrorResponse = z.infer<typeof EbayPublishErrorResponseSchema>;

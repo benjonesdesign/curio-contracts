@@ -20,6 +20,16 @@ control**. That last one is why the fallback is load-bearing rather than decorat
 hard-failed on a new eBay code would turn "eBay said something new" into "the app broke" at the
 moment a seller is trying to sell.
 
+### ⚠️ The union is additive — `error` stays a string
+
+The first draft made `error` the union. **Three web screens render `data.error` straight into a
+toast** (`app/inventory/bulk-publish/page.tsx:159`, `app/inventory/[id]/page.tsx:524`,
+`app/add/multiple/page.tsx:333`), so that would have shown a seller `[object Object]` mid-publish.
+
+Caught by reading the callers before changing the route — not by a test, because no test asserts
+what a toast renders. The structured union arrives under a new `failure` key; `error` and `code`
+are untouched, and `error` must equal `failure.message`.
+
 ### Two pre-existing generator bugs, found by `swift build` rather than by reading the output
 
 Neither was visible until a schema exercised them. Both emitted code that does not compile:

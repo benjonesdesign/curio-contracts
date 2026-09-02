@@ -119,7 +119,27 @@ export const EbayPublishErrorSchema = z.discriminatedUnion("code", [
 ]);
 export type EbayPublishError = z.infer<typeof EbayPublishErrorSchema>;
 
+// ⚠️ THE UNION IS ADDITIVE. `error` STAYS A STRING.
+//
+// Three web callers render `data.error` straight into a toast today —
+// app/inventory/bulk-publish/page.tsx:159, app/inventory/[id]/page.tsx:524, and
+// app/add/multiple/page.tsx:333. Promoting `error` to an object would have put "[object Object]"
+// in front of a seller mid-publish. Caught by reading the callers before changing the route, not
+// by a test — no test asserts what a toast renders.
+//
+// So the structured union arrives under a NEW key and the old string is untouched. Existing
+// clients keep working unchanged; a client that wants to branch reads `failure`.
+//
+// `error` MUST equal `failure.message` — asserted in the route's tests. Two fields carrying the
+// same sentence is a small price for not breaking three screens, but two fields carrying
+// DIFFERENT sentences would be worse than either.
 export const EbayPublishErrorResponseSchema = z.object({
-  error: EbayPublishErrorSchema,
+  /** The human message. Unchanged, and the only field older clients read. */
+  error: z.string(),
+  /** Legacy flat code. Retained for the same reason: clients already read it. Equals
+   *  `failure.code` for every known arm. */
+  code: z.string().optional(),
+  /** The structured failure. New; the only field that carries per-arm data. */
+  failure: EbayPublishErrorSchema,
 });
 export type EbayPublishErrorResponse = z.infer<typeof EbayPublishErrorResponseSchema>;

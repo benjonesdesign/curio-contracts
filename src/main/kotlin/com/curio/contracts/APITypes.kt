@@ -2550,7 +2550,9 @@ public data class EbayPublishSuccess(
 
 @Serializable
 public data class EbayPublishErrorResponse(
-    val error: EbayPublishError,
+    val error: String,
+    val code: String? = null,
+    val failure: EbayPublishError,
 )
 
 @Serializable(with = EbayPublishErrorSerializer::class)

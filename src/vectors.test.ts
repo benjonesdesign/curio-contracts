@@ -101,7 +101,9 @@ describe("golden vectors (decisions/0026)", () => {
     // The control for the union vectors. Without it, an EbayPublishErrorResponseSchema that
     // rejected everything would make all three union vectors pass while proving nothing.
     const r = EbayPublishErrorResponseSchema.safeParse({
-      error: { code: "title_too_long", message: "Title is 84 characters", titleLength: 84, maxLength: 80 },
+      error: "Title is 84 characters",
+      code: "title_too_long",
+      failure: { code: "title_too_long", message: "Title is 84 characters", titleLength: 84, maxLength: 80 },
     });
     expect(r.success, "the control error payload must parse, or the rejections above prove nothing").toBe(true);
   });

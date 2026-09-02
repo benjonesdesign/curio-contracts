@@ -139,11 +139,11 @@ final class GoldenVectorTests: XCTestCase {
         let decoded = try JSONDecoder().decode(
             EbayPublishErrorResponse.self, from: try JSONEncoder().encode(v.payload))
 
-        guard case .unrecognised(let code, let payload) = decoded.error else {
-            return XCTFail("an unknown eBay code must decode to .unrecognised, got \(decoded.error)")
+        guard case .unrecognised(let code, let payload) = decoded.failure else {
+            return XCTFail("an unknown eBay code must decode to .unrecognised, got \(decoded.failure)")
         }
         XCTAssertEqual(code, "ebay_rate_limited_v3", "the wire discriminator must survive")
-        XCTAssertEqual(decoded.error.code, "ebay_rate_limited_v3", "readable without switching")
+        XCTAssertEqual(decoded.failure.code, "ebay_rate_limited_v3", "readable without switching")
         // The whole payload is kept, not just the tag — otherwise "unknown error" is all a log or
         // a support ticket ever gets, and the retryAfterSec the server sent is thrown away.
         if case .number(let secs)? = payload["retryAfterSec"] {
@@ -160,7 +160,7 @@ final class GoldenVectorTests: XCTestCase {
         let v = try requireVector("known_ebay_error_with_extra_field")
         let decoded = try JSONDecoder().decode(
             EbayPublishErrorResponse.self, from: try JSONEncoder().encode(v.payload))
-        guard case .titleTooLong(let arm) = decoded.error else {
+        guard case .titleTooLong(let arm) = decoded.failure else {
             return XCTFail("a known arm with an extra field must still decode as that arm")
         }
         XCTAssertEqual(arm.titleLength, 84)
@@ -176,7 +176,7 @@ final class GoldenVectorTests: XCTestCase {
         let v = try requireVector("ebay_error_missing_discriminator")
         let decoded = try JSONDecoder().decode(
             EbayPublishErrorResponse.self, from: try JSONEncoder().encode(v.payload))
-        guard case .unrecognised(let code, _) = decoded.error else {
+        guard case .unrecognised(let code, _) = decoded.failure else {
             return XCTFail("a body with no discriminator must degrade, not throw")
         }
         XCTAssertEqual(code, "", "an absent discriminator reads as absent, never as a real code")
