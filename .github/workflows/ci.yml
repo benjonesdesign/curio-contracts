@@ -28,6 +28,10 @@ jobs:
       # The generated Swift/Kotlin/dist output must match a fresh build of the schemas. Catches a
       # generator change that was never regenerated, and a hand-edit of generated output.
       - run: npm run check
+      # Refuses a REMOVED or RETYPED field that nobody wrote down. See scripts/shape-manifest.ts:
+      # this repo's tests validate the contract, never its consumers, so a break that is obvious
+      # from a consumer's side is invisible from every test in here.
+      - run: npm run shapes:check
 
   kotlin:
     runs-on: ubuntu-latest
