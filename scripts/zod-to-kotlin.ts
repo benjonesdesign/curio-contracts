@@ -29,6 +29,16 @@ const nameRegistry = new WeakMap<z.ZodTypeAny, string>();
 const schemaToName = new WeakMap<z.ZodTypeAny, string>();
 const emitted = new Map<string, EmittedType>();
 
+/** Did the walker ever VISIT this schema object? Used by the generators' own coverage assertion:
+ *  a schema exported from src/api that no target emits is a claim rather than an artifact.
+ *
+ *  Identity-based, deliberately. Matching by NAME would report covered for a schema whose emitted
+ *  type happens to share a name with something else — which is the enumeration failure again,
+ *  wearing a different hat. */
+export function wasVisited(schema: z.ZodTypeAny): boolean {
+  return schemaToName.has(schema);
+}
+
 export function registerName(schema: z.ZodTypeAny, name: string): void {
   nameRegistry.set(schema, name);
 }

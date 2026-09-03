@@ -20,6 +20,50 @@ control**. That last one is why the fallback is load-bearing rather than decorat
 hard-failed on a new eBay code would turn "eBay said something new" into "the app broke" at the
 moment a seller is trying to sell.
 
+### ⚠️ CardValueRequest and CardValueResponse had NEVER been generated
+
+`gen-swift-api.ts` imported exactly one symbol from `card-value.ts` — `EditionAmbiguitySchema`.
+Android imported neither type. **Neither name appeared once in either generated file.**
+
+**v0.1.44 was cut to fix the Base Set Pikachu `no_market_value` conflation.** `pricingDegraded` was
+added to `CardValueResponse`, tagged, made canonical, and bumped across three repos. It could not
+reach either mobile client. **That release did nothing for the platforms it was for**, and every
+check in this repo passed, because every check was about something else.
+
+Found independently by iOS and Android from opposite ends. iOS's line is the diagnosis: *the
+generator's coverage is a hand-maintained import list and no test asserts a module is covered.*
+
+**It was not one module.** A sweep found six unreachable exported schemas:
+
+| Schema | What was unreachable |
+|---|---|
+| `CardValueRequest`, `CardValueResponse` | the whole `/api/card-value` contract, incl. v0.1.44's fix |
+| `RepricingFlag`, `RepricingFlagsResponse`, `RepricingDirection` | the whole `GET /api/reprice-flags` contract |
+| `ListingTemplateToken` | the tokens a template may contain — a standalone enum nothing referenced |
+
+`scripts/assert-coverage.ts` now **discovers** the exported surface and throws during
+`npm run build` if any exported `*Schema` is emitted for no target. Fourth instance of the
+enumeration rule (ADR 0024) and the same remedy as the shape guard: discover, never list.
+
+On the reprice types — the repricing *dashboard* is T3 web (ADR 0011), but *acting on a flagged
+price* is T2, and a mobile client following an alert deep-link needs the per-card comparison.
+Generating a type commits no platform to a feature; **not** generating one blocks a lane silently,
+so the default is generate.
+
+### Two name collisions, fixed by naming rather than by a debt entry
+
+Emitting `CardValueResponse` made the emitter invent `Ebay2` and `Economics2` from its `ebay` and
+`economics` field names. The digit-suffix guard fired and is right that the fix is a name:
+
+- **`PriceBand`** — `{low, avg, top}`. ⚠️ Byte-identical to capture-commit's local `EbaySchema`,
+  which emits as the type `Ebay`. **Not consolidated**, deliberately: `Ebay` is shipped, and
+  pointing capture-commit at a shared declaration renames a public generated type on two
+  platforms. That is source-breaking and belongs in a deliberate lockstep release, not bolted onto
+  one already queued. Carried as named debt.
+- **`CardValueEconomics`** — the cost assumptions *behind* the figure (fee rate, postage, tax
+  position). Genuinely distinct from `Economics` (RouteEconomics's realised outcomes); they share
+  only a field name, which is how two unrelated concepts came to look like a versioned pair.
+
 ### ⚠️ The union is additive — `error` stays a string
 
 The first draft made `error` the union. **Three web screens render `data.error` straight into a

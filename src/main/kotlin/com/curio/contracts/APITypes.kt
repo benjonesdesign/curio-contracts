@@ -2489,6 +2489,196 @@ public object DecisionUnavailableSerializer : KSerializer<DecisionUnavailable> {
 }
 
 @Serializable
+public data class CardValueRequest(
+    val name: String,
+    @SerialName("set_name") val setName: String? = null,
+    @SerialName("card_number") val cardNumber: String? = null,
+    val condition: String? = null,
+    val finish: String? = null,
+    val game: String? = null,
+)
+
+@Serializable
+public data class CardValueResponse(
+    val game: String? = null,
+    val gameDisplayName: String? = null,
+    val suggestedPrice: Double? = null,
+    val ebay: PriceBand? = null,
+    val confidence: GameConfidence? = null,
+    val priceWarning: String? = null,
+    val priceSource: String? = null,
+    val currencyNote: String? = null,
+    val possibleFinishes: List<String>? = null,
+    val finishUsed: String? = null,
+    val tcgId: String? = null,
+    val editionAmbiguity: EditionAmbiguity? = null,
+    val pricingDegraded: Boolean = false,
+    val economics: CardValueEconomics? = null,
+    val owned: Owned? = null,
+)
+
+@Serializable
+public data class PriceBand(
+    val low: Double? = null,
+    val avg: Double? = null,
+    val top: Double? = null,
+)
+
+@Serializable(with = EditionAmbiguitySerializer::class)
+public sealed interface EditionAmbiguity {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FIRST_EDITION_SHADOWLESS_UNLIMITED : EditionAmbiguity {
+        override val rawValue: String get() = "first_edition_shadowless_unlimited"
+    }
+    public object FIRST_EDITION_UNLIMITED : EditionAmbiguity {
+        override val rawValue: String get() = "first_edition_unlimited"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : EditionAmbiguity
+
+    public companion object {
+        public fun from(raw: String): EditionAmbiguity = when (raw) {
+            "first_edition_shadowless_unlimited" -> FIRST_EDITION_SHADOWLESS_UNLIMITED
+            "first_edition_unlimited" -> FIRST_EDITION_UNLIMITED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object EditionAmbiguitySerializer : KSerializer<EditionAmbiguity> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("EditionAmbiguity", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): EditionAmbiguity = EditionAmbiguity.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: EditionAmbiguity) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class CardValueEconomics(
+    val feeRate: Double,
+    val feeFixed: Double,
+    val postage: Double,
+    val packaging: Double,
+    val taxRate: Double,
+    val sellerType: String,
+    val vatRegistered: Boolean,
+    val feeBasis: String,
+)
+
+@Serializable
+public data class Owned(
+    val count: Int,
+    val physicalCardId: String? = null,
+)
+
+@Serializable
+public data class RepricingFlagsResponse(
+    val flags: List<Flag>,
+)
+
+@Serializable
+public data class Flag(
+    val cardId: String,
+    val name: String,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val condition: String? = null,
+    val currentPriceGbp: Double,
+    val marketValueGbp: Double,
+    val deltaPct: Double,
+    val direction: RepricingDirection,
+)
+
+@Serializable(with = RepricingDirectionSerializer::class)
+public sealed interface RepricingDirection {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object ABOVE : RepricingDirection {
+        override val rawValue: String get() = "above"
+    }
+    public object BELOW : RepricingDirection {
+        override val rawValue: String get() = "below"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : RepricingDirection
+
+    public companion object {
+        public fun from(raw: String): RepricingDirection = when (raw) {
+            "above" -> ABOVE
+            "below" -> BELOW
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object RepricingDirectionSerializer : KSerializer<RepricingDirection> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("RepricingDirection", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): RepricingDirection = RepricingDirection.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: RepricingDirection) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = ListingTemplateTokenSerializer::class)
+public sealed interface ListingTemplateToken {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NAME : ListingTemplateToken {
+        override val rawValue: String get() = "name"
+    }
+    public object SET_NAME : ListingTemplateToken {
+        override val rawValue: String get() = "setName"
+    }
+    public object CARD_NUMBER : ListingTemplateToken {
+        override val rawValue: String get() = "cardNumber"
+    }
+    public object CONDITION : ListingTemplateToken {
+        override val rawValue: String get() = "condition"
+    }
+    public object RARITY : ListingTemplateToken {
+        override val rawValue: String get() = "rarity"
+    }
+    public object GAME : ListingTemplateToken {
+        override val rawValue: String get() = "game"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ListingTemplateToken
+
+    public companion object {
+        public fun from(raw: String): ListingTemplateToken = when (raw) {
+            "name" -> NAME
+            "setName" -> SET_NAME
+            "cardNumber" -> CARD_NUMBER
+            "condition" -> CONDITION
+            "rarity" -> RARITY
+            "game" -> GAME
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ListingTemplateTokenSerializer : KSerializer<ListingTemplateToken> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ListingTemplateToken", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ListingTemplateToken = ListingTemplateToken.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ListingTemplateToken) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class EbayPublishRequest(
     val sku: String,
     val title: String,
@@ -2801,37 +2991,3 @@ public data class QuickScanCandidate(
     val confidence: GameConfidence? = null,
     val image: String? = null,
 )
-
-@Serializable(with = EditionAmbiguitySerializer::class)
-public sealed interface EditionAmbiguity {
-    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
-     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
-    public val rawValue: String
-
-    public object FIRST_EDITION_SHADOWLESS_UNLIMITED : EditionAmbiguity {
-        override val rawValue: String get() = "first_edition_shadowless_unlimited"
-    }
-    public object FIRST_EDITION_UNLIMITED : EditionAmbiguity {
-        override val rawValue: String get() = "first_edition_unlimited"
-    }
-
-    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
-    public data class Unknown(override val rawValue: String) : EditionAmbiguity
-
-    public companion object {
-        public fun from(raw: String): EditionAmbiguity = when (raw) {
-            "first_edition_shadowless_unlimited" -> FIRST_EDITION_SHADOWLESS_UNLIMITED
-            "first_edition_unlimited" -> FIRST_EDITION_UNLIMITED
-            else -> Unknown(raw)
-        }
-    }
-}
-
-public object EditionAmbiguitySerializer : KSerializer<EditionAmbiguity> {
-    override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("EditionAmbiguity", PrimitiveKind.STRING)
-    override fun deserialize(decoder: Decoder): EditionAmbiguity = EditionAmbiguity.from(decoder.decodeString())
-    override fun serialize(encoder: Encoder, value: EditionAmbiguity) {
-        encoder.encodeString(value.rawValue)
-    }
-}

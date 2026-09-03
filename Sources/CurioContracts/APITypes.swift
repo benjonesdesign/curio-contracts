@@ -3173,6 +3173,293 @@ public enum DecisionUnavailable: Codable, Sendable, Equatable, Hashable {
     }
 }
 
+public struct CardValueRequest: Codable, Sendable {
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let condition: String?
+    public let finish: String?
+    public let game: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case setName = "set_name"
+        case cardNumber = "card_number"
+        case condition
+        case finish
+        case game
+    }
+
+    public init(name: String, setName: String?, cardNumber: String?, condition: String?, finish: String?, game: String?) {
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.condition = condition
+        self.finish = finish
+        self.game = game
+    }
+}
+
+public struct CardValueResponse: Codable, Sendable {
+    public let game: String?
+    public let gameDisplayName: String?
+    public let suggestedPrice: Double?
+    public let ebay: PriceBand?
+    public let confidence: GameConfidence?
+    public let priceWarning: String?
+    public let priceSource: String?
+    public let currencyNote: String?
+    public let possibleFinishes: [String]?
+    public let finishUsed: String?
+    public let tcgId: String?
+    public let editionAmbiguity: EditionAmbiguity?
+    public let pricingDegraded: Bool
+    public let economics: CardValueEconomics?
+    public let owned: Owned?
+
+    enum CodingKeys: String, CodingKey {
+        case game
+        case gameDisplayName
+        case suggestedPrice
+        case ebay
+        case confidence
+        case priceWarning
+        case priceSource
+        case currencyNote
+        case possibleFinishes
+        case finishUsed
+        case tcgId
+        case editionAmbiguity
+        case pricingDegraded
+        case economics
+        case owned
+    }
+
+    public init(game: String?, gameDisplayName: String?, suggestedPrice: Double?, ebay: PriceBand?, confidence: GameConfidence?, priceWarning: String?, priceSource: String?, currencyNote: String?, possibleFinishes: [String]?, finishUsed: String?, tcgId: String?, editionAmbiguity: EditionAmbiguity?, pricingDegraded: Bool, economics: CardValueEconomics?, owned: Owned?) {
+        self.game = game
+        self.gameDisplayName = gameDisplayName
+        self.suggestedPrice = suggestedPrice
+        self.ebay = ebay
+        self.confidence = confidence
+        self.priceWarning = priceWarning
+        self.priceSource = priceSource
+        self.currencyNote = currencyNote
+        self.possibleFinishes = possibleFinishes
+        self.finishUsed = finishUsed
+        self.tcgId = tcgId
+        self.editionAmbiguity = editionAmbiguity
+        self.pricingDegraded = pricingDegraded
+        self.economics = economics
+        self.owned = owned
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.game = try c.decodeIfPresent(String.self, forKey: .game)
+        self.gameDisplayName = try c.decodeIfPresent(String.self, forKey: .gameDisplayName)
+        self.suggestedPrice = try c.decodeIfPresent(Double.self, forKey: .suggestedPrice)
+        self.ebay = try c.decodeIfPresent(PriceBand.self, forKey: .ebay)
+        self.confidence = try c.decodeIfPresent(GameConfidence.self, forKey: .confidence)
+        self.priceWarning = try c.decodeIfPresent(String.self, forKey: .priceWarning)
+        self.priceSource = try c.decodeIfPresent(String.self, forKey: .priceSource)
+        self.currencyNote = try c.decodeIfPresent(String.self, forKey: .currencyNote)
+        self.possibleFinishes = try c.decodeIfPresent([String].self, forKey: .possibleFinishes)
+        self.finishUsed = try c.decodeIfPresent(String.self, forKey: .finishUsed)
+        self.tcgId = try c.decodeIfPresent(String.self, forKey: .tcgId)
+        self.editionAmbiguity = try c.decodeIfPresent(EditionAmbiguity.self, forKey: .editionAmbiguity)
+        self.pricingDegraded = try c.decodeIfPresent(Bool.self, forKey: .pricingDegraded) ?? false
+        self.economics = try c.decodeIfPresent(CardValueEconomics.self, forKey: .economics)
+        self.owned = try c.decodeIfPresent(Owned.self, forKey: .owned)
+    }
+}
+
+public struct PriceBand: Codable, Sendable {
+    public let low: Double?
+    public let avg: Double?
+    public let top: Double?
+
+    public init(low: Double?, avg: Double?, top: Double?) {
+        self.low = low
+        self.avg = avg
+        self.top = top
+    }
+}
+
+public enum EditionAmbiguity: Codable, Sendable, Equatable, Hashable {
+    case firstEditionShadowlessUnlimited
+    case firstEditionUnlimited
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .firstEditionShadowlessUnlimited: return "first_edition_shadowless_unlimited"
+        case .firstEditionUnlimited: return "first_edition_unlimited"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "first_edition_shadowless_unlimited": self = .firstEditionShadowlessUnlimited
+        case "first_edition_unlimited": self = .firstEditionUnlimited
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct CardValueEconomics: Codable, Sendable {
+    public let feeRate: Double
+    public let feeFixed: Double
+    public let postage: Double
+    public let packaging: Double
+    public let taxRate: Double
+    public let sellerType: String
+    public let vatRegistered: Bool
+    public let feeBasis: String
+
+    public init(feeRate: Double, feeFixed: Double, postage: Double, packaging: Double, taxRate: Double, sellerType: String, vatRegistered: Bool, feeBasis: String) {
+        self.feeRate = feeRate
+        self.feeFixed = feeFixed
+        self.postage = postage
+        self.packaging = packaging
+        self.taxRate = taxRate
+        self.sellerType = sellerType
+        self.vatRegistered = vatRegistered
+        self.feeBasis = feeBasis
+    }
+}
+
+public struct Owned: Codable, Sendable {
+    public let count: Int
+    public let physicalCardId: String?
+
+    public init(count: Int, physicalCardId: String?) {
+        self.count = count
+        self.physicalCardId = physicalCardId
+    }
+}
+
+public struct RepricingFlagsResponse: Codable, Sendable {
+    public let flags: [Flag]
+
+    public init(flags: [Flag]) {
+        self.flags = flags
+    }
+}
+
+public struct Flag: Codable, Sendable {
+    public let cardId: String
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let condition: String?
+    public let currentPriceGbp: Double
+    public let marketValueGbp: Double
+    public let deltaPct: Double
+    public let direction: RepricingDirection
+
+    public init(cardId: String, name: String, setName: String?, cardNumber: String?, condition: String?, currentPriceGbp: Double, marketValueGbp: Double, deltaPct: Double, direction: RepricingDirection) {
+        self.cardId = cardId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.condition = condition
+        self.currentPriceGbp = currentPriceGbp
+        self.marketValueGbp = marketValueGbp
+        self.deltaPct = deltaPct
+        self.direction = direction
+    }
+}
+
+public enum RepricingDirection: Codable, Sendable, Equatable, Hashable {
+    case above
+    case below
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .above: return "above"
+        case .below: return "below"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "above": self = .above
+        case "below": self = .below
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum ListingTemplateToken: Codable, Sendable, Equatable, Hashable {
+    case name
+    case setName
+    case cardNumber
+    case condition
+    case rarity
+    case game
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .name: return "name"
+        case .setName: return "setName"
+        case .cardNumber: return "cardNumber"
+        case .condition: return "condition"
+        case .rarity: return "rarity"
+        case .game: return "game"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "name": self = .name
+        case "setName": self = .setName
+        case "cardNumber": self = .cardNumber
+        case "condition": self = .condition
+        case "rarity": self = .rarity
+        case "game": self = .game
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct EbayPublishRequest: Codable, Sendable {
     public let sku: String
     public let title: String
@@ -3684,38 +3971,5 @@ public struct QuickScanCandidate: Codable, Sendable {
         self.rarity = rarity
         self.confidence = confidence
         self.image = image
-    }
-}
-
-public enum EditionAmbiguity: Codable, Sendable, Equatable, Hashable {
-    case firstEditionShadowlessUnlimited
-    case firstEditionUnlimited
-    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
-    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
-    case unrecognised(String)
-
-    public var rawValue: String {
-        switch self {
-        case .firstEditionShadowlessUnlimited: return "first_edition_shadowless_unlimited"
-        case .firstEditionUnlimited: return "first_edition_unlimited"
-        case .unrecognised(let raw): return raw
-        }
-    }
-
-    public init(rawValue: String) {
-        switch rawValue {
-        case "first_edition_shadowless_unlimited": self = .firstEditionShadowlessUnlimited
-        case "first_edition_unlimited": self = .firstEditionUnlimited
-        default: self = .unrecognised(rawValue)
-        }
-    }
-
-    public init(from decoder: Decoder) throws {
-        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(rawValue)
     }
 }
