@@ -3596,6 +3596,16 @@ public enum EbayPublishError: Codable, Sendable {
     case unmappableCondition(EbayPublishErrorUnmappableCondition)
     case ebayError(EbayPublishErrorEbayError)
     case internalError(EbayPublishErrorInternalError)
+    case noPhotos(EbayPublishErrorNoPhotos)
+    case missingRequiredAspects(EbayPublishErrorMissingRequiredAspects)
+    case noDispatchAddress(EbayPublishErrorNoDispatchAddress)
+    case locationCreateFailed(EbayPublishErrorLocationCreateFailed)
+    case rateLimited(EbayPublishErrorRateLimited)
+    case publishFailed(EbayPublishErrorPublishFailed)
+    case notConnected(EbayPublishErrorNotConnected)
+    case expired(EbayPublishErrorExpired)
+    case refreshFailed(EbayPublishErrorRefreshFailed)
+    case notConfigured(EbayPublishErrorNotConfigured)
     /// A variant this build does not know. Carries the discriminator and the whole payload
     /// so an unrecognised case round-trips unchanged instead of failing the decode and
     /// taking the entire response with it. NEVER ORIGINATE ONE — see decisions/0027 item 2a.
@@ -3613,6 +3623,16 @@ public enum EbayPublishError: Codable, Sendable {
         case .unmappableCondition: return "unmappable_condition"
         case .ebayError: return "ebay_error"
         case .internalError: return "internal_error"
+        case .noPhotos: return "no_photos"
+        case .missingRequiredAspects: return "missing_required_aspects"
+        case .noDispatchAddress: return "no_dispatch_address"
+        case .locationCreateFailed: return "location_create_failed"
+        case .rateLimited: return "rate_limited"
+        case .publishFailed: return "publish_failed"
+        case .notConnected: return "not_connected"
+        case .expired: return "expired"
+        case .refreshFailed: return "refresh_failed"
+        case .notConfigured: return "not_configured"
         case .unrecognised(let code, _): return code
         }
     }
@@ -3636,6 +3656,16 @@ public enum EbayPublishError: Codable, Sendable {
         case "unmappable_condition": self = .unmappableCondition(try EbayPublishErrorUnmappableCondition(from: decoder))
         case "ebay_error": self = .ebayError(try EbayPublishErrorEbayError(from: decoder))
         case "internal_error": self = .internalError(try EbayPublishErrorInternalError(from: decoder))
+        case "no_photos": self = .noPhotos(try EbayPublishErrorNoPhotos(from: decoder))
+        case "missing_required_aspects": self = .missingRequiredAspects(try EbayPublishErrorMissingRequiredAspects(from: decoder))
+        case "no_dispatch_address": self = .noDispatchAddress(try EbayPublishErrorNoDispatchAddress(from: decoder))
+        case "location_create_failed": self = .locationCreateFailed(try EbayPublishErrorLocationCreateFailed(from: decoder))
+        case "rate_limited": self = .rateLimited(try EbayPublishErrorRateLimited(from: decoder))
+        case "publish_failed": self = .publishFailed(try EbayPublishErrorPublishFailed(from: decoder))
+        case "not_connected": self = .notConnected(try EbayPublishErrorNotConnected(from: decoder))
+        case "expired": self = .expired(try EbayPublishErrorExpired(from: decoder))
+        case "refresh_failed": self = .refreshFailed(try EbayPublishErrorRefreshFailed(from: decoder))
+        case "not_configured": self = .notConfigured(try EbayPublishErrorNotConfigured(from: decoder))
         default:
             self = .unrecognised(code: tag, payload: try [String: JSONValue](from: decoder))
         }
@@ -3652,6 +3682,16 @@ public enum EbayPublishError: Codable, Sendable {
         case .unmappableCondition(let value): try value.encode(to: encoder)
         case .ebayError(let value): try value.encode(to: encoder)
         case .internalError(let value): try value.encode(to: encoder)
+        case .noPhotos(let value): try value.encode(to: encoder)
+        case .missingRequiredAspects(let value): try value.encode(to: encoder)
+        case .noDispatchAddress(let value): try value.encode(to: encoder)
+        case .locationCreateFailed(let value): try value.encode(to: encoder)
+        case .rateLimited(let value): try value.encode(to: encoder)
+        case .publishFailed(let value): try value.encode(to: encoder)
+        case .notConnected(let value): try value.encode(to: encoder)
+        case .expired(let value): try value.encode(to: encoder)
+        case .refreshFailed(let value): try value.encode(to: encoder)
+        case .notConfigured(let value): try value.encode(to: encoder)
         case .unrecognised(_, let payload): try payload.encode(to: encoder)
         }
     }
@@ -3752,6 +3792,112 @@ public struct EbayPublishErrorEbayError: Codable, Sendable {
 }
 
 public struct EbayPublishErrorInternalError: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorNoPhotos: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorMissingRequiredAspects: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let missingRequired: [String]
+
+    public init(code: String, message: String, missingRequired: [String]) {
+        self.code = code
+        self.message = message
+        self.missingRequired = missingRequired
+    }
+}
+
+public struct EbayPublishErrorNoDispatchAddress: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorLocationCreateFailed: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let ebayResponse: String?
+
+    public init(code: String, message: String, ebayResponse: String?) {
+        self.code = code
+        self.message = message
+        self.ebayResponse = ebayResponse
+    }
+}
+
+public struct EbayPublishErrorRateLimited: Codable, Sendable {
+    public let code: String
+    public let message: String
+    public let partialSuccess: Bool
+
+    public init(code: String, message: String, partialSuccess: Bool) {
+        self.code = code
+        self.message = message
+        self.partialSuccess = partialSuccess
+    }
+}
+
+public struct EbayPublishErrorPublishFailed: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorNotConnected: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorExpired: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorRefreshFailed: Codable, Sendable {
+    public let code: String
+    public let message: String
+
+    public init(code: String, message: String) {
+        self.code = code
+        self.message = message
+    }
+}
+
+public struct EbayPublishErrorNotConfigured: Codable, Sendable {
     public let code: String
     public let message: String
 

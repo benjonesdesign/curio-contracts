@@ -2771,6 +2771,16 @@ public object EbayPublishErrorSerializer : KSerializer<EbayPublishError> {
             "unmappable_condition" -> input.json.decodeFromJsonElement(EbayPublishErrorUnmappableCondition.serializer(), obj)
             "ebay_error" -> input.json.decodeFromJsonElement(EbayPublishErrorEbayError.serializer(), obj)
             "internal_error" -> input.json.decodeFromJsonElement(EbayPublishErrorInternalError.serializer(), obj)
+            "no_photos" -> input.json.decodeFromJsonElement(EbayPublishErrorNoPhotos.serializer(), obj)
+            "missing_required_aspects" -> input.json.decodeFromJsonElement(EbayPublishErrorMissingRequiredAspects.serializer(), obj)
+            "no_dispatch_address" -> input.json.decodeFromJsonElement(EbayPublishErrorNoDispatchAddress.serializer(), obj)
+            "location_create_failed" -> input.json.decodeFromJsonElement(EbayPublishErrorLocationCreateFailed.serializer(), obj)
+            "rate_limited" -> input.json.decodeFromJsonElement(EbayPublishErrorRateLimited.serializer(), obj)
+            "publish_failed" -> input.json.decodeFromJsonElement(EbayPublishErrorPublishFailed.serializer(), obj)
+            "not_connected" -> input.json.decodeFromJsonElement(EbayPublishErrorNotConnected.serializer(), obj)
+            "expired" -> input.json.decodeFromJsonElement(EbayPublishErrorExpired.serializer(), obj)
+            "refresh_failed" -> input.json.decodeFromJsonElement(EbayPublishErrorRefreshFailed.serializer(), obj)
+            "not_configured" -> input.json.decodeFromJsonElement(EbayPublishErrorNotConfigured.serializer(), obj)
             else -> EbayPublishError.Unknown(tag ?: "", obj)
         }
     }
@@ -2788,6 +2798,16 @@ public object EbayPublishErrorSerializer : KSerializer<EbayPublishError> {
             is EbayPublishErrorUnmappableCondition -> output.json.encodeToJsonElement(EbayPublishErrorUnmappableCondition.serializer(), value)
             is EbayPublishErrorEbayError -> output.json.encodeToJsonElement(EbayPublishErrorEbayError.serializer(), value)
             is EbayPublishErrorInternalError -> output.json.encodeToJsonElement(EbayPublishErrorInternalError.serializer(), value)
+            is EbayPublishErrorNoPhotos -> output.json.encodeToJsonElement(EbayPublishErrorNoPhotos.serializer(), value)
+            is EbayPublishErrorMissingRequiredAspects -> output.json.encodeToJsonElement(EbayPublishErrorMissingRequiredAspects.serializer(), value)
+            is EbayPublishErrorNoDispatchAddress -> output.json.encodeToJsonElement(EbayPublishErrorNoDispatchAddress.serializer(), value)
+            is EbayPublishErrorLocationCreateFailed -> output.json.encodeToJsonElement(EbayPublishErrorLocationCreateFailed.serializer(), value)
+            is EbayPublishErrorRateLimited -> output.json.encodeToJsonElement(EbayPublishErrorRateLimited.serializer(), value)
+            is EbayPublishErrorPublishFailed -> output.json.encodeToJsonElement(EbayPublishErrorPublishFailed.serializer(), value)
+            is EbayPublishErrorNotConnected -> output.json.encodeToJsonElement(EbayPublishErrorNotConnected.serializer(), value)
+            is EbayPublishErrorExpired -> output.json.encodeToJsonElement(EbayPublishErrorExpired.serializer(), value)
+            is EbayPublishErrorRefreshFailed -> output.json.encodeToJsonElement(EbayPublishErrorRefreshFailed.serializer(), value)
+            is EbayPublishErrorNotConfigured -> output.json.encodeToJsonElement(EbayPublishErrorNotConfigured.serializer(), value)
             is EbayPublishError.Unknown -> value.payload
         }
         output.encodeJsonElement(element)
@@ -2851,6 +2871,69 @@ public data class EbayPublishErrorEbayError(
 
 @Serializable
 public data class EbayPublishErrorInternalError(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorNoPhotos(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorMissingRequiredAspects(
+    val code: String,
+    val message: String,
+    val missingRequired: List<String>,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorNoDispatchAddress(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorLocationCreateFailed(
+    val code: String,
+    val message: String,
+    val ebayResponse: String? = null,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorRateLimited(
+    val code: String,
+    val message: String,
+    val partialSuccess: Boolean,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorPublishFailed(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorNotConnected(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorExpired(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorRefreshFailed(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorNotConfigured(
     val code: String,
     val message: String,
 ) : EbayPublishError
