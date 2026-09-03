@@ -37,6 +37,10 @@ import {
   RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
   RepriceChannelOutcomeSchema,
 } from "../src/api/reprice.js";
+import {
+  EbayPublishRequestSchema, EbayPublishSuccessSchema, EbayPublishErrorResponseSchema,
+  EbayPublishErrorSchema, EbayListingFormatSchema,
+} from "../src/api/ebay-publish.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
@@ -87,6 +91,12 @@ registerName(DecisionAlternativeSchema, "DecisionAlternative");
 // generic a type to ship to three platforms.
 registerName(DecisionAssumptionCodeSchema, "DecisionAssumptionCode");
 registerName(DecisionAssumptionSchema, "DecisionAssumption");
+// Named explicitly for two reasons. The generator would take "Error" from the field name,
+// which shadows Swift.Error and compiles while changing what every unqualified `Error` in
+// the module means — the generator now refuses that outright. And an error union wants the
+// route in its name: a client holding an `EbayPublishError` knows where it came from.
+registerName(EbayPublishErrorSchema, "EbayPublishError");
+registerName(EbayListingFormatSchema, "EbayListingFormat");
 registerName(RepriceChannelOutcomeSchema, "RepriceChannelOutcome");
 registerName(RepriceApplyResultSchema, "RepriceApplyResult");
 registerName(QuickScanCandidateSchema, "QuickScanCandidate");
@@ -145,6 +155,9 @@ emitSwift(DecideRequestSchema, "DecideRequest");
 emitSwift(DecideResponseSchema, "DecideResponse");
 emitSwift(DecideBatchRequestSchema, "DecideBatchRequest");
 emitSwift(DecideBatchResponseSchema, "DecideBatchResponse");
+emitSwift(EbayPublishRequestSchema, "EbayPublishRequest");
+emitSwift(EbayPublishSuccessSchema, "EbayPublishSuccess");
+emitSwift(EbayPublishErrorResponseSchema, "EbayPublishErrorResponse");
 emitSwift(RepriceApplyRequestSchema, "RepriceApplyRequest");
 emitSwift(RepriceApplyResponseSchema, "RepriceApplyResponse");
 emitSwift(QuickScanRequestSchema, "QuickScanRequest");

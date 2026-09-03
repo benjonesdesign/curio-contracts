@@ -1,5 +1,73 @@
 # Changelog
 
+## v0.1.45 — the generator can express a union again, and two bugs it was hiding
+
+**`z.discriminatedUnion` emits.** It threw in both emitters, so the idiomatic way to make two
+meanings unrepresentable as one shape was unavailable — and ADR 0024 records the conflated-null
+defect twice, both times because someone reached for a nullable field after the tooling refused
+the union. It is available now.
+
+Swift gets an enum with associated values; Kotlin a sealed interface with a custom `KSerializer`.
+Both carry a forward-compatible fallback that keeps **the discriminator and the whole payload**,
+not just the tag — an unknown arm that dropped its data would decode without throwing and still
+leave a log line saying only "unknown error".
+
+**First consumer: `POST /api/ebay-publish`**, which had no contract at all, on the route that puts
+a real listing at a real price on a real marketplace. Its nine error arms carry different data and
+demand different UI — `title_too_long` needs the actual length, `unmappable_condition` needs the
+condition it could not map, `ebay_error` needs the upstream code, which is an **open set we do not
+control**. That last one is why the fallback is load-bearing rather than decorative: a client that
+hard-failed on a new eBay code would turn "eBay said something new" into "the app broke" at the
+moment a seller is trying to sell.
+
+### ⚠️ The union is additive — `error` stays a string
+
+The first draft made `error` the union. **Three web screens render `data.error` straight into a
+toast** (`app/inventory/bulk-publish/page.tsx:159`, `app/inventory/[id]/page.tsx:524`,
+`app/add/multiple/page.tsx:333`), so that would have shown a seller `[object Object]` mid-publish.
+
+Caught by reading the callers before changing the route — not by a test, because no test asserts
+what a toast renders. The structured union arrives under a new `failure` key; `error` and `code`
+are untouched, and `error` must equal `failure.message`.
+
+### Two pre-existing generator bugs, found by `swift build` rather than by reading the output
+
+Neither was visible until a schema exercised them. Both emitted code that does not compile:
+
+1. **A `.default()` on an enum-typed field emitted a bare string** — `?? "FIXED_PRICE"` where an
+   `EbayListingFormat` was expected. Defaults are now resolved after the type, and an enum default
+   emits a case.
+2. **`z.union` widened to `String` unconditionally** — so `z.union([z.literal(3), z.literal(7)])`
+   emitted `decodeIfPresent(String.self) ?? 7`. The "unions widen to String" shortcut had simply
+   never met a union that wasn't strings. Non-string literal unions now take their literal type; a
+   heterogeneous scalar union (eBay's `string | string[]` aspect values) becomes `JSONValue` /
+   `JsonElement`, which holds either **losslessly** — the old widen would have decoded the array
+   arm as a String and thrown at runtime; and a union of OBJECT shapes is refused with a message
+   naming `z.discriminatedUnion`.
+
+### A generated type may no longer shadow the standard library
+
+`z.object({ error: <union> })` took its name from the field and emitted `public enum Error`. That
+**compiles**, and from then on every unqualified `Error` in the module means the generated enum
+rather than `Swift.Error`. Refused outright, with the fix in the message (`registerName`), because
+silently renaming a public type is worse than a build failure.
+
+### Vectors, and a parity bug they caught
+
+Three new golden vectors, and the fixture now has **two classes**: `serverAccepts: true` for a
+payload the server legitimately accepts and clients must survive (an additive field on a known
+arm), and the original class for a value the server must refuse to emit.
+
+`ebay_error_missing_discriminator` is a **parity** vector. Swift's generated decoder used `decode`
+and Kotlin's degraded to `Unknown("")`, so the two platforms disagreed about the same malformed
+body — Swift losing the whole response, Kotlin surfacing an unknown error. Both degrade now.
+
+⚠️ **A limit of forward compatibility, found by the round-trip assertion failing and worth stating
+rather than working around.** An unknown enum VALUE round-trips; an unknown FIELD on a known arm
+decodes and is then **dropped** on re-encode, because a typed struct has nowhere to keep it. The
+practical consequence: **a client must never decode a payload and re-send it as its own** — it
+would silently strip fields a newer server added.
+
 ## v0.1.44 — "no market value" was being said about a Base Set Pikachu
 
 `CardValueResponse.pricingDegraded`. True when the pricing chain FAILED rather than queried and

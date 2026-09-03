@@ -21,7 +21,43 @@
     "",
     "EVERY VECTOR DECODES THROUGH ITS CONTAINING RESPONSE TYPE, never the enum alone. The failure",
     "being guarded is a decode error PROPAGATING from a field to the whole object; a fixture that",
-    "decoded the enum directly would pass and prove nothing about the path that actually breaks."
+    "decoded the enum directly would pass and prove nothing about the path that actually breaks.",
+    "",
+    "2026-09-02 — DISCRIMINATED UNIONS. The vectors below with type EbayPublishErrorResponse cover",
+    "the union added when z.discriminatedUnion became emittable. The same asymmetry applies and for",
+    "the same reason: the server must refuse to EMIT an error variant it does not know, and the",
+    "clients must survive RECEIVING one, because eBay's upstream error codes are an open set we do",
+    "not control. A client that hard-failed on a new eBay code would turn 'eBay said something new'",
+    "into 'the app broke' at the exact moment a seller is trying to list.",
+    "",
+    "THE MISSING-DISCRIMINATOR VECTOR IS A PARITY VECTOR, not a forward-compatibility one. Swift's",
+    "generated decoder used `decode` and Kotlin's degraded to Unknown(\"\"), so the two platforms",
+    "disagreed about a malformed body — Swift failing the whole response, Kotlin surfacing an",
+    "unknown error. Both now degrade. Without a vector, that divergence is invisible until a",
+    "malformed body reaches one platform in production.",
+    "",
+    "TWO CLASSES OF VECTOR, distinguished by `serverAccepts`. The original class is a value the",
+    "server must REFUSE to emit (an unknown enum, an unknown union arm) — the stale-fixture guard",
+    "depends on that refusal. The second class, `serverAccepts: true`, is a payload the server",
+    "legitimately accepts and the clients must also survive: an ADDITIVE field on a known variant.",
+    "Zod strips unknown keys rather than rejecting them, so asserting rejection there would have",
+    "been asserting the opposite of the design. The field is explicit because a vector whose class",
+    "is inferred is a vector whose class can silently change.",
+    "",
+    "⚠️ A LIMIT OF FORWARD COMPATIBILITY, found by the round-trip assertion failing on the additive",
+    "vector and worth stating rather than working around. An unknown ENUM VALUE round-trips: the",
+    "generated enum keeps the raw string on its unrecognised case. An unknown FIELD on a KNOWN arm",
+    "does NOT: it decodes fine and is then DROPPED on re-encode, because the arm is a typed struct",
+    "and a typed struct has nowhere to keep it. Making it survive would mean modelling every",
+    "generated type as a dictionary-with-extras, which costs the type safety these contracts exist",
+    "for. So the round-trip assertion runs on the refuse-class vectors only, and the accept-class",
+    "vectors assert decode-and-arm instead. The practical consequence: a client must never decode a",
+    "payload and re-send it as its own — it would silently strip fields a newer server added.",
+    "",
+    "The EbayPublishErrorResponse vectors carry `error` (a plain string) alongside `failure` (the",
+    "union). That is not redundancy in the fixture — it is the wire shape. Three web screens render",
+    "`data.error` directly into a toast, so promoting it to an object would have shown a seller",
+    "'[object Object]' mid-publish. The union is additive; the string stays."
   ],
   "vectors": [
     {
@@ -91,6 +127,48 @@
         },
         "confidence": "extremely-high",
         "candidates": []
+      }
+    },
+    {
+      "name": "unknown_ebay_error_code",
+      "type": "EbayPublishErrorResponse",
+      "why": "An eBay error code this build has never seen. eBay's codes are an OPEN set arriving from upstream, so this is not hypothetical — it is what next month looks like, and a hard failure here would break listing at the moment a seller is trying to sell.",
+      "payload": {
+        "error": "Too many calls",
+        "code": "ebay_rate_limited_v3",
+        "failure": {
+          "code": "ebay_rate_limited_v3",
+          "message": "Too many calls",
+          "retryAfterSec": 42
+        }
+      }
+    },
+    {
+      "name": "known_ebay_error_with_extra_field",
+      "type": "EbayPublishErrorResponse",
+      "why": "A KNOWN variant carrying a field this build does not know about. Proves the union does not reject a recognised arm just because a newer server added data to it — additive server changes must not break clients.",
+      "payload": {
+        "error": "Title is 84 characters",
+        "code": "title_too_long",
+        "failure": {
+          "code": "title_too_long",
+          "message": "Title is 84 characters",
+          "titleLength": 84,
+          "maxLength": 80,
+          "suggestedTitle": "Charizard Base Set 4/102"
+        }
+      },
+      "serverAccepts": true
+    },
+    {
+      "name": "ebay_error_missing_discriminator",
+      "type": "EbayPublishErrorResponse",
+      "why": "A malformed error body with NO code field. A PARITY vector, not a forward-compat one: Swift threw and Kotlin degraded, so the platforms disagreed about the same malformed input. Both must degrade to the unknown case rather than one taking down the whole response.",
+      "payload": {
+        "error": "something went wrong",
+        "failure": {
+          "message": "something went wrong"
+        }
       }
     }
   ]

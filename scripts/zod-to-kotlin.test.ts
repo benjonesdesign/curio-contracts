@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { z } from "zod";
-import { emitKotlin, flush, resetForTest } from "./zod-to-kotlin.js";
+import { emitKotlin, flush, resetForTest, registerName } from "./zod-to-kotlin.js";
 
 beforeEach(() => {
   resetForTest();
@@ -93,5 +93,64 @@ describe("zod-to-kotlin", () => {
     // The distinction under test: .default([]) is a wire-absence guarantee, a bare array is not.
     emitKotlin(z.object({ candidates: z.array(z.string()) }), "Resp");
     expect(flush()).toContain("val candidates: List<String>,");
+  });
+});
+
+// ── z.discriminatedUnion ────────────────────────────────────────────────────────────────────
+//
+// MUTATION-CHECKED 2026-09-02: red against `return "String"` in place of the ZodDiscriminatedUnion
+// branch, red against `Unknown(tag ?: "", JsonObject(emptyMap()))` in place of
+// `Unknown(tag ?: "", obj)`, and red against restoring the blanket `return "String"` for every
+// ZodUnion; green against current.
+describe("zod-to-kotlin: discriminated unions", () => {
+  const Err = () =>
+    z.discriminatedUnion("code", [
+      z.object({ code: z.literal("rate_limited"), retryAfterSec: z.number().int() }),
+      z.object({ code: z.literal("bad_title"), titleLength: z.number().int() }),
+    ]);
+
+  it("emits a sealed interface with each arm as a member and an Unknown fallback", () => {
+    const e = Err();
+    registerName(e, "PublishError");
+    emitKotlin(z.object({ error: e }), "Resp");
+    const out = flush();
+    expect(out).toContain("public sealed interface PublishError");
+    expect(out).toMatch(/data class PublishErrorRateLimited\([\s\S]*?\) : PublishError/);
+    expect(out).toMatch(/data class PublishErrorBadTitle\([\s\S]*?\) : PublishError/);
+    // Carries the payload, not just the tag — a fallback that kept only the name would decode
+    // without throwing and still lose everything the server sent.
+    expect(out).toContain("public data class Unknown(val code: String, val payload: JsonObject) : PublishError");
+  });
+
+  it("dispatches on the discriminator and degrades when it is absent", () => {
+    const e = Err();
+    registerName(e, "PublishError");
+    emitKotlin(z.object({ error: e }), "Resp");
+    const out = flush();
+    expect(out).toContain('"rate_limited" -> input.json.decodeFromJsonElement(PublishErrorRateLimited.serializer(), obj)');
+    // Swift's generated decoder does the same on a missing discriminator. The two platforms must
+    // not disagree about a malformed body.
+    expect(out).toContain('else -> PublishError.Unknown(tag ?: "", obj)');
+  });
+
+  it("refuses a union of object shapes that is not discriminated", () => {
+    const bad = z.object({ thing: z.union([z.object({ a: z.string() }), z.object({ b: z.string() })]) });
+    expect(() => emitKotlin(bad, "Bad")).toThrow(/use z\.discriminatedUnion/);
+  });
+
+  it("types a union of non-string literals by its literal type, not as String", () => {
+    emitKotlin(z.object({ days: z.union([z.literal(3), z.literal(7)]).default(7) }), "Days");
+    expect(flush()).toContain("val days: Int = 7");
+  });
+
+  it("keeps a heterogeneous scalar union as JSON rather than widening to String", () => {
+    emitKotlin(z.object({ aspects: z.record(z.union([z.string(), z.array(z.string())])) }), "Aspects");
+    expect(flush()).toContain("val aspects: Map<String, JsonElement>");
+  });
+
+  it("emits an enum-typed default as a case, not a bare string", () => {
+    const Fmt = z.enum(["FIXED_PRICE", "AUCTION"]);
+    emitKotlin(z.object({ format: Fmt.default("FIXED_PRICE") }), "Listing");
+    expect(flush()).toContain('= Format.from("FIXED_PRICE")');
   });
 });

@@ -11,7 +11,15 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.descriptors.buildClassSerialDescriptor
+import kotlinx.serialization.json.JsonDecoder
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 @Serializable
 public data class ApiError(
@@ -2479,6 +2487,183 @@ public object DecisionUnavailableSerializer : KSerializer<DecisionUnavailable> {
         encoder.encodeString(value.rawValue)
     }
 }
+
+@Serializable
+public data class EbayPublishRequest(
+    val sku: String,
+    val title: String,
+    val description: String,
+    val condition: String,
+    val priceGbp: Double,
+    val photoUrls: List<String>,
+    val aspectValues: Map<String, JsonElement>,
+    val physicalCardId: String? = null,
+    val cardId: String? = null,
+    val game: String = "pokemon",
+    val format: EbayListingFormat = EbayListingFormat.from("FIXED_PRICE"),
+    val auctionStartPrice: Double? = null,
+    val auctionDays: Int = 7,
+)
+
+@Serializable(with = EbayListingFormatSerializer::class)
+public sealed interface EbayListingFormat {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object FIXED_PRICE : EbayListingFormat {
+        override val rawValue: String get() = "FIXED_PRICE"
+    }
+    public object AUCTION : EbayListingFormat {
+        override val rawValue: String get() = "AUCTION"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : EbayListingFormat
+
+    public companion object {
+        public fun from(raw: String): EbayListingFormat = when (raw) {
+            "FIXED_PRICE" -> FIXED_PRICE
+            "AUCTION" -> AUCTION
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object EbayListingFormatSerializer : KSerializer<EbayListingFormat> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("EbayListingFormat", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): EbayListingFormat = EbayListingFormat.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: EbayListingFormat) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class EbayPublishSuccess(
+    val status: String,
+    val offerId: String,
+    val listingId: String? = null,
+    val listingUrl: String? = null,
+    val production: Boolean,
+)
+
+@Serializable
+public data class EbayPublishErrorResponse(
+    val error: String,
+    val code: String? = null,
+    val failure: EbayPublishError,
+)
+
+@Serializable(with = EbayPublishErrorSerializer::class)
+public sealed interface EbayPublishError {
+    /** A variant this build does not know. Carries the discriminator and the whole payload
+     *  so an unrecognised case round-trips unchanged instead of failing the decode and
+     *  taking the entire response with it. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(val code: String, val payload: JsonObject) : EbayPublishError
+}
+
+public object EbayPublishErrorSerializer : KSerializer<EbayPublishError> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("EbayPublishError")
+
+    override fun deserialize(decoder: Decoder): EbayPublishError {
+        val input = decoder as? JsonDecoder
+            ?: throw SerializationException("EbayPublishError can only be decoded from JSON")
+        val obj = input.decodeJsonElement().jsonObject
+        return when (val tag = obj["code"]?.jsonPrimitive?.contentOrNull) {
+            "unauthenticated" -> input.json.decodeFromJsonElement(EbayPublishErrorUnauthenticated.serializer(), obj)
+            "invalid_request" -> input.json.decodeFromJsonElement(EbayPublishErrorInvalidRequest.serializer(), obj)
+            "title_too_long" -> input.json.decodeFromJsonElement(EbayPublishErrorTitleTooLong.serializer(), obj)
+            "graded_not_verified" -> input.json.decodeFromJsonElement(EbayPublishErrorGradedNotVerified.serializer(), obj)
+            "scope_error" -> input.json.decodeFromJsonElement(EbayPublishErrorScopeError.serializer(), obj)
+            "no_policies" -> input.json.decodeFromJsonElement(EbayPublishErrorNoPolicies.serializer(), obj)
+            "unmappable_condition" -> input.json.decodeFromJsonElement(EbayPublishErrorUnmappableCondition.serializer(), obj)
+            "ebay_error" -> input.json.decodeFromJsonElement(EbayPublishErrorEbayError.serializer(), obj)
+            "internal_error" -> input.json.decodeFromJsonElement(EbayPublishErrorInternalError.serializer(), obj)
+            else -> EbayPublishError.Unknown(tag ?: "", obj)
+        }
+    }
+
+    override fun serialize(encoder: Encoder, value: EbayPublishError) {
+        val output = encoder as? JsonEncoder
+            ?: throw SerializationException("EbayPublishError can only be encoded to JSON")
+        val element: JsonElement = when (value) {
+            is EbayPublishErrorUnauthenticated -> output.json.encodeToJsonElement(EbayPublishErrorUnauthenticated.serializer(), value)
+            is EbayPublishErrorInvalidRequest -> output.json.encodeToJsonElement(EbayPublishErrorInvalidRequest.serializer(), value)
+            is EbayPublishErrorTitleTooLong -> output.json.encodeToJsonElement(EbayPublishErrorTitleTooLong.serializer(), value)
+            is EbayPublishErrorGradedNotVerified -> output.json.encodeToJsonElement(EbayPublishErrorGradedNotVerified.serializer(), value)
+            is EbayPublishErrorScopeError -> output.json.encodeToJsonElement(EbayPublishErrorScopeError.serializer(), value)
+            is EbayPublishErrorNoPolicies -> output.json.encodeToJsonElement(EbayPublishErrorNoPolicies.serializer(), value)
+            is EbayPublishErrorUnmappableCondition -> output.json.encodeToJsonElement(EbayPublishErrorUnmappableCondition.serializer(), value)
+            is EbayPublishErrorEbayError -> output.json.encodeToJsonElement(EbayPublishErrorEbayError.serializer(), value)
+            is EbayPublishErrorInternalError -> output.json.encodeToJsonElement(EbayPublishErrorInternalError.serializer(), value)
+            is EbayPublishError.Unknown -> value.payload
+        }
+        output.encodeJsonElement(element)
+    }
+}
+
+@Serializable
+public data class EbayPublishErrorUnauthenticated(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorInvalidRequest(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorTitleTooLong(
+    val code: String,
+    val message: String,
+    val titleLength: Int,
+    val maxLength: Int,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorGradedNotVerified(
+    val code: String,
+    val message: String,
+    val gradingCompany: String? = null,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorScopeError(
+    val code: String,
+    val message: String,
+    val reconnectHint: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorNoPolicies(
+    val code: String,
+    val message: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorUnmappableCondition(
+    val code: String,
+    val message: String,
+    val condition: String,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorEbayError(
+    val code: String,
+    val message: String,
+    val ebayCode: String,
+    val httpStatus: Int,
+) : EbayPublishError
+
+@Serializable
+public data class EbayPublishErrorInternalError(
+    val code: String,
+    val message: String,
+) : EbayPublishError
 
 @Serializable
 public data class RepriceApplyRequest(
