@@ -1,3 +1,29 @@
+# ⚠️ SUSPENDED FOR SEPTEMBER 2026 — `workflow_dispatch` ONLY, NOT DELETED.
+#
+# GitHub Actions is out of budget until 3 October. This file stays as the documentation of what a
+# full check is, and it is what gets switched back on.
+#
+# ⚠️ A CORRECTION TO THE AUDIT, checked rather than assumed: CI-AUDIT-actions-vs-local.md §3 lists
+# this repo's Swift job under "STOP — macOS, every push". It does not run on macOS. It is
+# `runs-on: ubuntu-latest` with `container: swift:6.0`, so it bills at the 1x Linux rate, not 10x.
+# Suspending it is still right — Linux minutes are cheap, not free — but the saving is a fraction
+# of what the macOS framing implies, and the same is true of curio-copy's Swift job.
+#
+# WHAT REPLACES THE SWIFT JOB, and it is a better fit than per-push was:
+#
+#   `swift build && swift test`, BY HAND, IMMEDIATELY BEFORE `git tag`. A consumer pins a TAG, not
+#   a commit, so "the generated Swift compiles" is a claim that only has to be true at a release —
+#   and a release is a deliberate act the check can attach to.
+#
+# ⚠️ THE HISTORY THIS JOB CARRIES IS THE REASON NOT TO LET IT LAPSE. It exists because the Swift
+# package here was generated and committed for months and NEVER COMPILED — which is how ADR 0027's
+# forward-compatible decoding shipped on Android and silently did not ship on iOS, on the platform
+# whose lane had reported the problem. Moving the check to pre-tag keeps it; forgetting it at tag
+# time recreates exactly that.
+#
+# The Linux jobs are suspended too, per the audit: they are cheap but not free, and COORD re-runs
+# them from the mounted repo to verify a lane's claim, which is the property of CI that mattered.
+
 # CI for the contracts package.
 #
 # This did not exist until 2026-08-27, which matters more than a missing-workflow bug usually
@@ -11,9 +37,15 @@
 name: ci
 
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # Manual only for September 2026. Original triggers preserved verbatim below.
+  workflow_dispatch:
+
+# ── RESTORE IN OCTOBER: uncomment from here to the end marker ───────────────────────────
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
+# ── end restore block ──────────────────────────────────────────────────────────────────
 
 jobs:
   typescript:
