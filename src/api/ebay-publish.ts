@@ -107,13 +107,90 @@ export const EbayPublishErrorSchema = z.discriminatedUnion("code", [
   z.object({
     code: z.literal("ebay_error"),
     message: z.string(),
-    // eBay's own code, passed through verbatim. An OPEN set — this is the variant that made the
-    // forward-compatible fallback necessary rather than decorative.
+    // eBay's own code, passed through verbatim.
+    //
+    // ⚠️ RESERVED, AND THE ROUTE DOES NOT EMIT IT TODAY. Every eBay failure is currently mapped to
+    // one of the named arms below before it leaves the route, so this arm describes a pass-through
+    // that does not happen. Kept rather than removed because it shipped in v0.1.45 and dropping an
+    // arm breaks an exhaustive switch on three platforms — but recorded here as a claim rather
+    // than an artifact, so nobody reads its presence as evidence the route passes codes through.
     ebayCode: z.string(),
     httpStatus: z.number().int(),
   }),
   z.object({
     code: z.literal("internal_error"),
+    message: z.string(),
+  }),
+
+  // ── Added v0.1.46 ───────────────────────────────────────────────────────────────────────
+  //
+  // v0.1.45 declared eight arms. The route can return EIGHTEEN codes. The ten below were all
+  // decoding to the forward-compatible fallback: SAFE — nothing threw, nothing was dropped — and
+  // wrong, because a client can only render "unknown error" for ten real, actionable failures.
+  //
+  // Shipping a union covering eight of eighteen is the same shape as shipping a contract that
+  // reaches no client, which is why these land in the same release as the coverage fix rather
+  // than in a third partial one.
+
+  z.object({
+    code: z.literal("no_photos"),
+    message: z.string(),
+  }),
+  z.object({
+    code: z.literal("missing_required_aspects"),
+    message: z.string(),
+    // THE SHARPEST OF THE TEN. The route computes `fields.missingRequired` and then flattens it
+    // into an English sentence, so a client could only learn which fields to ask for by
+    // re-parsing prose. This is precisely the case a discriminated union exists for, and it was
+    // sitting inside the first schema built on one.
+    missingRequired: z.array(z.string()),
+  }),
+  z.object({
+    code: z.literal("no_dispatch_address"),
+    message: z.string(),
+  }),
+  z.object({
+    code: z.literal("location_create_failed"),
+    message: z.string(),
+    // eBay's verbatim rejection of the address. Distinct from no_dispatch_address: the seller HAS
+    // an address and eBay would not accept it, which is a different thing to tell them.
+    ebayResponse: z.string().nullable(),
+  }),
+  z.object({
+    code: z.literal("rate_limited"),
+    message: z.string(),
+    // ⚠️ A BULK PUBLISH THAT HITS THIS HAS PARTIAL SUCCESS: cards listed before the limit ARE
+    // live. A client that retries the whole batch double-lists them.
+    partialSuccess: z.boolean(),
+  }),
+  z.object({
+    code: z.literal("publish_failed"),
+    message: z.string(),
+  }),
+
+  // ── eBay token states ───────────────────────────────────────────────────────────────────
+  //
+  // FOUR arms, not one `token_error` with a sub-code. All four return 503 and all four have a
+  // DIFFERENT remedy — reconnect, wait, contact us, nothing the seller can do — and collapsing
+  // them behind one label is the conflation this contract exists to prevent, at the exact point
+  // where the seller is being told to go and fix something.
+
+  z.object({
+    code: z.literal("not_connected"),
+    message: z.string(),
+  }),
+  z.object({
+    code: z.literal("expired"),
+    message: z.string(),
+  }),
+  z.object({
+    code: z.literal("refresh_failed"),
+    message: z.string(),
+  }),
+  z.object({
+    // NOT the seller's fault and NOT actionable by them: our own eBay app credentials are absent.
+    // A client must not tell a seller to reconnect their account for this one.
+    code: z.literal("not_configured"),
     message: z.string(),
   }),
 ]);

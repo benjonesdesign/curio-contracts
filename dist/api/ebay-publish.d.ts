@@ -167,6 +167,105 @@ export declare const EbayPublishErrorSchema: z.ZodDiscriminatedUnion<"code", [z.
 }, {
     code: "internal_error";
     message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"no_photos">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "no_photos";
+    message: string;
+}, {
+    code: "no_photos";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"missing_required_aspects">;
+    message: z.ZodString;
+    missingRequired: z.ZodArray<z.ZodString, "many">;
+}, "strip", z.ZodTypeAny, {
+    code: "missing_required_aspects";
+    message: string;
+    missingRequired: string[];
+}, {
+    code: "missing_required_aspects";
+    message: string;
+    missingRequired: string[];
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"no_dispatch_address">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "no_dispatch_address";
+    message: string;
+}, {
+    code: "no_dispatch_address";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"location_create_failed">;
+    message: z.ZodString;
+    ebayResponse: z.ZodNullable<z.ZodString>;
+}, "strip", z.ZodTypeAny, {
+    code: "location_create_failed";
+    message: string;
+    ebayResponse: string | null;
+}, {
+    code: "location_create_failed";
+    message: string;
+    ebayResponse: string | null;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"rate_limited">;
+    message: z.ZodString;
+    partialSuccess: z.ZodBoolean;
+}, "strip", z.ZodTypeAny, {
+    code: "rate_limited";
+    message: string;
+    partialSuccess: boolean;
+}, {
+    code: "rate_limited";
+    message: string;
+    partialSuccess: boolean;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"publish_failed">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "publish_failed";
+    message: string;
+}, {
+    code: "publish_failed";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"not_connected">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "not_connected";
+    message: string;
+}, {
+    code: "not_connected";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"expired">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "expired";
+    message: string;
+}, {
+    code: "expired";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"refresh_failed">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "refresh_failed";
+    message: string;
+}, {
+    code: "refresh_failed";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"not_configured">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "not_configured";
+    message: string;
+}, {
+    code: "not_configured";
+    message: string;
 }>]>;
 export type EbayPublishError = z.infer<typeof EbayPublishErrorSchema>;
 export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
@@ -278,6 +377,105 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
     }, {
         code: "internal_error";
         message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"no_photos">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "no_photos";
+        message: string;
+    }, {
+        code: "no_photos";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"missing_required_aspects">;
+        message: z.ZodString;
+        missingRequired: z.ZodArray<z.ZodString, "many">;
+    }, "strip", z.ZodTypeAny, {
+        code: "missing_required_aspects";
+        message: string;
+        missingRequired: string[];
+    }, {
+        code: "missing_required_aspects";
+        message: string;
+        missingRequired: string[];
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"no_dispatch_address">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "no_dispatch_address";
+        message: string;
+    }, {
+        code: "no_dispatch_address";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"location_create_failed">;
+        message: z.ZodString;
+        ebayResponse: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        code: "location_create_failed";
+        message: string;
+        ebayResponse: string | null;
+    }, {
+        code: "location_create_failed";
+        message: string;
+        ebayResponse: string | null;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"rate_limited">;
+        message: z.ZodString;
+        partialSuccess: z.ZodBoolean;
+    }, "strip", z.ZodTypeAny, {
+        code: "rate_limited";
+        message: string;
+        partialSuccess: boolean;
+    }, {
+        code: "rate_limited";
+        message: string;
+        partialSuccess: boolean;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"publish_failed">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "publish_failed";
+        message: string;
+    }, {
+        code: "publish_failed";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"not_connected">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "not_connected";
+        message: string;
+    }, {
+        code: "not_connected";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"expired">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "expired";
+        message: string;
+    }, {
+        code: "expired";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"refresh_failed">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "refresh_failed";
+        message: string;
+    }, {
+        code: "refresh_failed";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"not_configured">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "not_configured";
+        message: string;
+    }, {
+        code: "not_configured";
+        message: string;
     }>]>;
 }, "strip", z.ZodTypeAny, {
     error: string;
@@ -314,6 +512,39 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         httpStatus: number;
     } | {
         code: "internal_error";
+        message: string;
+    } | {
+        code: "no_photos";
+        message: string;
+    } | {
+        code: "missing_required_aspects";
+        message: string;
+        missingRequired: string[];
+    } | {
+        code: "no_dispatch_address";
+        message: string;
+    } | {
+        code: "location_create_failed";
+        message: string;
+        ebayResponse: string | null;
+    } | {
+        code: "rate_limited";
+        message: string;
+        partialSuccess: boolean;
+    } | {
+        code: "publish_failed";
+        message: string;
+    } | {
+        code: "not_connected";
+        message: string;
+    } | {
+        code: "expired";
+        message: string;
+    } | {
+        code: "refresh_failed";
+        message: string;
+    } | {
+        code: "not_configured";
         message: string;
     };
     code?: string | undefined;
@@ -352,6 +583,39 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         httpStatus: number;
     } | {
         code: "internal_error";
+        message: string;
+    } | {
+        code: "no_photos";
+        message: string;
+    } | {
+        code: "missing_required_aspects";
+        message: string;
+        missingRequired: string[];
+    } | {
+        code: "no_dispatch_address";
+        message: string;
+    } | {
+        code: "location_create_failed";
+        message: string;
+        ebayResponse: string | null;
+    } | {
+        code: "rate_limited";
+        message: string;
+        partialSuccess: boolean;
+    } | {
+        code: "publish_failed";
+        message: string;
+    } | {
+        code: "not_connected";
+        message: string;
+    } | {
+        code: "expired";
+        message: string;
+    } | {
+        code: "refresh_failed";
+        message: string;
+    } | {
+        code: "not_configured";
         message: string;
     };
     code?: string | undefined;
