@@ -43,6 +43,62 @@ export declare const CardValueRequestSchema: z.ZodObject<{
     finish?: string | undefined;
 }>;
 export type CardValueRequest = z.infer<typeof CardValueRequestSchema>;
+/** low / avg / top for one card. Structurally identical to capture-commit's local `EbaySchema`,
+ *  which emits as the type `Ebay` — a poor name for a price band, and a duplicate.
+ *
+ *  NOT consolidated here, deliberately: `Ebay` is shipped, and pointing capture-commit at a shared
+ *  declaration renames a public generated type on two platforms. That is a source-breaking change
+ *  and belongs in a deliberate lockstep release (0012), not bolted onto one already queued.
+ *  Carried as named debt instead — see CHANGELOG v0.1.45. */
+export declare const PriceBandSchema: z.ZodObject<{
+    low: z.ZodNullable<z.ZodNumber>;
+    avg: z.ZodNullable<z.ZodNumber>;
+    top: z.ZodNullable<z.ZodNumber>;
+}, "strip", z.ZodTypeAny, {
+    low: number | null;
+    avg: number | null;
+    top: number | null;
+}, {
+    low: number | null;
+    avg: number | null;
+    top: number | null;
+}>;
+/** The cost assumptions BEHIND the figure — fee rate, postage, tax position — not the money
+ *  outcomes. Distinct from `Economics` (RouteEconomics's realised expectedSale/fees/net), which
+ *  shares only the field name `economics`; the emitter took that name from the field and invented
+ *  `Economics2` for this one, which is how two unrelated concepts came to look like a versioned
+ *  pair. Named, not suffixed. */
+export declare const CardValueEconomicsSchema: z.ZodObject<{
+    feeRate: z.ZodNumber;
+    feeFixed: z.ZodNumber;
+    postage: z.ZodNumber;
+    packaging: z.ZodNumber;
+    taxRate: z.ZodNumber;
+    sellerType: z.ZodString;
+    vatRegistered: z.ZodBoolean;
+    /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
+     *  response stops being a set of unattributed constants. */
+    feeBasis: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    taxRate: number;
+    feeRate: number;
+    feeFixed: number;
+    postage: number;
+    packaging: number;
+    sellerType: string;
+    vatRegistered: boolean;
+    feeBasis: string;
+}, {
+    taxRate: number;
+    feeRate: number;
+    feeFixed: number;
+    postage: number;
+    packaging: number;
+    sellerType: string;
+    vatRegistered: boolean;
+    feeBasis: string;
+}>;
+export type CardValueEconomics = z.infer<typeof CardValueEconomicsSchema>;
 export declare const CardValueResponseSchema: z.ZodObject<{
     game: z.ZodNullable<z.ZodString>;
     gameDisplayName: z.ZodNullable<z.ZodString>;

@@ -32,10 +32,14 @@ import {
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import { LiquiditySchema, DecisionUnavailableSchema } from "../src/api/common.js";
-import { EditionAmbiguitySchema } from "../src/api/card-value.js";
+import {
+  EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
+  PriceBandSchema, CardValueEconomicsSchema,
+} from "../src/api/card-value.js";
 import {
   RepriceApplyRequestSchema, RepriceApplyResponseSchema, RepriceApplyResultSchema,
-  RepriceChannelOutcomeSchema,
+  RepriceChannelOutcomeSchema, RepricingFlagSchema, RepricingFlagsResponseSchema,
+  RepricingDirectionSchema,
 } from "../src/api/reprice.js";
 import {
   EbayPublishRequestSchema, EbayPublishSuccessSchema, EbayPublishErrorResponseSchema,
@@ -46,7 +50,10 @@ import { VerificationEventRequestSchema, VerificationEventResponseSchema } from 
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
 import { SignedPhotoUrlRequestSchema, SignedPhotoUrlResponseSchema, SignedPhotoUrlResultSchema } from "../src/api/signed-photo-url.js";
 import { PricingRuleSchema, PricingRuleInputSchema, PricingRuleListResponseSchema } from "../src/api/pricing-rule.js";
-import { ListingTemplateSchema, ListingTemplateInputSchema, ListingTemplateListResponseSchema } from "../src/api/listing-template.js";
+import {
+  ListingTemplateSchema, ListingTemplateInputSchema, ListingTemplateListResponseSchema,
+  ListingTemplateTokenSchema,
+} from "../src/api/listing-template.js";
 import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema } from "../src/api/pricing-breakdown.js";
 import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
@@ -96,6 +103,13 @@ registerName(DecisionAssumptionSchema, "DecisionAssumption");
 // the module means — the generator now refuses that outright. And an error union wants the
 // route in its name: a client holding an `EbayPublishError` knows where it came from.
 registerName(EbayPublishErrorSchema, "EbayPublishError");
+// Named because the emitter would take "Ebay" and "Economics" from the FIELD names and, both
+// being taken already, invent Ebay2 and Economics2 — two unrelated concepts looking like a
+// versioned pair. The digit-suffix guard is right that the fix is a name, not a debt entry.
+registerName(PriceBandSchema, "PriceBand");
+registerName(CardValueEconomicsSchema, "CardValueEconomics");
+registerName(RepricingDirectionSchema, "RepricingDirection");
+registerName(ListingTemplateTokenSchema, "ListingTemplateToken");
 registerName(EbayListingFormatSchema, "EbayListingFormat");
 registerName(RepriceChannelOutcomeSchema, "RepriceChannelOutcome");
 registerName(RepriceApplyResultSchema, "RepriceApplyResult");
@@ -155,6 +169,19 @@ emitSwift(DecideRequestSchema, "DecideRequest");
 emitSwift(DecideResponseSchema, "DecideResponse");
 emitSwift(DecideBatchRequestSchema, "DecideBatchRequest");
 emitSwift(DecideBatchResponseSchema, "DecideBatchResponse");
+// card-value: NEVER GENERATED until 2026-09-02. v0.1.44 added pricingDegraded to
+// CardValueResponse to fix the Base Set Pikachu no_market_value conflation, was tagged, made
+// canonical and bumped across three repos — and could not reach either mobile client.
+emitSwift(CardValueRequestSchema, "CardValueRequest");
+emitSwift(CardValueResponseSchema, "CardValueResponse");
+// reprice-flags: the dashboard is T3 web (0011), but "act on a flagged price" is T2 and a
+// mobile client following an alert deep-link needs the per-card comparison. Generating a type
+// commits no platform to a feature; NOT generating one blocks a lane silently.
+emitSwift(RepricingFlagsResponseSchema, "RepricingFlagsResponse");
+emitSwift(RepricingFlagSchema, "RepricingFlag");
+// A standalone enum with no referent inside the contract, so nothing pulled it in: the tokens
+// a listing template may contain were declared and reached no client.
+emitSwift(ListingTemplateTokenSchema, "ListingTemplateToken");
 emitSwift(EbayPublishRequestSchema, "EbayPublishRequest");
 emitSwift(EbayPublishSuccessSchema, "EbayPublishSuccess");
 emitSwift(EbayPublishErrorResponseSchema, "EbayPublishErrorResponse");
@@ -162,6 +189,13 @@ emitSwift(RepriceApplyRequestSchema, "RepriceApplyRequest");
 emitSwift(RepriceApplyResponseSchema, "RepriceApplyResponse");
 emitSwift(QuickScanRequestSchema, "QuickScanRequest");
 emitSwift(QuickScanResponseSchema, "QuickScanResponse");
+
+import { assertCoverage } from "./assert-coverage.js";
+import * as allContracts from "../src/index.js";
+// Runs AFTER every emit, and THROWS — so an unreachable module fails `npm run build` rather
+// than being noticed by a lane months later. See assert-coverage.ts for why it discovers the
+// surface instead of listing it.
+assertCoverage("swift", allContracts as unknown as Record<string, unknown>);
 
 const header = `// AUTO-GENERATED by scripts/gen-swift-api.ts from src/api/*.ts (Zod schemas) — do not edit by
 // hand. Regenerate via \`npm run build\`. See README.md "Releasing a new version".

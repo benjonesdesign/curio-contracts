@@ -1,5 +1,72 @@
 # Changelog
 
+## v0.1.46 — the release that fixes "contracts reaching no client", which v0.1.45 did not contain
+
+**v0.1.45 was cut partly to stop contracts reaching no client, and did not contain the fix for
+contracts reaching no client.** The coverage work was on the branch when the tag was cut; the tag
+and `main` both point at #30, and `CardValueResponse` appears zero times in that tag's generated
+Swift. Verified from a fresh clone, not from a working tree.
+
+This release is deliberately NOT the coverage fix alone. Shipping a union that covers eight of
+eighteen error codes is the same shape as shipping a contract that reaches no client, and two
+partial fixes in two releases would be the third instance of that shape this week. So:
+
+### 1. `CardValueRequest` / `CardValueResponse` had NEVER been generated
+
+`gen-swift-api.ts` imported exactly one symbol from `card-value.ts` — `EditionAmbiguitySchema`.
+Android imported neither type. **v0.1.44** added `pricingDegraded` to fix the Base Set Pikachu
+`no_market_value` conflation, was tagged, made canonical and bumped across three repos, and could
+not reach either mobile client. iOS's diagnosis is the finding: *the generator's coverage is a
+hand-maintained import list and no test asserts a module is covered.*
+
+**It was six schemas, not one** — a hand-list rarely fails once:
+
+| Schema | What was unreachable |
+|---|---|
+| `CardValueRequest`, `CardValueResponse` | the whole `/api/card-value` contract, incl. v0.1.44's fix |
+| `RepricingFlag`, `RepricingFlagsResponse`, `RepricingDirection` | the whole `GET /api/reprice-flags` contract |
+| `ListingTemplateToken` | the tokens a template may contain — an enum nothing referenced |
+
+`scripts/assert-coverage.ts` **discovers** the exported surface and throws during `npm run build`.
+Fourth instance of the enumeration rule (ADR 0024); same remedy as the shape guard.
+
+### 2. Two name collisions, fixed by naming
+
+Emitting `CardValueResponse` made the emitter invent `Ebay2` and `Economics2` from its field names.
+The digit-suffix guard fired and is right that the fix is a name: **`PriceBand`** and
+**`CardValueEconomics`**.
+
+⚠️ `PriceBand` is byte-identical to capture-commit's local `EbaySchema`, which emits as `Ebay`.
+**Not consolidated** — `Ebay` is shipped, and pointing capture-commit at a shared declaration
+renames a public generated type on two platforms. That is a deliberate lockstep event of its own,
+not something to bolt onto this release. Carried as named debt.
+
+### 3. The error union now covers all eighteen codes, not eight
+
+v0.1.45 declared eight arms. `/api/ebay-publish` can return **eighteen** codes. The ten missing
+ones decoded to the forward-compatible fallback — **safe**, and wrong: a client could only render
+"unknown error" for ten real, actionable failures.
+
+- **`missing_required_aspects`** is the sharpest. The route computes `fields.missingRequired` and
+  flattens it into an English sentence, so a client could only re-parse prose to learn which fields
+  to ask for. That is precisely the case a discriminated union exists for, sitting inside the first
+  schema built on one. Now carries the array.
+- **`rate_limited`** carries `partialSuccess`. A bulk publish that hits the limit **has already
+  listed cards**; a client that retries the whole batch double-lists them.
+- **`location_create_failed`** carries eBay's verbatim rejection, and is distinct from
+  `no_dispatch_address`: the seller HAS an address and eBay would not accept it.
+- **Four token arms, not one `token_error`.** All four are 503 and all four have a different
+  remedy — reconnect, wait, contact us, and (`not_configured`) nothing the seller can do, because
+  it is OUR credentials that are absent. A client must not tell a seller to reconnect their account
+  for that one. Collapsing them is the conflation this contract exists to prevent, at the exact
+  point where a seller is being told to go and fix something.
+
+⚠️ **`ebay_error` is RESERVED and the route does not emit it.** Every eBay failure is mapped to a
+named arm before it leaves the route, so that arm describes a pass-through that does not happen.
+Kept rather than removed — it shipped in v0.1.45 and dropping an arm breaks an exhaustive switch on
+three platforms — but recorded in the schema as a claim rather than an artifact, so nobody reads
+its presence as evidence the route passes codes through.
+
 ## v0.1.45 — the generator can express a union again, and two bugs it was hiding
 
 **`z.discriminatedUnion` emits.** It threw in both emitters, so the idiomatic way to make two

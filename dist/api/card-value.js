@@ -41,10 +41,34 @@ export const CardValueRequestSchema = z.object({
     /** Omitted → pokemon, for back-compat. */
     game: z.string().optional(),
 });
-const PriceBandSchema = z.object({
+/** low / avg / top for one card. Structurally identical to capture-commit's local `EbaySchema`,
+ *  which emits as the type `Ebay` — a poor name for a price band, and a duplicate.
+ *
+ *  NOT consolidated here, deliberately: `Ebay` is shipped, and pointing capture-commit at a shared
+ *  declaration renames a public generated type on two platforms. That is a source-breaking change
+ *  and belongs in a deliberate lockstep release (0012), not bolted onto one already queued.
+ *  Carried as named debt instead — see CHANGELOG v0.1.45. */
+export const PriceBandSchema = z.object({
     low: z.number().nullable(),
     avg: z.number().nullable(),
     top: z.number().nullable(),
+});
+/** The cost assumptions BEHIND the figure — fee rate, postage, tax position — not the money
+ *  outcomes. Distinct from `Economics` (RouteEconomics's realised expectedSale/fees/net), which
+ *  shares only the field name `economics`; the emitter took that name from the field and invented
+ *  `Economics2` for this one, which is how two unrelated concepts came to look like a versioned
+ *  pair. Named, not suffixed. */
+export const CardValueEconomicsSchema = z.object({
+    feeRate: z.number(),
+    feeFixed: z.number(),
+    postage: z.number(),
+    packaging: z.number(),
+    taxRate: z.number(),
+    sellerType: z.string(),
+    vatRegistered: z.boolean(),
+    /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
+     *  response stops being a set of unattributed constants. */
+    feeBasis: z.string(),
 });
 export const CardValueResponseSchema = z.object({
     game: z.string().nullable(),
@@ -86,18 +110,7 @@ export const CardValueResponseSchema = z.object({
      * ADR 0026 exists to stop. Declared here because it IS on the wire and an undeclared field is a
      * silently-stripped one; declaring it is not an endorsement.
      */
-    economics: z.object({
-        feeRate: z.number(),
-        feeFixed: z.number(),
-        postage: z.number(),
-        packaging: z.number(),
-        taxRate: z.number(),
-        sellerType: z.string(),
-        vatRegistered: z.boolean(),
-        /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
-         *  response stops being a set of unattributed constants. */
-        feeBasis: z.string(),
-    }).nullable().optional(),
+    economics: CardValueEconomicsSchema.nullable().optional(),
     /** Do you already hold one? Powers "You already own N" + jump-to-it. An anonymous caller owns
      *  nothing by definition, so this is `{count: 0, physicalCardId: null}` rather than absent. */
     owned: z.object({

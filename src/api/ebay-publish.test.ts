@@ -1,3 +1,7 @@
+// MUTATION-CHECKED 2026-09-03 (v0.1.46 arms): red against `missingRequired: z.array(z.string())`
+// made `.optional()` (the arm stops requiring the one field it exists to carry), and red against
+// the four token arms collapsed into a single `token_error` literal; green against current.
+//
 // MUTATION-CHECKED 2026-09-02: red against `code: z.string()` in place of the `z.literal(...)` on
 // the title_too_long arm (which makes the union non-discriminating), and red against dropping
 // `.positive()` from `priceGbp`; green against current.
@@ -79,6 +83,53 @@ describe("EbayPublishError", () => {
 
   it("requires the structured failure — the string alone is no longer a complete response", () => {
     expect(EbayPublishErrorResponseSchema.safeParse({ error: "boom" }).success).toBe(false);
+  });
+
+  it("covers every code the route can actually return", () => {
+    // v0.1.45 declared EIGHT arms; the route returns EIGHTEEN codes. The missing ten decoded to
+    // the forward-compatible fallback — safe, and wrong: a client could only render "unknown
+    // error" for ten real, actionable failures. This list is the route's own set, and it is the
+    // assertion that stops the union drifting back behind it.
+    const ROUTE_CODES = [
+      "unauthenticated", "invalid_request", "title_too_long", "graded_not_verified",
+      "scope_error", "no_policies", "unmappable_condition", "internal_error",
+      "no_photos", "missing_required_aspects", "no_dispatch_address", "location_create_failed",
+      "rate_limited", "publish_failed", "not_connected", "expired", "refresh_failed",
+      "not_configured",
+    ];
+    const declared = new Set(EbayPublishErrorSchema.options.map((o) => o.shape.code.value as string));
+    const missing = ROUTE_CODES.filter((c) => !declared.has(c));
+    expect(missing, `these codes decode to the unknown arm: ${missing.join(", ")}`).toEqual([]);
+  });
+
+  it("requires missingRequired on the arm that exists to carry it", () => {
+    // The sharpest of the ten. The route computes fields.missingRequired and flattens it into an
+    // English sentence; without the array a client can only re-parse prose to learn which fields
+    // to ask for, which is the case a discriminated union exists for.
+    expect(EbayPublishErrorSchema.safeParse({ code: "missing_required_aspects", message: "m" }).success).toBe(false);
+    expect(EbayPublishErrorSchema.safeParse({
+      code: "missing_required_aspects", message: "m", missingRequired: ["Card Condition", "Set"],
+    }).success).toBe(true);
+  });
+
+  it("keeps the four eBay token states apart", () => {
+    // All four are 503 and all four have a DIFFERENT remedy — reconnect, wait, contact us, and
+    // (not_configured) nothing the seller can do, because it is OUR credentials that are absent.
+    // A client must not tell a seller to reconnect their account for that one.
+    for (const code of ["not_connected", "expired", "refresh_failed", "not_configured"]) {
+      const r = EbayPublishErrorSchema.safeParse({ code, message: "m" });
+      expect(r.success, code).toBe(true);
+      if (r.success) expect(r.data.code).toBe(code);
+    }
+  });
+
+  it("marks rate_limited as partially successful, because a bulk publish already listed cards", () => {
+    // A client that retries the whole batch on this double-lists everything published before the
+    // limit. The flag is the difference between a safe retry and duplicate live listings.
+    expect(EbayPublishErrorSchema.safeParse({ code: "rate_limited", message: "m" }).success).toBe(false);
+    expect(EbayPublishErrorSchema.safeParse({
+      code: "rate_limited", message: "m", partialSuccess: true,
+    }).success).toBe(true);
   });
 
   it("refuses an unknown arm — the SERVER must never emit one", () => {
