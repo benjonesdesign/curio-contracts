@@ -1799,9 +1799,9 @@ public struct Entitlement: Codable, Sendable {
 
 public enum Tier2: Codable, Sendable, Equatable, Hashable {
     case free
-    case starter
-    case growth
+    case collector
     case pro
+    case dealer
     /// A value this build does not know. Carries the wire value so it round-trips unchanged.
     /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
     case unrecognised(String)
@@ -1809,9 +1809,9 @@ public enum Tier2: Codable, Sendable, Equatable, Hashable {
     public var rawValue: String {
         switch self {
         case .free: return "free"
-        case .starter: return "starter"
-        case .growth: return "growth"
+        case .collector: return "collector"
         case .pro: return "pro"
+        case .dealer: return "dealer"
         case .unrecognised(let raw): return raw
         }
     }
@@ -1819,9 +1819,9 @@ public enum Tier2: Codable, Sendable, Equatable, Hashable {
     public init(rawValue: String) {
         switch rawValue {
         case "free": self = .free
-        case "starter": self = .starter
-        case "growth": self = .growth
+        case "collector": self = .collector
         case "pro": self = .pro
+        case "dealer": self = .dealer
         default: self = .unrecognised(rawValue)
         }
     }
@@ -1911,6 +1911,39 @@ public enum Source2: Codable, Sendable, Equatable, Hashable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
+    }
+}
+
+public struct EntitlementResponse: Codable, Sendable {
+    public let userId: String
+    public let tier: Tier2
+    public let status: Status2
+    public let source: Source2
+    public let currentPeriodEnd: String
+    public let cancelAtPeriodEnd: Bool
+    public let trialEnd: String?
+    public let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case tier
+        case status
+        case source
+        case currentPeriodEnd = "current_period_end"
+        case cancelAtPeriodEnd = "cancel_at_period_end"
+        case trialEnd = "trial_end"
+        case updatedAt = "updated_at"
+    }
+
+    public init(userId: String, tier: Tier2, status: Status2, source: Source2, currentPeriodEnd: String, cancelAtPeriodEnd: Bool, trialEnd: String?, updatedAt: String) {
+        self.userId = userId
+        self.tier = tier
+        self.status = status
+        self.source = source
+        self.currentPeriodEnd = currentPeriodEnd
+        self.cancelAtPeriodEnd = cancelAtPeriodEnd
+        self.trialEnd = trialEnd
+        self.updatedAt = updatedAt
     }
 }
 

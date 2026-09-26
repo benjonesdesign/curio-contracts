@@ -82,7 +82,7 @@ const FIELD_NAME_COLLISIONS = new Map<string, string>([
               "Entitlement it is a SUBSCRIPTION's (active/trialing/past_due/…). " +
               "→ listingStatus / subscriptionStatus"],
   ["Tier2",   "`tier` on IdentifyResponse is which identify tier answered (tier0/vision); on " +
-              "Entitlement it is the seller's PLAN (free/starter/growth/pro). " +
+              "Entitlement it is the seller's PLAN (free/collector/pro/dealer). " +
               "→ identifyTier / planTier"],
   ["Channel2", "`channel` on ChannelListingResponse is {cardtrader}; on RepriceChannelOutcome it " +
                "is {ebay, cardtrader}. Possibly one enum that drifted rather than two concepts — " +

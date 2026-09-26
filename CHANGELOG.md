@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — tier rename: free/starter/growth/pro → free/collector/pro/dealer (NOT TAGGED)
+
+Pricing model v1 (`website/PRICING-STRATEGY.md`). `EntitlementTierSchema` is now
+`free | collector | pro | dealer`. **Source-breaking on every platform** (Swift `.starter/.growth` →
+`.collector/.dealer`; Kotlin `STARTER/GROWTH` likewise; wire values change) — lockstep release, and
+the web migration that rewrites the `entitlements` check constraint must land with it (the table has
+0 rows, so there is nothing to backfill). Not version-bumped or tagged: that needs Ben's go.
+Also emits `EntitlementResponseSchema` for Swift/Kotlin: it was added in fb0a5b7 without an emit, which
+made `npm run build` fail the coverage assertion on `main`. It generates `Tier2/Status2/Source2`
+duplicates of the Entitlement enums (already listed in generated-names debt).
+
 ## v0.1.46 — the release that fixes "contracts reaching no client", which v0.1.45 did not contain
 
 **v0.1.45 was cut partly to stop contracts reaching no client, and did not contain the fix for
