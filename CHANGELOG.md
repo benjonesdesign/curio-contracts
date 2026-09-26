@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased — tier rename: free/starter/growth/pro → free/collector/pro/dealer (NOT TAGGED)
+## v0.1.49 — tier rename: free/starter/growth/pro → free/collector/pro/dealer
 
 Pricing model v1 (`website/PRICING-STRATEGY.md`). `EntitlementTierSchema` is now
 `free | collector | pro | dealer`. **Source-breaking on every platform** (Swift `.starter/.growth` →
 `.collector/.dealer`; Kotlin `STARTER/GROWTH` likewise; wire values change) — lockstep release, and
 the web migration that rewrites the `entitlements` check constraint must land with it (the table has
-0 rows, so there is nothing to backfill). Not version-bumped or tagged: that needs Ben's go.
+0 rows, so there is nothing to backfill). Version bump approved by Ben 2026-09-26; Ben runs the tag. package.json was left at 0.1.46 by the v0.1.47/v0.1.48 tags (check-drift flagged it), now corrected.
 Also emits `EntitlementResponseSchema` for Swift/Kotlin: it was added in fb0a5b7 without an emit, which
 made `npm run build` fail the coverage assertion on `main`. It generates `Tier2/Status2/Source2`
 duplicates of the Entitlement enums (already listed in generated-names debt).
