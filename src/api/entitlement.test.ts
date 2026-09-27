@@ -3,7 +3,7 @@ import { EntitlementSchema } from "./entitlement.js";
 
 const base = {
   userId: "user-123",
-  tier: "starter",
+  tier: "collector",
   status: "active",
   source: "stripe",
   currentPeriodEnd: "2026-09-12T00:00:00.000Z",
@@ -15,7 +15,7 @@ const base = {
 describe("EntitlementSchema", () => {
   it("accepts an active Stripe entitlement", () => {
     const e = EntitlementSchema.parse(base);
-    expect(e.tier).toBe("starter");
+    expect(e.tier).toBe("collector");
     expect(e.source).toBe("stripe");
     expect(e.trialEnd).toBeNull();
   });

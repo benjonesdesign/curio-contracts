@@ -45,7 +45,7 @@ import {
   EbayPublishRequestSchema, EbayPublishSuccessSchema, EbayPublishErrorResponseSchema,
   EbayPublishErrorSchema, EbayListingFormatSchema,
 } from "../src/api/ebay-publish.js";
-import { EntitlementSchema } from "../src/api/entitlement.js";
+import { EntitlementSchema, EntitlementResponseSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
 import { SignedPhotoUrlRequestSchema, SignedPhotoUrlResponseSchema, SignedPhotoUrlResultSchema } from "../src/api/signed-photo-url.js";
@@ -147,6 +147,7 @@ emitSwift(ChannelListingResponseSchema, "ChannelListingResponse");
 emitSwift(CatalogueLookupRequestSchema, "CatalogueLookupRequest");
 emitSwift(CatalogueLookupResponseSchema, "CatalogueLookupResponse");
 emitSwift(EntitlementSchema, "Entitlement");
+emitSwift(EntitlementResponseSchema, "EntitlementResponse");
 emitSwift(VerificationEventRequestSchema, "VerificationEventRequest");
 emitSwift(VerificationEventResponseSchema, "VerificationEventResponse");
 emitSwift(InspectionDepthHintRequestSchema, "InspectionDepthHintRequest");

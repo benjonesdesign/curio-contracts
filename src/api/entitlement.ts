@@ -7,7 +7,7 @@
 // real Stripe/Apple account to this shape).
 import { z } from "zod";
 
-export const EntitlementTierSchema = z.enum(["free", "starter", "growth", "pro"]);
+export const EntitlementTierSchema = z.enum(["free", "collector", "pro", "dealer"]);
 export type EntitlementTier = z.infer<typeof EntitlementTierSchema>;
 
 export const EntitlementStatusSchema = z.enum([

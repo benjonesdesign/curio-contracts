@@ -1344,14 +1344,14 @@ public sealed interface Tier2 {
     public object FREE : Tier2 {
         override val rawValue: String get() = "free"
     }
-    public object STARTER : Tier2 {
-        override val rawValue: String get() = "starter"
-    }
-    public object GROWTH : Tier2 {
-        override val rawValue: String get() = "growth"
+    public object COLLECTOR : Tier2 {
+        override val rawValue: String get() = "collector"
     }
     public object PRO : Tier2 {
         override val rawValue: String get() = "pro"
+    }
+    public object DEALER : Tier2 {
+        override val rawValue: String get() = "dealer"
     }
 
     /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
@@ -1360,9 +1360,9 @@ public sealed interface Tier2 {
     public companion object {
         public fun from(raw: String): Tier2 = when (raw) {
             "free" -> FREE
-            "starter" -> STARTER
-            "growth" -> GROWTH
+            "collector" -> COLLECTOR
             "pro" -> PRO
+            "dealer" -> DEALER
             else -> Unknown(raw)
         }
     }
@@ -1460,6 +1460,18 @@ public object Source2Serializer : KSerializer<Source2> {
         encoder.encodeString(value.rawValue)
     }
 }
+
+@Serializable
+public data class EntitlementResponse(
+    @SerialName("user_id") val userId: String,
+    val tier: Tier2,
+    val status: Status2,
+    val source: Source2,
+    @SerialName("current_period_end") val currentPeriodEnd: String,
+    @SerialName("cancel_at_period_end") val cancelAtPeriodEnd: Boolean,
+    @SerialName("trial_end") val trialEnd: String? = null,
+    @SerialName("updated_at") val updatedAt: String,
+)
 
 @Serializable
 public data class VerificationEventRequest(

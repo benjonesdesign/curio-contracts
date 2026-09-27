@@ -48,7 +48,7 @@ import {
   EbayPublishRequestSchema, EbayPublishSuccessSchema, EbayPublishErrorResponseSchema,
   EbayPublishErrorSchema, EbayListingFormatSchema,
 } from "../src/api/ebay-publish.js";
-import { EntitlementSchema } from "../src/api/entitlement.js";
+import { EntitlementSchema, EntitlementResponseSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
 import { SignedPhotoUrlRequestSchema, SignedPhotoUrlResponseSchema, SignedPhotoUrlResultSchema } from "../src/api/signed-photo-url.js";
@@ -150,6 +150,7 @@ emitKotlin(ChannelListingResponseSchema, "ChannelListingResponse");
 emitKotlin(CatalogueLookupRequestSchema, "CatalogueLookupRequest");
 emitKotlin(CatalogueLookupResponseSchema, "CatalogueLookupResponse");
 emitKotlin(EntitlementSchema, "Entitlement");
+emitKotlin(EntitlementResponseSchema, "EntitlementResponse");
 emitKotlin(VerificationEventRequestSchema, "VerificationEventRequest");
 emitKotlin(VerificationEventResponseSchema, "VerificationEventResponse");
 emitKotlin(InspectionDepthHintRequestSchema, "InspectionDepthHintRequest");
