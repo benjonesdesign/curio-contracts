@@ -42,3 +42,30 @@ export type Liquidity = z.infer<typeof LiquiditySchema>;
 export declare const DecisionUnavailableSchema: z.ZodEnum<["identity_unresolved", "no_market_value", "pricing_unavailable"]>;
 export type DecisionUnavailable = z.infer<typeof DecisionUnavailableSchema>;
 export type Confidence = z.infer<typeof ConfidenceSchema>;
+/**
+ * WHY the seller's fee position is unknown — the reason that travels with a null fee (v0.2.0).
+ *
+ * The fee a seller pays eBay depends on two facts only the seller can state: whether they sell as a
+ * private individual or a business, and — for a business — whether they are VAT-registered (ADR
+ * 0025's three-state table). Until v0.2.0 the contract could not say "we do not know": the profile
+ * columns are `not null default 'private'` / `default false`, so "never answered" and "answered
+ * private, not registered" were the SAME row, and every figure downstream quietly assumed a private
+ * seller. A null `feeGbp` alone would be the conflated-null shape again (decisions/0024), so a null
+ * fee always carries one of these and a known fee never does.
+ *
+ * Exactly two values, and each is an ANSWER THE SELLER CAN GIVE:
+ *  - `seller_type_not_set` — never asked or never answered "private or business?". (An eBay-detected
+ *    type is a SUGGESTION, not an answer: PLAN-SELLER-TYPE-FIRST-ASK §2, ruling 5.)
+ *  - `vat_not_set` — answered "business" but not "VAT-registered?". A business seller with the VAT
+ *    question open reads "Not set" (ruling 5): the registered and not-registered fees differ by
+ *    ×1.2, so neither is a safe guess.
+ *
+ * NOT reasons, deliberately: a seller-set fee override counts as a stated cost and yields a
+ * non-null fee even with the type unset (PLAN-SELLER-TYPE-FIRST-ASK decision 5); and "the price
+ * lookup failed" is `DecisionUnavailable`, a different question.
+ *
+ * Declared ONCE here and referenced everywhere: an inline copy per schema is how `Liquidity2` and
+ * `DecisionUnavailable2` were minted.
+ */
+export declare const FeeNotSetReasonSchema: z.ZodEnum<["seller_type_not_set", "vat_not_set"]>;
+export type FeeNotSetReason = z.infer<typeof FeeNotSetReasonSchema>;

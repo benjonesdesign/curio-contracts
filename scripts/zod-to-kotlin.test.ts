@@ -154,3 +154,34 @@ describe("zod-to-kotlin: discriminated unions", () => {
     expect(flush()).toContain('= Format.from("FIXED_PRICE")');
   });
 });
+
+// ── a cross-field `.superRefine()` on a NAMED OBJECT schema (v0.2.0) ─────────────────────────────
+//
+// MUTATION-CHECKED 2026-10-08: red against the pre-v0.2.0 `ZodEffects` branch
+// (`return resolve(schema._def.schema, hintName)` — no `schemaToName.set`, registered name
+// ignored): the naming test fails with `Economics` emitted instead of `DecisionEconomics`, and the
+// visited test fails because the wrapper was never recorded; green against current.
+describe("zod-to-kotlin: a refined object keeps its registered name and counts as visited", () => {
+  it("names the inner class from the name registered on the refinement wrapper", () => {
+    const Inner = z.object({ fee: z.number().nullable(), why: z.string().nullable() })
+      .superRefine(() => {});
+    registerName(Inner, "DecisionEconomics");
+    emitKotlin(z.object({ economics: Inner }), "Decision");
+    const out = flush();
+    expect(out).toContain("data class DecisionEconomics(");
+    expect(out).not.toContain("data class Economics(");
+    expect(out).toContain("val economics: DecisionEconomics");
+  });
+
+  it("records the wrapper as visited, so assert-coverage does not report it missing", async () => {
+    const Inner = z.object({ a: z.number().nullable() }).superRefine(() => {});
+    emitKotlin(Inner, "Refined");
+    const { wasVisited } = await import("./zod-to-kotlin.js");
+    expect(wasVisited(Inner)).toBe(true);
+  });
+
+  it("types a nullable money field as `Double? = null`", () => {
+    emitKotlin(z.object({ maxBuyGbp: z.number().nullable() }), "D");
+    expect(flush()).toContain("val maxBuyGbp: Double? = null");
+  });
+});

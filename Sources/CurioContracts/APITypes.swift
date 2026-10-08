@@ -2421,23 +2421,25 @@ public struct PricingBreakdownResponse: Codable, Sendable {
     public let purchaseCost: Double
     public let marketMedian: Double
     public let suggestedPrice: Double
-    public let ebayFee: Double
+    public let ebayFee: Double?
+    public let feeNotSetReason: FeeNotSetReason?
     public let packagingCost: Double
     public let shippingCost: Double
-    public let grossProfit: Double
-    public let taxProvision: Double
-    public let netProfit: Double
-    public let netMarginPct: Double
-    public let minViablePrice: Double
-    public let isMarketBelowMin: Bool
+    public let grossProfit: Double?
+    public let taxProvision: Double?
+    public let netProfit: Double?
+    public let netMarginPct: Double?
+    public let minViablePrice: Double?
+    public let isMarketBelowMin: Bool?
     public let warningMsg: String?
     public let priceKind: PriceKind
 
-    public init(purchaseCost: Double, marketMedian: Double, suggestedPrice: Double, ebayFee: Double, packagingCost: Double, shippingCost: Double, grossProfit: Double, taxProvision: Double, netProfit: Double, netMarginPct: Double, minViablePrice: Double, isMarketBelowMin: Bool, warningMsg: String?, priceKind: PriceKind) {
+    public init(purchaseCost: Double, marketMedian: Double, suggestedPrice: Double, ebayFee: Double?, feeNotSetReason: FeeNotSetReason?, packagingCost: Double, shippingCost: Double, grossProfit: Double?, taxProvision: Double?, netProfit: Double?, netMarginPct: Double?, minViablePrice: Double?, isMarketBelowMin: Bool?, warningMsg: String?, priceKind: PriceKind) {
         self.purchaseCost = purchaseCost
         self.marketMedian = marketMedian
         self.suggestedPrice = suggestedPrice
         self.ebayFee = ebayFee
+        self.feeNotSetReason = feeNotSetReason
         self.packagingCost = packagingCost
         self.shippingCost = shippingCost
         self.grossProfit = grossProfit
@@ -2448,6 +2450,39 @@ public struct PricingBreakdownResponse: Codable, Sendable {
         self.isMarketBelowMin = isMarketBelowMin
         self.warningMsg = warningMsg
         self.priceKind = priceKind
+    }
+}
+
+public enum FeeNotSetReason: Codable, Sendable, Equatable, Hashable {
+    case sellerTypeNotSet
+    case vatNotSet
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .sellerTypeNotSet: return "seller_type_not_set"
+        case .vatNotSet: return "vat_not_set"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "seller_type_not_set": self = .sellerTypeNotSet
+        case "vat_not_set": self = .vatNotSet
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -2485,17 +2520,35 @@ public enum PriceKind: Codable, Sendable, Equatable, Hashable {
 }
 
 public struct ProfileResponse: Codable, Sendable {
-    public let sellerType: SellerType
+    public let sellerType: SellerType?
+    public let sellerTypeConfirmedAt: String?
     public let sellerTypeSource: SellerTypeSource
+    public let suggestedSellerType: SellerType?
+    public let vatRegistered: Bool?
+    public let vatConfirmedAt: String?
+    public let feeNotSetReason: FeeNotSetReason?
+    public let buyingTargetMarginPct: Double?
+    public let buyingTargetMarginSetAt: String?
+    public let buyingTaxRate: Double?
+    public let buyingTaxRateSetAt: String?
     public let dispatchAddress: DispatchAddress
     public let agedInventoryDays: Int
     public let pricingSettings: StoredPricingSettings
-    public let effectivePricingSettings: PricingSettings
+    public let effectivePricingSettings: EffectivePricingSettings
     public let isAdmin: Bool
 
-    public init(sellerType: SellerType, sellerTypeSource: SellerTypeSource, dispatchAddress: DispatchAddress, agedInventoryDays: Int, pricingSettings: StoredPricingSettings, effectivePricingSettings: PricingSettings, isAdmin: Bool) {
+    public init(sellerType: SellerType?, sellerTypeConfirmedAt: String?, sellerTypeSource: SellerTypeSource, suggestedSellerType: SellerType?, vatRegistered: Bool?, vatConfirmedAt: String?, feeNotSetReason: FeeNotSetReason?, buyingTargetMarginPct: Double?, buyingTargetMarginSetAt: String?, buyingTaxRate: Double?, buyingTaxRateSetAt: String?, dispatchAddress: DispatchAddress, agedInventoryDays: Int, pricingSettings: StoredPricingSettings, effectivePricingSettings: EffectivePricingSettings, isAdmin: Bool) {
         self.sellerType = sellerType
+        self.sellerTypeConfirmedAt = sellerTypeConfirmedAt
         self.sellerTypeSource = sellerTypeSource
+        self.suggestedSellerType = suggestedSellerType
+        self.vatRegistered = vatRegistered
+        self.vatConfirmedAt = vatConfirmedAt
+        self.feeNotSetReason = feeNotSetReason
+        self.buyingTargetMarginPct = buyingTargetMarginPct
+        self.buyingTargetMarginSetAt = buyingTargetMarginSetAt
+        self.buyingTaxRate = buyingTaxRate
+        self.buyingTaxRateSetAt = buyingTaxRateSetAt
         self.dispatchAddress = dispatchAddress
         self.agedInventoryDays = agedInventoryDays
         self.pricingSettings = pricingSettings
@@ -2606,14 +2659,42 @@ public struct StoredPricingSettings: Codable, Sendable {
     }
 }
 
+public struct EffectivePricingSettings: Codable, Sendable {
+    public let ebayFeeRate: Double?
+    public let ebayFeeFixed: Double?
+    public let packagingCost: Double
+    public let shippingCost: Double
+    public let taxRate: Double
+    public let minProfitPct: Double
+    public let minSaleValue: Double
+    public let postageCost: Double
+
+    public init(ebayFeeRate: Double?, ebayFeeFixed: Double?, packagingCost: Double, shippingCost: Double, taxRate: Double, minProfitPct: Double, minSaleValue: Double, postageCost: Double) {
+        self.ebayFeeRate = ebayFeeRate
+        self.ebayFeeFixed = ebayFeeFixed
+        self.packagingCost = packagingCost
+        self.shippingCost = shippingCost
+        self.taxRate = taxRate
+        self.minProfitPct = minProfitPct
+        self.minSaleValue = minSaleValue
+        self.postageCost = postageCost
+    }
+}
+
 public struct ProfilePatch: Codable, Sendable {
     public let sellerType: SellerType?
+    public let vatRegistered: Bool?
+    public let buyingTargetMarginPct: Double?
+    public let buyingTaxRate: Double?
     public let dispatchAddress: DispatchAddressPatch?
     public let agedInventoryDays: Int?
     public let pricingSettings: StoredPricingSettingsPatch?
 
-    public init(sellerType: SellerType?, dispatchAddress: DispatchAddressPatch?, agedInventoryDays: Int?, pricingSettings: StoredPricingSettingsPatch?) {
+    public init(sellerType: SellerType?, vatRegistered: Bool?, buyingTargetMarginPct: Double?, buyingTaxRate: Double?, dispatchAddress: DispatchAddressPatch?, agedInventoryDays: Int?, pricingSettings: StoredPricingSettingsPatch?) {
         self.sellerType = sellerType
+        self.vatRegistered = vatRegistered
+        self.buyingTargetMarginPct = buyingTargetMarginPct
+        self.buyingTaxRate = buyingTaxRate
         self.dispatchAddress = dispatchAddress
         self.agedInventoryDays = agedInventoryDays
         self.pricingSettings = pricingSettings
@@ -2653,6 +2734,322 @@ public struct StoredPricingSettingsPatch: Codable, Sendable {
         self.minProfitPct = minProfitPct
         self.minSaleValue = minSaleValue
         self.postageCost = postageCost
+    }
+}
+
+public struct PricedBreakdown: Codable, Sendable {
+    public let mode: PricedBreakdownMode
+    public let lines: [PricedLine]
+    public let totals: PricedTotals
+    public let compare: PricedCompare?
+    public let feePosition: PricedFeePosition
+    public let notSet: [PricedNotSet]
+    public let price: PricedPrice
+    public let computedAt: String
+
+    public init(mode: PricedBreakdownMode, lines: [PricedLine], totals: PricedTotals, compare: PricedCompare?, feePosition: PricedFeePosition, notSet: [PricedNotSet], price: PricedPrice, computedAt: String) {
+        self.mode = mode
+        self.lines = lines
+        self.totals = totals
+        self.compare = compare
+        self.feePosition = feePosition
+        self.notSet = notSet
+        self.price = price
+        self.computedAt = computedAt
+    }
+}
+
+public enum PricedBreakdownMode: Codable, Sendable, Equatable, Hashable {
+    case selling
+    case buying
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .selling: return "selling"
+        case .buying: return "buying"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "selling": self = .selling
+        case "buying": self = .buying
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct PricedLine: Codable, Sendable {
+    public let key: String
+    public let label: String?
+    public let amountGbp: Double?
+    public let source: PricedLineSource
+    public let assumed: Bool
+    public let editable: Bool
+    public let editKey: PricedLineEditKey?
+    public let note: String?
+
+    public init(key: String, label: String?, amountGbp: Double?, source: PricedLineSource, assumed: Bool, editable: Bool, editKey: PricedLineEditKey?, note: String?) {
+        self.key = key
+        self.label = label
+        self.amountGbp = amountGbp
+        self.source = source
+        self.assumed = assumed
+        self.editable = editable
+        self.editKey = editKey
+        self.note = note
+    }
+}
+
+public enum PricedLineSource: Codable, Sendable, Equatable, Hashable {
+    case sellerProfile
+    case ebayPolicy
+    case feeModel
+    case priceProvider
+    case cardOverride
+    case request
+    case `default`
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .sellerProfile: return "seller_profile"
+        case .ebayPolicy: return "ebay_policy"
+        case .feeModel: return "fee_model"
+        case .priceProvider: return "price_provider"
+        case .cardOverride: return "card_override"
+        case .request: return "request"
+        case .`default`: return "default"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "seller_profile": self = .sellerProfile
+        case "ebay_policy": self = .ebayPolicy
+        case "fee_model": self = .feeModel
+        case "price_provider": self = .priceProvider
+        case "card_override": self = .cardOverride
+        case "request": self = .request
+        case "default": self = .`default`
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum PricedLineEditKey: Codable, Sendable, Equatable, Hashable {
+    case targetMarginPct
+    case postageMode
+    case packingKey
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .targetMarginPct: return "targetMarginPct"
+        case .postageMode: return "postageMode"
+        case .packingKey: return "packingKey"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "targetMarginPct": self = .targetMarginPct
+        case "postageMode": self = .postageMode
+        case "packingKey": self = .packingKey
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct PricedTotals: Codable, Sendable {
+    public let youReceiveGbp: Double?
+    public let maxBuyGbp: Double?
+
+    public init(youReceiveGbp: Double?, maxBuyGbp: Double?) {
+        self.youReceiveGbp = youReceiveGbp
+        self.maxBuyGbp = maxBuyGbp
+    }
+}
+
+public struct PricedCompare: Codable, Sendable {
+    public let theirPriceGbp: Double
+    public let overUnderGbp: Double
+
+    public init(theirPriceGbp: Double, overUnderGbp: Double) {
+        self.theirPriceGbp = theirPriceGbp
+        self.overUnderGbp = overUnderGbp
+    }
+}
+
+public struct PricedFeePosition: Codable, Sendable {
+    public let sellerType: SellerType?
+    public let vatRegistered: Bool?
+    public let channel: PricedChannel
+    public let feeBasis: FeeBasis
+
+    public init(sellerType: SellerType?, vatRegistered: Bool?, channel: PricedChannel, feeBasis: FeeBasis) {
+        self.sellerType = sellerType
+        self.vatRegistered = vatRegistered
+        self.channel = channel
+        self.feeBasis = feeBasis
+    }
+}
+
+public enum PricedChannel: Codable, Sendable, Equatable, Hashable {
+    case ebay
+    case direct
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ebay: return "ebay"
+        case .direct: return "direct"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ebay": self = .ebay
+        case "direct": self = .direct
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum FeeBasis: Codable, Sendable, Equatable, Hashable {
+    case derived
+    case sellerOverride
+    case notSet
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .derived: return "derived"
+        case .sellerOverride: return "seller_override"
+        case .notSet: return "not_set"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "derived": self = .derived
+        case "seller_override": self = .sellerOverride
+        case "not_set": self = .notSet
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum PricedNotSet: Codable, Sendable, Equatable, Hashable {
+    case sellerType
+    case vatPosition
+    case targetMargin
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .sellerType: return "sellerType"
+        case .vatPosition: return "vatPosition"
+        case .targetMargin: return "targetMargin"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "sellerType": self = .sellerType
+        case "vatPosition": self = .vatPosition
+        case "targetMargin": self = .targetMargin
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct PricedPrice: Codable, Sendable {
+    public let gbp: Double?
+    public let source: String?
+    public let kind: PriceKind?
+    public let asOf: String?
+    public let cached: Bool
+
+    public init(gbp: Double?, source: String?, kind: PriceKind?, asOf: String?, cached: Bool) {
+        self.gbp = gbp
+        self.source = source
+        self.kind = kind
+        self.asOf = asOf
+        self.cached = cached
     }
 }
 
@@ -2775,9 +3172,10 @@ public struct Decision: Codable, Sendable {
     public let confidence: GameConfidence
     public let liquidity: Liquidity
     public let economics: DecisionEconomics
-    public let maxBuyGbp: Double
-    public let minAcceptGbp: Double
-    public let offerPctAtMax: Double
+    public let maxBuyGbp: Double?
+    public let maxBuyUnavailableReason: MaxBuyUnavailableReason?
+    public let minAcceptGbp: Double?
+    public let offerPctAtMax: Double?
     public let degraded: Bool
     public let degradedReasons: [DegradedReason]
     public let assumptions: [DecisionAssumption]
@@ -2790,6 +3188,7 @@ public struct Decision: Codable, Sendable {
         case liquidity
         case economics
         case maxBuyGbp
+        case maxBuyUnavailableReason
         case minAcceptGbp
         case offerPctAtMax
         case degraded
@@ -2797,7 +3196,7 @@ public struct Decision: Codable, Sendable {
         case assumptions
     }
 
-    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double, minAcceptGbp: Double, offerPctAtMax: Double, degraded: Bool, degradedReasons: [DegradedReason], assumptions: [DecisionAssumption]) {
+    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double?, maxBuyUnavailableReason: MaxBuyUnavailableReason?, minAcceptGbp: Double?, offerPctAtMax: Double?, degraded: Bool, degradedReasons: [DegradedReason], assumptions: [DecisionAssumption]) {
         self.route = route
         self.reason = reason
         self.alternatives = alternatives
@@ -2805,6 +3204,7 @@ public struct Decision: Codable, Sendable {
         self.liquidity = liquidity
         self.economics = economics
         self.maxBuyGbp = maxBuyGbp
+        self.maxBuyUnavailableReason = maxBuyUnavailableReason
         self.minAcceptGbp = minAcceptGbp
         self.offerPctAtMax = offerPctAtMax
         self.degraded = degraded
@@ -2820,9 +3220,10 @@ public struct Decision: Codable, Sendable {
         self.confidence = try c.decode(GameConfidence.self, forKey: .confidence)
         self.liquidity = try c.decode(Liquidity.self, forKey: .liquidity)
         self.economics = try c.decode(DecisionEconomics.self, forKey: .economics)
-        self.maxBuyGbp = try c.decode(Double.self, forKey: .maxBuyGbp)
-        self.minAcceptGbp = try c.decode(Double.self, forKey: .minAcceptGbp)
-        self.offerPctAtMax = try c.decode(Double.self, forKey: .offerPctAtMax)
+        self.maxBuyGbp = try c.decodeIfPresent(Double.self, forKey: .maxBuyGbp)
+        self.maxBuyUnavailableReason = try c.decodeIfPresent(MaxBuyUnavailableReason.self, forKey: .maxBuyUnavailableReason)
+        self.minAcceptGbp = try c.decodeIfPresent(Double.self, forKey: .minAcceptGbp)
+        self.offerPctAtMax = try c.decodeIfPresent(Double.self, forKey: .offerPctAtMax)
         self.degraded = try c.decode(Bool.self, forKey: .degraded)
         self.degradedReasons = try c.decodeIfPresent([DegradedReason].self, forKey: .degradedReasons) ?? []
         self.assumptions = try c.decodeIfPresent([DecisionAssumption].self, forKey: .assumptions) ?? []
@@ -2930,21 +3331,68 @@ public enum AlternativeReason: Codable, Sendable, Equatable, Hashable {
 
 public struct DecisionEconomics: Codable, Sendable {
     public let marketValueGbp: Double
-    public let feeGbp: Double
+    public let feeGbp: Double?
+    public let feeNotSetReason: FeeNotSetReason?
     public let postageGbp: Double
     public let packagingGbp: Double
     public let costBasisGbp: Double?
-    public let taxProvisionGbp: Double
-    public let expectedNetGbp: Double
+    public let taxProvisionGbp: Double?
+    public let expectedNetGbp: Double?
 
-    public init(marketValueGbp: Double, feeGbp: Double, postageGbp: Double, packagingGbp: Double, costBasisGbp: Double?, taxProvisionGbp: Double, expectedNetGbp: Double) {
+    public init(marketValueGbp: Double, feeGbp: Double?, feeNotSetReason: FeeNotSetReason?, postageGbp: Double, packagingGbp: Double, costBasisGbp: Double?, taxProvisionGbp: Double?, expectedNetGbp: Double?) {
         self.marketValueGbp = marketValueGbp
         self.feeGbp = feeGbp
+        self.feeNotSetReason = feeNotSetReason
         self.postageGbp = postageGbp
         self.packagingGbp = packagingGbp
         self.costBasisGbp = costBasisGbp
         self.taxProvisionGbp = taxProvisionGbp
         self.expectedNetGbp = expectedNetGbp
+    }
+}
+
+public enum MaxBuyUnavailableReason: Codable, Sendable, Equatable, Hashable {
+    case marginNotSet
+    case sellerTypeNotSet
+    case vatNotSet
+    case askingPriceOnly
+    case noPrice
+    case notViable
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .marginNotSet: return "margin_not_set"
+        case .sellerTypeNotSet: return "seller_type_not_set"
+        case .vatNotSet: return "vat_not_set"
+        case .askingPriceOnly: return "asking_price_only"
+        case .noPrice: return "no_price"
+        case .notViable: return "not_viable"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "margin_not_set": self = .marginNotSet
+        case "seller_type_not_set": self = .sellerTypeNotSet
+        case "vat_not_set": self = .vatNotSet
+        case "asking_price_only": self = .askingPriceOnly
+        case "no_price": self = .noPrice
+        case "not_viable": self = .notViable
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 
@@ -3352,18 +3800,20 @@ public enum EditionAmbiguity: Codable, Sendable, Equatable, Hashable {
 }
 
 public struct CardValueEconomics: Codable, Sendable {
-    public let feeRate: Double
-    public let feeFixed: Double
+    public let feeRate: Double?
+    public let feeFixed: Double?
+    public let feeNotSetReason: FeeNotSetReason?
     public let postage: Double
     public let packaging: Double
     public let taxRate: Double
-    public let sellerType: String
-    public let vatRegistered: Bool
+    public let sellerType: String?
+    public let vatRegistered: Bool?
     public let feeBasis: String
 
-    public init(feeRate: Double, feeFixed: Double, postage: Double, packaging: Double, taxRate: Double, sellerType: String, vatRegistered: Bool, feeBasis: String) {
+    public init(feeRate: Double?, feeFixed: Double?, feeNotSetReason: FeeNotSetReason?, postage: Double, packaging: Double, taxRate: Double, sellerType: String?, vatRegistered: Bool?, feeBasis: String) {
         self.feeRate = feeRate
         self.feeFixed = feeFixed
+        self.feeNotSetReason = feeNotSetReason
         self.postage = postage
         self.packaging = packaging
         self.taxRate = taxRate

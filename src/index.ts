@@ -20,3 +20,4 @@ export * from "./api/pricing-rule.js";
 export * from "./api/listing-template.js";
 export * from "./api/pricing-breakdown.js";
 export * from "./api/profile.js";
+export * from "./api/priced-breakdown.js";

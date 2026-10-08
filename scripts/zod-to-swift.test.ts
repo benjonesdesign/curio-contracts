@@ -166,3 +166,49 @@ describe("zod-to-swift: discriminated unions", () => {
     expect(flush()).toContain('?? Format(rawValue: "FIXED_PRICE")');
   });
 });
+
+// ── a cross-field `.superRefine()` on a NAMED OBJECT schema (v0.2.0) ─────────────────────────────
+//
+// MUTATION-CHECKED 2026-10-08: red against the pre-v0.2.0 `ZodEffects` branch
+// (`return resolve(schema._def.schema, hintName)` — no `schemaToName.set`, registered name
+// ignored): the naming test fails with `Economics` emitted instead of `DecisionEconomics`, and the
+// visited test fails because the wrapper was never recorded; green against current.
+describe("zod-to-swift: a refined object keeps its registered name and counts as visited", () => {
+  it("names the inner struct from the name registered on the refinement wrapper", () => {
+    const Inner = z.object({ fee: z.number().nullable(), why: z.string().nullable() })
+      .superRefine(() => {});
+    registerName(Inner, "DecisionEconomics");
+    // The FIELD is called `economics`, which would otherwise name the struct `Economics`.
+    emitSwift(z.object({ economics: Inner }), "Decision");
+    const out = flush();
+    expect(out).toContain("public struct DecisionEconomics: Codable, Sendable");
+    expect(out).not.toContain("public struct Economics:");
+    expect(out).toContain("public let economics: DecisionEconomics");
+  });
+
+  it("records the wrapper as visited, so assert-coverage does not report it missing", async () => {
+    const Inner = z.object({ a: z.number().nullable() }).superRefine(() => {});
+    emitSwift(Inner, "Refined");
+    const { wasVisited } = await import("./zod-to-swift.js");
+    expect(wasVisited(Inner)).toBe(true);
+  });
+
+  it("reuses one struct when the refined schema is referenced from two places", () => {
+    const Inner = z.object({ a: z.number().nullable() }).superRefine(() => {});
+    registerName(Inner, "Shared");
+    emitSwift(z.object({ first: Inner }), "A");
+    emitSwift(z.object({ second: Inner.nullable() }), "B");
+    const out = flush();
+    expect((out.match(/public struct Shared:/g) ?? [])).toHaveLength(1);
+    expect(out).not.toMatch(/public struct Shared2/);
+  });
+
+  it("types a nullable money field as Optional, which is what makes the v0.2.0 break a one-token fix", () => {
+    emitSwift(z.object({ maxBuyGbp: z.number().nullable() }), "D");
+    const out = flush();
+    expect(out).toContain("public let maxBuyGbp: Double?");
+    // Synthesised Codable for an Optional property is decodeIfPresent: a missing key and an
+    // explicit null both decode to nil rather than throwing.
+    expect(out).not.toContain("public init(from decoder: Decoder)");
+  });
+});

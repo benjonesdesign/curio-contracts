@@ -1,9 +1,27 @@
+// MUTATION-CHECKED 2026-10-08 (v0.2.0 nullable seller type / fee position): red against dropping
+// the value<->timestamp pair rule (four tests); dropping effective-fee<->feeNotSetReason; dropping
+// each of the two reason-vs-answers consistency rules (seller_type_not_set while a type is on file,
+// vat_not_set for a non-business); widening the buying margin to <=100 or removing its rate-vs-pct
+// guard; reverting sellerType to non-null; and letting PATCH accept `sellerType: null`; green
+// against current.
+
 import { describe, it, expect } from "vitest";
 import { ProfileResponseSchema, ProfilePatchSchema } from "./profile.js";
 
+const AT = "2026-10-08T09:30:00.000Z";
+
 const FULL_PROFILE = {
   sellerType: "private",
+  sellerTypeConfirmedAt: AT,
   sellerTypeSource: "manual",
+  suggestedSellerType: null,
+  vatRegistered: null,
+  vatConfirmedAt: null,
+  feeNotSetReason: null,
+  buyingTargetMarginPct: null,
+  buyingTargetMarginSetAt: null,
+  buyingTaxRate: null,
+  buyingTaxRateSetAt: null,
   dispatchAddress: { line1: "1 Test St", city: "London", postcode: "N1 1AA", country: "GB" },
   agedInventoryDays: 60,
   pricingSettings: {
@@ -31,11 +49,13 @@ describe("ProfileResponseSchema", () => {
     expect(p.effectivePricingSettings.ebayFeeRate).toBe(0);
   });
 
-  it("keeps effectivePricingSettings non-nullable — it is what the engine actually uses", () => {
+  it("REJECTS a null effective fee that carries no reason — the engine would be guessing", () => {
+    // v0.2.0 (was: "keeps effectivePricingSettings non-nullable"). The effective fee is null ONLY
+    // while the fee position is not set, and then it must say why.
     expect(() => ProfileResponseSchema.parse({
       ...FULL_PROFILE,
-      effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: null },
-    })).toThrow();
+      effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: null, ebayFeeFixed: null },
+    })).toThrow(/feeNotSetReason is required/);
   });
 
   it("rejects an unknown seller type rather than coercing it to private", () => {
@@ -92,5 +112,132 @@ describe("ProfilePatchSchema", () => {
 
   it("rejects a non-integer agedInventoryDays", () => {
     expect(() => ProfilePatchSchema.parse({ agedInventoryDays: 30.5 })).toThrow();
+  });
+});
+
+// ── v0.2.0: "Not set" is representable, and a confirmation is one fact, not two ─────────────────
+describe("Profile: seller type, VAT and fee position can be NOT SET (v0.2.0)", () => {
+  const NEVER_ASKED = {
+    ...FULL_PROFILE,
+    sellerType: null, sellerTypeConfirmedAt: null,
+    feeNotSetReason: "seller_type_not_set",
+    effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: null, ebayFeeFixed: null },
+  };
+  const BUSINESS_NO_VAT_ANSWER = {
+    ...FULL_PROFILE,
+    sellerType: "business", sellerTypeConfirmedAt: AT,
+    feeNotSetReason: "vat_not_set",
+    effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: null, ebayFeeFixed: null },
+  };
+  const BUSINESS_VAT = {
+    ...FULL_PROFILE,
+    sellerType: "business", sellerTypeConfirmedAt: AT, vatRegistered: true, vatConfirmedAt: AT,
+    effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: 0.1315, ebayFeeFixed: 0.4 },
+  };
+
+  it("accepts a seller who has never been asked: type null, no confirmation, fee unknown with a reason", () => {
+    const r = ProfileResponseSchema.safeParse(NEVER_ASKED);
+    expect(r.success, JSON.stringify(r.success ? [] : r.error.issues)).toBe(true);
+    if (r.success) {
+      expect(r.data.sellerType).toBeNull();
+      expect(r.data.effectivePricingSettings.ebayFeeRate).toBeNull();
+    }
+  });
+
+  it("accepts a business seller whose VAT question is open (fee unknown: vat_not_set)", () => {
+    expect(ProfileResponseSchema.safeParse(BUSINESS_NO_VAT_ANSWER).success).toBe(true);
+  });
+
+  it("accepts an answered business + VAT seller with a real fee and no reason", () => {
+    expect(ProfileResponseSchema.safeParse(BUSINESS_VAT).success).toBe(true);
+  });
+
+  it("accepts an eBay SUGGESTION without treating it as an answer", () => {
+    const r = ProfileResponseSchema.safeParse({ ...NEVER_ASKED, suggestedSellerType: "business", sellerTypeSource: "auto" });
+    expect(r.success).toBe(true);
+    if (r.success) expect(r.data.sellerType).toBeNull();
+  });
+
+  it("REJECTS a seller type with no confirmation time, and a confirmation time with no seller type", () => {
+    // 'Set' means confirmed_at is non-null and nothing else (PLAN-SELLER-TYPE-FIRST-ASK §2). A
+    // type without a timestamp is today's bug: a placeholder 'private' read as an answer.
+    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, sellerTypeConfirmedAt: null }).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse({ ...NEVER_ASKED, sellerTypeConfirmedAt: AT }).success).toBe(false);
+  });
+
+  it("REJECTS VAT answered without a timestamp, and a timestamp without an answer", () => {
+    expect(ProfileResponseSchema.safeParse({ ...BUSINESS_VAT, vatConfirmedAt: null }).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, vatConfirmedAt: AT }).success).toBe(false);
+  });
+
+  it("REJECTS a null effective fee with no reason, and a reason beside a real fee", () => {
+    expect(ProfileResponseSchema.safeParse({ ...NEVER_ASKED, feeNotSetReason: null }).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse({ ...BUSINESS_VAT, feeNotSetReason: "vat_not_set" }).success).toBe(false);
+  });
+
+  it("REJECTS a reason that contradicts the answers it is derived from", () => {
+    // seller_type_not_set while a type is on file
+    expect(ProfileResponseSchema.safeParse({ ...NEVER_ASKED, sellerType: "private", sellerTypeConfirmedAt: AT }).success).toBe(false);
+    // vat_not_set for a private seller (VAT is only asked of a business)
+    expect(ProfileResponseSchema.safeParse({ ...NEVER_ASKED, sellerType: "private", sellerTypeConfirmedAt: AT, feeNotSetReason: "vat_not_set" }).success).toBe(false);
+  });
+
+  it("accepts a seller-set fee override with the type unset: a stated cost, so no reason", () => {
+    const r = ProfileResponseSchema.safeParse({
+      ...FULL_PROFILE,
+      sellerType: null, sellerTypeConfirmedAt: null,
+      effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, ebayFeeRate: 0.09, ebayFeeFixed: 0.3 },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it("round-trips a never-asked profile through JSON", () => {
+    const parsed = ProfileResponseSchema.parse(NEVER_ASKED);
+    expect(ProfileResponseSchema.parse(JSON.parse(JSON.stringify(parsed)))).toEqual(parsed);
+  });
+});
+
+describe("Profile: the buying margin and tax are 'Not set' until chosen (v0.2.0, PLAN-MOST-TO-PAY #224 §5)", () => {
+  const MARGIN_SET = { ...FULL_PROFILE, buyingTargetMarginPct: 35, buyingTargetMarginSetAt: AT };
+
+  it("accepts a margin set with its timestamp, and null/null for 'Not set'", () => {
+    expect(ProfileResponseSchema.safeParse(MARGIN_SET).success).toBe(true);
+    expect(ProfileResponseSchema.safeParse(FULL_PROFILE).success).toBe(true);
+  });
+
+  it("REJECTS a margin with no timestamp, and a timestamp with no margin", () => {
+    expect(ProfileResponseSchema.safeParse({ ...MARGIN_SET, buyingTargetMarginSetAt: null }).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, buyingTargetMarginSetAt: AT }).success).toBe(false);
+  });
+
+  it("treats 0% as a real choice but 100% as impossible (a share of the SALE price)", () => {
+    expect(ProfileResponseSchema.safeParse({ ...MARGIN_SET, buyingTargetMarginPct: 0 }).success).toBe(true);
+    expect(ProfileResponseSchema.safeParse({ ...MARGIN_SET, buyingTargetMarginPct: 100 }).success).toBe(false);
+  });
+
+  it("REJECTS a rate sent as a percentage: 0.35 would be read as 0.35%", () => {
+    expect(ProfileResponseSchema.safeParse({ ...MARGIN_SET, buyingTargetMarginPct: 0.35 }).success).toBe(false);
+  });
+
+  it("keeps tax 0 distinct from tax null: 0 is the seller choosing 'none'", () => {
+    const none = ProfileResponseSchema.parse({ ...FULL_PROFILE, buyingTaxRate: 0, buyingTaxRateSetAt: AT });
+    expect(none.buyingTaxRate).toBe(0);
+    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, buyingTaxRate: 1, buyingTaxRateSetAt: AT }).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, buyingTaxRate: 0 }).success).toBe(false);
+  });
+
+  it("PATCH accepts the new fields singly, and still cannot un-set the seller type", () => {
+    expect(ProfilePatchSchema.parse({ vatRegistered: false }).vatRegistered).toBe(false);
+    expect(ProfilePatchSchema.parse({ buyingTargetMarginPct: 35 }).buyingTargetMarginPct).toBe(35);
+    expect(ProfilePatchSchema.parse({ buyingTaxRate: 0 }).buyingTaxRate).toBe(0);
+    expect(() => ProfilePatchSchema.parse({ sellerType: null })).toThrow();
+    expect(() => ProfilePatchSchema.parse({ buyingTargetMarginPct: 0.35 })).toThrow();
+    expect(() => ProfilePatchSchema.parse({ buyingTargetMarginPct: 100 })).toThrow();
+  });
+
+  it("PATCH strips the server-derived timestamps and reason — a client never asserts them", () => {
+    const p = ProfilePatchSchema.parse({ vatRegistered: true, vatConfirmedAt: AT, feeNotSetReason: "vat_not_set" });
+    expect(p).not.toHaveProperty("vatConfirmedAt");
+    expect(p).not.toHaveProperty("feeNotSetReason");
   });
 });

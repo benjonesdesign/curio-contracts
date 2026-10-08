@@ -32,9 +32,9 @@ import {
   DecisionAlternativeSchema, QuickScanRequestSchema, QuickScanResponseSchema,
   QuickScanCandidateSchema, RouteReasonSchema, AlternativeReasonSchema, DegradedReasonSchema,
   PriceProvenanceSchema, DecisionGradeEVSchema, DecisionAssumptionSchema, DecisionAssumptionCodeSchema, DecideBatchRequestSchema,
-  DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
+  DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema, MaxBuyUnavailableReasonSchema,
 } from "../src/api/decide.js";
-import { LiquiditySchema, DecisionUnavailableSchema } from "../src/api/common.js";
+import { LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema } from "../src/api/common.js";
 import {
   EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
   PriceBandSchema, CardValueEconomicsSchema,
@@ -57,10 +57,15 @@ import {
   ListingTemplateSchema, ListingTemplateInputSchema, ListingTemplateListResponseSchema,
   ListingTemplateTokenSchema,
 } from "../src/api/listing-template.js";
-import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema } from "../src/api/pricing-breakdown.js";
+import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema, PriceKindSchema } from "../src/api/pricing-breakdown.js";
+import {
+  PricedBreakdownSchema, PricedLineSchema, PricedLineSourceSchema, PricedLineEditKeySchema,
+  PricedBreakdownModeSchema, PricedTotalsSchema, PricedCompareSchema, PricedChannelSchema,
+  FeeBasisSchema, PricedFeePositionSchema, PricedNotSetSchema, PricedPriceSchema,
+} from "../src/api/priced-breakdown.js";
 import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
-  DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema,
+  DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -129,6 +134,29 @@ registerName(StoredPricingSettingsPatchSchema, "StoredPricingSettingsPatch");
 registerName(IdentifyCandidateSchema, "IdentifyCandidate");
 registerName(IdentifyAmbiguousTierSchema, "IdentifyAmbiguousTier");
 
+// v0.2.0: a null most-to-pay / null fee carries a reason. Named here, once, and shared by every
+// schema that reports them — an inline copy per schema is how `Liquidity2` was minted.
+registerName(MaxBuyUnavailableReasonSchema, "MaxBuyUnavailableReason");
+registerName(FeeNotSetReasonSchema, "FeeNotSetReason");
+// Hoisted out of PricingBreakdownResponse's inline enum so PricedPrice.kind reuses it; the
+// generated name is unchanged (it was "PriceKind" from the field name).
+registerName(PriceKindSchema, "PriceKind");
+registerName(EffectivePricingSettingsSchema, "EffectivePricingSettings");
+// PricedBreakdown (v0.2.0, additive). Every nested type named: `source` is already three unrelated
+// vocabularies in this contract (Source/Source2/Source3 are debt), so a fourth inferred from the
+// field name would be the next digit-suffix.
+registerName(PricedLineSchema, "PricedLine");
+registerName(PricedLineSourceSchema, "PricedLineSource");
+registerName(PricedLineEditKeySchema, "PricedLineEditKey");
+registerName(PricedBreakdownModeSchema, "PricedBreakdownMode");
+registerName(PricedTotalsSchema, "PricedTotals");
+registerName(PricedCompareSchema, "PricedCompare");
+registerName(PricedChannelSchema, "PricedChannel");
+registerName(FeeBasisSchema, "FeeBasis");
+registerName(PricedFeePositionSchema, "PricedFeePosition");
+registerName(PricedNotSetSchema, "PricedNotSet");
+registerName(PricedPriceSchema, "PricedPrice");
+
 emitKotlin(ApiErrorSchema, "ApiError");
 emitKotlin(IdentifyRequestSchema, "IdentifyRequest");
 emitKotlin(IdentifyResponseSchema, "IdentifyResponse");
@@ -167,6 +195,7 @@ emitKotlin(PricingBreakdownRequestSchema, "PricingBreakdownRequest");
 emitKotlin(PricingBreakdownResponseSchema, "PricingBreakdownResponse");
 emitKotlin(ProfileResponseSchema, "ProfileResponse");
 emitKotlin(ProfilePatchSchema, "ProfilePatch");
+emitKotlin(PricedBreakdownSchema, "PricedBreakdown");
 
 
 emitKotlin(DecideRequestSchema, "DecideRequest");

@@ -39,34 +39,85 @@ export declare const DecisionAlternativeSchema: z.ZodObject<{
     reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
     expectedNetGbp?: number | null | undefined;
 }>;
-export declare const DecisionEconomicsSchema: z.ZodObject<{
+/**
+ * v0.2.0 (BREAKING): the three figures that CONTAIN the seller's fee are nullable, and a null fee
+ * carries its reason.
+ *
+ * `feeGbp` was `z.number()`, so a seller who had never said whether they are private or a business
+ * was costed as a private seller (fee £0) and shown a net that was wrong in the optimistic
+ * direction. Ben's ruling (owner.DESIGN-REVIEW-2026-10, round 2, item 1) is that nothing assumes a
+ * private seller; this is the contract half of it.
+ *
+ * The fee position is ONE fact, so it moves as one:
+ *   `feeGbp`, `taxProvisionGbp` and `expectedNetGbp` are all null together, with `feeNotSetReason`
+ *   set; or all three are numbers, with `feeNotSetReason` null. `taxProvisionGbp` is tax on the
+ *   profit and `expectedNetGbp` is the profit, so with an unknown fee both are unknown too — a
+ *   number there would be a guess wearing a figure. Enforced by the refinement below (a SERVER-SIDE
+ *   guard: the generated Swift/Kotlin types cannot express it, see CHANGELOG v0.2.0).
+ *
+ * `postageGbp` and `packagingGbp` stay numbers: neither depends on seller type.
+ *
+ * Why not a discriminated union (`z.discriminatedUnion("feeState", ...)`) when the generators now
+ * emit them (v0.1.45)? Because it would change `DecisionEconomics` from a struct into an enum on
+ * both platforms: every `decision.economics.postageGbp` read would become a `switch`. The ruling is
+ * "a `Double` becomes a `Double?`", which is a one-token fix per site; a union is a rewrite of every
+ * site that reads a field which did not change.
+ */
+export declare const DecisionEconomicsSchema: z.ZodEffects<z.ZodObject<{
     marketValueGbp: z.ZodNumber;
-    /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-    feeGbp: z.ZodNumber;
+    /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+     *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+     *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+    feeGbp: z.ZodNullable<z.ZodNumber>;
+    /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+    feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
     postageGbp: z.ZodNumber;
     packagingGbp: z.ZodNumber;
     /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
      *  free acquisition inflates every net figure on the screen people scan with. */
     costBasisGbp: z.ZodNullable<z.ZodNumber>;
-    taxProvisionGbp: z.ZodNumber;
-    expectedNetGbp: z.ZodNumber;
+    /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+    taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+    /** Null with `feeGbp` (the profit includes the fee). */
+    expectedNetGbp: z.ZodNullable<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     marketValueGbp: number;
-    expectedNetGbp: number;
-    feeGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
-    taxProvisionGbp: number;
+    taxProvisionGbp: number | null;
 }, {
     marketValueGbp: number;
-    expectedNetGbp: number;
-    feeGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
-    taxProvisionGbp: number;
+    taxProvisionGbp: number | null;
+}>, {
+    marketValueGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
+    postageGbp: number;
+    packagingGbp: number;
+    costBasisGbp: number | null;
+    taxProvisionGbp: number | null;
+}, {
+    marketValueGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
+    postageGbp: number;
+    packagingGbp: number;
+    costBasisGbp: number | null;
+    taxProvisionGbp: number | null;
 }>;
+export type DecisionEconomics = z.infer<typeof DecisionEconomicsSchema>;
 /**
  * What the engine had to fill in for itself, because the seller had not said.
  *
@@ -108,7 +159,46 @@ export declare const DecisionAssumptionSchema: z.ZodObject<{
     valueGbp?: number | null | undefined;
 }>;
 export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
-export declare const DecisionSchema: z.ZodObject<{
+/**
+ * WHY `Decision.maxBuyGbp` is null (v0.2.0). A null most-to-pay ALWAYS carries one of these; a number
+ * never does (enforced on `DecisionSchema` below).
+ *
+ * "Most to pay" is the one number a seller acts on at a card-show table, and a wrong one costs them
+ * money in the direction they cannot see. Before v0.2.0 the contract could only say "a number", so
+ * every case below was answered with a figure — an asking price dressed as a valuation, a 25%
+ * margin the seller never chose, a private-seller fee nobody had confirmed. Each value is a
+ * distinct thing the SELLER (or the data) can fix, taken from the plans named beside it:
+ *
+ *  - `margin_not_set`       the seller has not chosen a buying margin. There is NO fallback to the
+ *                           selling floor (`minProfitPct`) any more.            PLAN-MOST-TO-PAY #224 §2, §5
+ *  - `seller_type_not_set`  fee position unknown: never answered "private or business?". Mirrors
+ *                           `FeeNotSetReason`; most-to-pay is withheld because the formula subtracts
+ *                           the fee.                                            PLAN-SELLER-TYPE-FIRST-ASK #230 §3
+ *  - `vat_not_set`          business, VAT question unanswered. Mirrors `FeeNotSetReason`. #230 §2
+ *  - `asking_price_only`    the only price is the listing's ASKING price (`basis === "ask_only"`).
+ *                           A most-to-pay derived from someone else's ask is circular.   #224 §7
+ *  - `no_price`             no usable market value at all. Reserved for a Decision that is returned
+ *                           without one; today the routes answer this with `decisionUnavailable:
+ *                           "no_market_value"` instead of a Decision, so this is a documented
+ *                           reservation, NOT a state the server is known to emit.         #224 §7
+ *  - `not_viable`           costs plus the margin cannot be covered at any price (margin >= 100% of
+ *                           the sale, or the formula has no positive solution). Distinct from "£0":
+ *                           £0 is a number the seller can pay, this is "do not buy at any price".  #224 §3, §7
+ *
+ * NOT in this list, on purpose: `game_not_available`. PLAN-POKEMON-ONLY-BETA-GATE answers a coming
+ * game with `422 game_coming` / `game_not_available` — an HTTP refusal, not a Decision — so a
+ * Decision never exists for it and the value would be dead.
+ *
+ * WHICH ONE when several apply is the server's call; the recommended precedence is the order the
+ * seller would be asked: no_price, asking_price_only, seller_type_not_set, vat_not_set,
+ * margin_not_set, not_viable. The full set lives in `PricedBreakdown.notSet`.
+ *
+ * Open to additions (ADR 0027): Swift decodes an unknown reason to `.unrecognised(raw)`, Kotlin to
+ * `Unknown(raw)`. A client must treat an unrecognised reason as "no most-to-pay", never as a number.
+ */
+export declare const MaxBuyUnavailableReasonSchema: z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>;
+export type MaxBuyUnavailableReason = z.infer<typeof MaxBuyUnavailableReasonSchema>;
+export declare const DecisionSchema: z.ZodEffects<z.ZodObject<{
     route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
     reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
     alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -138,42 +228,85 @@ export declare const DecisionSchema: z.ZodObject<{
     }>, "many">>;
     confidence: z.ZodEnum<["high", "medium", "low"]>;
     liquidity: z.ZodEnum<["high", "medium", "low"]>;
-    economics: z.ZodObject<{
+    economics: z.ZodEffects<z.ZodObject<{
         marketValueGbp: z.ZodNumber;
-        /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-        feeGbp: z.ZodNumber;
+        /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+         *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+         *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+        feeGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+        feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
         postageGbp: z.ZodNumber;
         packagingGbp: z.ZodNumber;
         /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
          *  free acquisition inflates every net figure on the screen people scan with. */
         costBasisGbp: z.ZodNullable<z.ZodNumber>;
-        taxProvisionGbp: z.ZodNumber;
-        expectedNetGbp: z.ZodNumber;
+        /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+        taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+        /** Null with `feeGbp` (the profit includes the fee). */
+        expectedNetGbp: z.ZodNullable<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     }, {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
+    }>, {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    }, {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
     }>;
-    /** ACQUISITION: the most the seller should PAY for this card. */
-    maxBuyGbp: z.ZodNumber;
+    /**
+     * ACQUISITION: the most the seller should PAY for this card.
+     *
+     * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
+     * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+     * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+     * the reason ("Set your buying margin", "Not set"), never a figure.
+     */
+    maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+    /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+     *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+    maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
     /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
      *  floor, the auction start price (a start price is a free reserve), and the
-     *  "this shouldn't be an auction" test against the top realised comp. */
-    minAcceptGbp: z.ZodNumber;
-    /** `maxBuyGbp` as a % of market value, to one decimal place. */
-    offerPctAtMax: z.ZodNumber;
+     *  "this shouldn't be an auction" test against the top realised comp.
+     *
+     *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+     *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+     *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+     *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+     *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+    minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+    /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+     *  `maxBuyGbp` is null (a percentage of nothing). */
+    offerPctAtMax: z.ZodNullable<z.ZodNumber>;
     /**
      * True when the decision was made without complete information — an offline client with no
      * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -216,12 +349,13 @@ export declare const DecisionSchema: z.ZodObject<{
     }[];
     economics: {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     };
     assumptions: {
         value: string | null;
@@ -229,9 +363,10 @@ export declare const DecisionSchema: z.ZodObject<{
         valueGbp?: number | null | undefined;
     }[];
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-    maxBuyGbp: number;
-    minAcceptGbp: number;
-    offerPctAtMax: number;
+    maxBuyGbp: number | null;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
     degraded: boolean;
     degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
 }, {
@@ -240,17 +375,81 @@ export declare const DecisionSchema: z.ZodObject<{
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     economics: {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     };
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-    maxBuyGbp: number;
-    minAcceptGbp: number;
-    offerPctAtMax: number;
+    maxBuyGbp: number | null;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
+    degraded: boolean;
+    alternatives?: {
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
+    }[] | undefined;
+    assumptions?: {
+        value: string | null;
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }[] | undefined;
+    degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+}>, {
+    confidence: "high" | "medium" | "low";
+    liquidity: "high" | "medium" | "low";
+    route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+    alternatives: {
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
+    }[];
+    economics: {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    };
+    assumptions: {
+        value: string | null;
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }[];
+    reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+    maxBuyGbp: number | null;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
+    degraded: boolean;
+    degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+}, {
+    confidence: "high" | "medium" | "low";
+    liquidity: "high" | "medium" | "low";
+    route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+    economics: {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    };
+    reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+    maxBuyGbp: number | null;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
     degraded: boolean;
     alternatives?: {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -410,7 +609,7 @@ export declare const DecideRequestSchema: z.ZodObject<{
 }>;
 export type DecideRequest = z.infer<typeof DecideRequestSchema>;
 export declare const DecideResponseSchema: z.ZodObject<{
-    decision: z.ZodObject<{
+    decision: z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -440,42 +639,85 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
+         * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -518,12 +760,13 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -531,9 +774,10 @@ export declare const DecideResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -542,17 +786,81 @@ export declare const DecideResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -620,12 +928,13 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -633,9 +942,10 @@ export declare const DecideResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     };
@@ -660,17 +970,19 @@ export declare const DecideResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -853,7 +1165,7 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
      * decision: a decision computed from a value we do not have is a guess wearing a number. One
      * unpriceable card does not fail the batch.
      */
-    decision: z.ZodNullable<z.ZodObject<{
+    decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -883,42 +1195,85 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
+         * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -961,12 +1316,13 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -974,9 +1330,10 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -985,17 +1342,81 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1039,12 +1460,13 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1052,9 +1474,10 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     } | null;
@@ -1072,17 +1495,19 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1112,7 +1537,7 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
          * decision: a decision computed from a value we do not have is a guess wearing a number. One
          * unpriceable card does not fail the batch.
          */
-        decision: z.ZodNullable<z.ZodObject<{
+        decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
             route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
             reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
             alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -1142,42 +1567,85 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }>, "many">>;
             confidence: z.ZodEnum<["high", "medium", "low"]>;
             liquidity: z.ZodEnum<["high", "medium", "low"]>;
-            economics: z.ZodObject<{
+            economics: z.ZodEffects<z.ZodObject<{
                 marketValueGbp: z.ZodNumber;
-                /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-                feeGbp: z.ZodNumber;
+                /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+                 *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+                 *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+                feeGbp: z.ZodNullable<z.ZodNumber>;
+                /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+                feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
                 postageGbp: z.ZodNumber;
                 packagingGbp: z.ZodNumber;
                 /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
                  *  free acquisition inflates every net figure on the screen people scan with. */
                 costBasisGbp: z.ZodNullable<z.ZodNumber>;
-                taxProvisionGbp: z.ZodNumber;
-                expectedNetGbp: z.ZodNumber;
+                /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+                taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+                /** Null with `feeGbp` (the profit includes the fee). */
+                expectedNetGbp: z.ZodNullable<z.ZodNumber>;
             }, "strip", z.ZodTypeAny, {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             }, {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
+            }>, {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            }, {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
             }>;
-            /** ACQUISITION: the most the seller should PAY for this card. */
-            maxBuyGbp: z.ZodNumber;
+            /**
+             * ACQUISITION: the most the seller should PAY for this card.
+             *
+             * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
+             * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+             * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+             * the reason ("Set your buying margin", "Not set"), never a figure.
+             */
+            maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+             *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+            maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
             /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
              *  floor, the auction start price (a start price is a free reserve), and the
-             *  "this shouldn't be an auction" test against the top realised comp. */
-            minAcceptGbp: z.ZodNumber;
-            /** `maxBuyGbp` as a % of market value, to one decimal place. */
-            offerPctAtMax: z.ZodNumber;
+             *  "this shouldn't be an auction" test against the top realised comp.
+             *
+             *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+             *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+             *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+             *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+             *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+            minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+            /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+             *  `maxBuyGbp` is null (a percentage of nothing). */
+            offerPctAtMax: z.ZodNullable<z.ZodNumber>;
             /**
              * True when the decision was made without complete information — an offline client with no
              * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -1220,12 +1688,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1233,9 +1702,10 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
         }, {
@@ -1244,17 +1714,81 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        }>, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        }, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1298,12 +1832,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1311,9 +1846,10 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
         } | null;
@@ -1331,17 +1867,19 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1376,12 +1914,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1389,9 +1928,10 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
         } | null;
@@ -1411,17 +1951,19 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1669,7 +2211,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
      * zeroed money in it, which a client would render as "£0 max buy" rather than "we don't know
      * what this is".
      */
-    decision: z.ZodNullable<z.ZodObject<{
+    decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -1699,42 +2241,85 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
+         * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -1777,12 +2362,13 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1790,9 +2376,10 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -1801,17 +2388,81 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1915,12 +2566,13 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1928,9 +2580,10 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     } | null;
@@ -1968,17 +2621,19 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";

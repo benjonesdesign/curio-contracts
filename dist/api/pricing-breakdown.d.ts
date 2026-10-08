@@ -80,21 +80,46 @@ export declare const PricingBreakdownRequestSchema: z.ZodObject<{
     } | undefined;
 }>;
 export type PricingBreakdownRequest = z.infer<typeof PricingBreakdownRequestSchema>;
-export declare const PricingBreakdownResponseSchema: z.ZodObject<{
+/** Where the market price came from, in the only two classes that matter to a seller. Hoisted
+ *  from the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an
+ *  inline copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`)
+ *  are unchanged. */
+export declare const PriceKindSchema: z.ZodEnum<["realised", "asking"]>;
+export type PriceKind = z.infer<typeof PriceKindSchema>;
+/**
+ * v0.2.0 (BREAKING): every figure that CONTAINS the seller's eBay fee is nullable, together, with
+ * `feeNotSetReason` saying why. They are one fact:
+ *
+ *   `ebayFee`, `grossProfit`, `taxProvision`, `netProfit`, `netMarginPct`, `minViablePrice` and
+ *   `isMarketBelowMin` are all null with a reason, or all present with no reason.
+ *
+ * `minViablePrice` is the price at which net-of-fees clears the seller's margin, and
+ * `isMarketBelowMin` compares the market to it, so both depend on the fee as surely as `netProfit`
+ * does — leaving them numbers would keep the private-seller assumption alive in the two figures a
+ * seller acts on. `packagingCost` and `shippingCost` do not depend on seller type and stay numbers.
+ *
+ * The richer, line-by-line answer is `PricedBreakdown` (./priced-breakdown.ts), which this
+ * endpoint will also carry; these flat fields remain for clients that only want the headline.
+ */
+export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
     purchaseCost: z.ZodNumber;
     marketMedian: z.ZodNumber;
     suggestedPrice: z.ZodNumber;
-    ebayFee: z.ZodNumber;
+    /** Null when the fee position is not set (v0.2.0) — NOT £0, which is a private seller's real fee. */
+    ebayFee: z.ZodNullable<z.ZodNumber>;
+    /** WHY the fee-dependent fields below are null. Null exactly when `ebayFee` is a number. */
+    feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
     packagingCost: z.ZodNumber;
     shippingCost: z.ZodNumber;
-    grossProfit: z.ZodNumber;
-    taxProvision: z.ZodNumber;
-    netProfit: z.ZodNumber;
-    netMarginPct: z.ZodNumber;
+    grossProfit: z.ZodNullable<z.ZodNumber>;
+    taxProvision: z.ZodNullable<z.ZodNumber>;
+    netProfit: z.ZodNullable<z.ZodNumber>;
+    netMarginPct: z.ZodNullable<z.ZodNumber>;
     /** Spec 06 §4 — the floor below which the app should show a "below your minimum — consider
-     * bundling" warning. */
-    minViablePrice: z.ZodNumber;
-    isMarketBelowMin: z.ZodBoolean;
+     * bundling" warning. Null with the fee (v0.2.0). */
+    minViablePrice: z.ZodNullable<z.ZodNumber>;
+    /** Null with the fee (v0.2.0): the comparison needs `minViablePrice`. */
+    isMarketBelowMin: z.ZodNullable<z.ZodBoolean>;
     warningMsg: z.ZodNullable<z.ZodString>;
     /** Spec 06 §6's machine-readable price provenance. "realised" only for a confirmed UK-sold
      * source (today: ebay-uk-sold) — every other source (cross-region reference prices, asking
@@ -108,14 +133,15 @@ export declare const PricingBreakdownResponseSchema: z.ZodObject<{
     suggestedPrice: number;
     packagingCost: number;
     shippingCost: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
     marketMedian: number;
-    ebayFee: number;
-    grossProfit: number;
-    taxProvision: number;
-    netProfit: number;
-    netMarginPct: number;
-    minViablePrice: number;
-    isMarketBelowMin: boolean;
+    ebayFee: number | null;
+    grossProfit: number | null;
+    taxProvision: number | null;
+    netProfit: number | null;
+    netMarginPct: number | null;
+    minViablePrice: number | null;
+    isMarketBelowMin: boolean | null;
     warningMsg: string | null;
     priceKind: "realised" | "asking";
 }, {
@@ -123,14 +149,47 @@ export declare const PricingBreakdownResponseSchema: z.ZodObject<{
     suggestedPrice: number;
     packagingCost: number;
     shippingCost: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
     marketMedian: number;
-    ebayFee: number;
-    grossProfit: number;
-    taxProvision: number;
-    netProfit: number;
-    netMarginPct: number;
-    minViablePrice: number;
-    isMarketBelowMin: boolean;
+    ebayFee: number | null;
+    grossProfit: number | null;
+    taxProvision: number | null;
+    netProfit: number | null;
+    netMarginPct: number | null;
+    minViablePrice: number | null;
+    isMarketBelowMin: boolean | null;
+    warningMsg: string | null;
+    priceKind: "realised" | "asking";
+}>, {
+    purchaseCost: number;
+    suggestedPrice: number;
+    packagingCost: number;
+    shippingCost: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    marketMedian: number;
+    ebayFee: number | null;
+    grossProfit: number | null;
+    taxProvision: number | null;
+    netProfit: number | null;
+    netMarginPct: number | null;
+    minViablePrice: number | null;
+    isMarketBelowMin: boolean | null;
+    warningMsg: string | null;
+    priceKind: "realised" | "asking";
+}, {
+    purchaseCost: number;
+    suggestedPrice: number;
+    packagingCost: number;
+    shippingCost: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    marketMedian: number;
+    ebayFee: number | null;
+    grossProfit: number | null;
+    taxProvision: number | null;
+    netProfit: number | null;
+    netMarginPct: number | null;
+    minViablePrice: number | null;
+    isMarketBelowMin: boolean | null;
     warningMsg: string | null;
     priceKind: "realised" | "asking";
 }>;

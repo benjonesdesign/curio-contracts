@@ -1,5 +1,160 @@
 # Changelog
 
+## v0.2.0 — BREAKING: most to pay and the fee position are nullable, and a null always says why
+
+**Untagged.** The version is bumped in `package.json` / `package-lock.json`; Ben tags. Rulings:
+`LANE-REPORTS/owner.DESIGN-REVIEW-2026-10.md` "Rulings, round 2", item 1 — *"the breaking change
+now, once: contracts v0.2.0 with a nullable most to pay and nullable fee position, adopted in
+lockstep by web, iOS and Android before the server sends a null"* — and the same document's dropping
+of #224's Option A (so there is **no** `acceptsMaxBuyVerdict` request flag and no `Decision.maxBuy`
+object; the field stays flat and becomes nullable). Plans drawn on: PLAN-MOST-TO-PAY-SHARE-OF-SALE
+(#224), PLAN-SELLER-TYPE-FIRST-ASK (#230), PLAN-GAP-032-036 (#218), PLAN-GAP-012-025 (#220),
+PLAN-POSTAGE-FUNCTION (#229, read for the `postage` line only).
+
+### Why
+
+Until now the contract could not say "we do not know". `profiles.seller_type` is `not null default
+'private'`, the buying margin falls back to the SELLING floor, and an asking price is accepted as a
+valuation — so "never asked" and "answered private" were the same row, and the most-to-pay a seller
+acts on at a table was a number in every case. A nullable alone would be the conflated-null shape
+(decisions/0024) again, so **a null always carries a reason, and a number never does.**
+
+### The wire change (what the server will send, once switched)
+
+| Field | Before | After |
+|---|---|---|
+| `Decision.maxBuyGbp` | `number` | `number \| null` |
+| `Decision.maxBuyUnavailableReason` | — | `"margin_not_set" \| "seller_type_not_set" \| "vat_not_set" \| "asking_price_only" \| "no_price" \| "not_viable" \| null` (required key) |
+| `Decision.minAcceptGbp` | `number` | `number \| null` (null exactly when `economics.feeGbp` is null) |
+| `Decision.offerPctAtMax` | `number` | `number \| null` (null exactly when `maxBuyGbp` is null) |
+| `Decision.economics.feeGbp` | `number` | `number \| null` |
+| `Decision.economics.feeNotSetReason` | — | `"seller_type_not_set" \| "vat_not_set" \| null` (required key) |
+| `Decision.economics.taxProvisionGbp`, `.expectedNetGbp` | `number` | `number \| null` (null with `feeGbp`) |
+| `CardValueEconomics.feeRate`, `.feeFixed` | `number` | `number \| null` (together) |
+| `CardValueEconomics.feeNotSetReason` | — | `FeeNotSetReason \| null` (required key) |
+| `CardValueEconomics.sellerType`, `.vatRegistered` | `string`, `boolean` | `string \| null`, `boolean \| null` |
+| `PricingBreakdownResponse.ebayFee`, `.grossProfit`, `.taxProvision`, `.netProfit`, `.netMarginPct`, `.minViablePrice` | `number` | `number \| null` (all together) |
+| `PricingBreakdownResponse.isMarketBelowMin` | `boolean` | `boolean \| null` |
+| `PricingBreakdownResponse.feeNotSetReason` | — | `FeeNotSetReason \| null` (required key) |
+| `Profile.sellerType` | `SellerType` | `SellerType \| null` |
+| `Profile.effectivePricingSettings` | `PricingSettings` | `EffectivePricingSettings` (`ebayFeeRate`/`ebayFeeFixed` nullable) |
+
+Added to `Profile` (all required keys, nullable): `sellerTypeConfirmedAt`, `suggestedSellerType`,
+`vatRegistered`, `vatConfirmedAt`, `feeNotSetReason`, `buyingTargetMarginPct`,
+`buyingTargetMarginSetAt`, `buyingTaxRate`, `buyingTaxRateSetAt`. Added to `ProfilePatch` (optional):
+`vatRegistered`, `buyingTargetMarginPct`, `buyingTaxRate`.
+
+**New schemas, additive:** `FeeNotSetReason`, `MaxBuyUnavailableReason`, `EffectivePricingSettings`,
+and the shared `PricedBreakdown` family (`src/api/priced-breakdown.ts`: `PricedBreakdown`,
+`PricedLine`, `PricedLineSource`, `PricedLineEditKey`, `PricedBreakdownMode`, `PricedTotals`,
+`PricedCompare`, `PricedChannel`, `FeeBasis`, `PricedFeePosition`, `PricedNotSet`, `PricedPrice`).
+`PricedBreakdown` is declared and generated but **not yet attached to any response** — see its file
+header for the endpoints that will carry it and why attaching is left out.
+
+**Not changed:** `RouteEconomics` (`/api/recommend`, retiring) was already nullable and gets no
+reason; `PricingSettings` stays a request body with a non-null fee; `DecideRequest.targetMarginPct`
+keeps its name and its "% of what they pay" doc comment (#224 Decision 2, whether the field changes
+meaning, is NOT in Ben's round-2 ruling); `postage_rules` (#229) and the SKU shape (#227) are not
+here; `Decision.economics.postageGbp`/`packagingGbp` stay numbers (neither depends on seller type).
+
+### The invariants (a SERVER-side guard — read this before relying on the generated types)
+
+Two sibling fields plus a Zod `superRefine`, **not** a discriminated union, although the generators
+have emitted `z.discriminatedUnion` since v0.1.45. A union at `Decision` level would turn `Decision`
+into a Swift `enum` / Kotlin sealed type, so every `decision.route` read would become a `switch`; the
+ruling is a `Double` becoming a `Double?`, a one-token fix per site. The cost: **the rule lives only
+in TypeScript.** Swift's and Kotlin's `Decision` can be constructed with a null `maxBuyGbp` and a
+null reason. The producer (web's `buildDecision`, which parses its own response with
+`DecideResponseSchema`) is the only party that enforces them, which is why they are tested here:
+
+1. `maxBuyGbp` null ⇔ `maxBuyUnavailableReason` set. 2. `offerPctAtMax` null ⇔ `maxBuyGbp` null.
+3. `feeGbp` null ⇔ `feeNotSetReason` set; `taxProvisionGbp` and `expectedNetGbp` are null with it.
+4. `minAcceptGbp` null ⇔ `feeGbp` null. 5. `feeGbp` null ⇒ `maxBuyGbp` null. 6. A fee-position
+`maxBuyUnavailableReason` equals `economics.feeNotSetReason`. The same pattern holds on
+`CardValueEconomics`, `PricingBreakdownResponse` and `Profile` (a value and its confirmation time are
+one fact; the effective fee is null exactly when `feeNotSetReason` is set).
+
+Two things in that list are judgement calls beyond the letter of the ruling, made because the ruling
+is "once": **`minAcceptGbp`** is the Best Offer auto-decline floor and the auction start price, and it
+contains the fee — computed with an assumed £0 private-seller fee it is *lower* than a business
+seller's true floor, so it would accept offers that lose money; and **`taxProvisionGbp` /
+`expectedNetGbp`** contain the fee by construction. Leaving them numbers would keep the private-seller
+assumption alive in the figures beside the null.
+
+### Source-breaking, per platform — what each must change
+
+**TypeScript (web).** `Decision['maxBuyGbp' | 'minAcceptGbp' | 'offerPctAtMax']` and
+`DecisionEconomics['feeGbp' | 'taxProvisionGbp' | 'expectedNetGbp']` become `number | null`;
+`maxBuyUnavailableReason` and `feeNotSetReason` are new REQUIRED keys, so `buildDecision`'s object
+literal fails `tsc` until it supplies them (`null` while the switch is off). `DecisionSchema`,
+`DecisionEconomicsSchema`, `CardValueEconomicsSchema`, `PricingBreakdownResponseSchema`,
+`ProfileSchema` and `EffectivePricingSettingsSchema` are now `ZodEffects`, so `.shape`, `.extend`,
+`.pick`, `.omit` and `.partial` no longer exist on them (the web repo uses none; checked by grep).
+
+**Swift (iOS).** `Double` → `Double?` on `Decision.maxBuyGbp`, `.minAcceptGbp`, `.offerPctAtMax`,
+`DecisionEconomics.feeGbp`, `.taxProvisionGbp`, `.expectedNetGbp`, `CardValueEconomics.feeRate`,
+`.feeFixed`, and the six `PricingBreakdownResponse` figures; `String`/`Bool` → optional on
+`CardValueEconomics.sellerType`/`.vatRegistered` and `PricingBreakdownResponse.isMarketBelowMin`;
+`ProfileResponse.sellerType` → `SellerType?`, and `effectivePricingSettings` changes TYPE
+(`PricingSettings` → `EffectivePricingSettings`). Every memberwise `init` gains the new parameters, so
+test fixtures that construct these types break. `MaxBuyUnavailableReason` and `FeeNotSetReason` are
+forward-compatible enums: an exhaustive `switch` needs the `.unrecognised(String)` case, and a client
+must read an unrecognised reason as "no figure", never as a number. Synthesised `Codable` decodes a
+null or an absent key to `nil`.
+
+**Kotlin (Android).** The same fields `Double` → `Double?` (`= null`); `MaxBuyUnavailableReason` and
+`FeeNotSetReason` are sealed interfaces, so a `when` needs the `Unknown` branch. `MoneyRow(…,
+decision.maxBuyGbp)` style call sites take a nullable.
+
+**An old client breaks on the first null.** A pinned v0.1.45 Swift/Kotlin `Decision` decodes
+`maxBuyGbp` as a non-optional `Double`; a JSON `null` there is a `DecodingError.valueNotFound` /
+`SerializationException` for the **whole** `Decision`, not the field (demonstrated in this release's
+mutation check: with `maxBuyGbp` reverted to non-null, the new Swift and Kotlin tests fail on exactly
+that). iOS's `decide`/`decideFull` return `nil` on a decode failure (`SupabaseService.swift:1312-1319`), so
+the card lookup falls to "No recommendation available" (`CurioCaptureApp.swift:1179`). This is the entire reason for the sequence below.
+
+### The lockstep sequence (Ben, round 2)
+
+1. **Contracts:** merge this; Ben tags `v0.2.0`.
+2. **Web:** bump the pin and compile. The server keeps sending **numbers** — every nullable field
+   non-null, `maxBuyUnavailableReason: null`, `feeNotSetReason: null`. This is safe for every
+   installed client: the two new keys are ignored (Swift `JSONDecoder` and the Android `Json` configs
+   use `ignoreUnknownKeys`).
+3. **iOS and Android:** bump the pin, adopt (render the reason, never a figure), ship.
+4. **Only when all three have adopted** does the server send a null — a **server-side switch**, not
+   a contract change. Per-request gating is not available (Option A's flag is dropped), so the
+   switch is global; see `docs/V0.2.0-ADOPTION.md` "The switch" for what "adopted" has to mean given
+   that an installed older build breaks on the first null.
+
+Per-platform checklists with file and line citations: **`docs/V0.2.0-ADOPTION.md`**. A client still
+on v0.1.45 also inherits the source-breaking v0.1.46–v0.1.49 changes in one jump (renames, the
+eighteen-arm error union, the tier rename); those are in the entries below.
+
+### Generator change (internal, but it is why `DecisionEconomics` is not called `Economics2`)
+
+`zod-to-swift.ts` / `zod-to-kotlin.ts` handled `ZodEffects` (a `.refine`/`.superRefine`) by unwrapping
+it, which was enough while the only refinements sat on number fields. A cross-field rule on an
+exported OBJECT schema exposed two defects: the name registered on the wrapper was ignored (the
+inner object was named from the *field* — `Economics`, taken, so `Economics2`), and the wrapper was
+never recorded as visited, so `assert-coverage` reported the exported schema as never emitted. Both
+fixed; tests in `scripts/zod-to-{swift,kotlin}.test.ts`.
+
+### Verification
+
+`npm run build`, `npm run check` (no drift), `npx vitest run` (257), `swift build` and `swift test`
+(18, including the new `NullableMostToPayTests`), `./gradlew test --offline` (31, including three new
+`DecideRoundTripTest` cases). No digit-suffixed generated type name was introduced
+(`generated-names.test.ts` unchanged and green).
+
+**Mutation check (2026-10-08).** 33 mutations, each disabling one guard or reverting one field to
+its pre-v0.2.0 shape, run against the owning test file; every one went red in the named test(s) and
+all are green against current. The one that first survived (making `maxBuyUnavailableReason`
+`.optional()`) exposed a test that was passing for the wrong reason (the refinement happened to
+reject `undefined` on the number path); it now also omits the key on the null path. Separately, with
+`maxBuyGbp` reverted to non-null and the outputs regenerated, the Swift test
+`testNullMostToPayAndFeeDecodeWithTheirReasons` fails with `valueNotFound ... Path: maxBuyGbp`, and
+three Kotlin tests fail.
+
 ## v0.1.49 — tier rename: free/starter/growth/pro → free/collector/pro/dealer
 
 Pricing model v1 (`website/PRICING-STRATEGY.md`). `EntitlementTierSchema` is now

@@ -7,7 +7,7 @@
 // field at all, because /api/quick-scan's own local interface dropped it before building its
 // response. A disclosure that reaches one platform is not a disclosure.
 import { z } from "zod";
-import { ConfidenceSchema } from "./common.js";
+import { ConfidenceSchema, FeeNotSetReasonSchema } from "./common.js";
 
 /**
  * What a price CANNOT distinguish. Null for almost every card.
@@ -65,16 +65,42 @@ export const PriceBandSchema = z.object({
  *  `Economics2` for this one, which is how two unrelated concepts came to look like a versioned
  *  pair. Named, not suffixed. */
 export const CardValueEconomicsSchema = z.object({
-    feeRate: z.number(),
-    feeFixed: z.number(),
+    /** v0.2.0 (BREAKING): null when the fee position is not set — see `feeNotSetReason`. NOT 0:
+     *  a client that computes `netRevenue` from these coefficients (installed iOS does) and reads
+     *  a missing rate as 0 is back to costing every seller as private. Null `feeRate` and null
+     *  `feeFixed` travel together, and so does the reason. */
+    feeRate: z.number().nullable(),
+    feeFixed: z.number().nullable(),
+    /** WHY `feeRate`/`feeFixed` are null. Null exactly when they are numbers. A seller-set fee
+     *  override is a stated cost, so it yields numbers (feeBasis "seller_override") even with the
+     *  seller type unset. */
+    feeNotSetReason: FeeNotSetReasonSchema.nullable(),
     postage: z.number(),
     packaging: z.number(),
     taxRate: z.number(),
-    sellerType: z.string(),
-    vatRegistered: z.boolean(),
-    /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
-     *  response stops being a set of unattributed constants. */
+    /** v0.2.0 (BREAKING): null until the seller has answered "private or business?". Was a
+     *  string that read "private" for a seller who had never been asked. */
+    sellerType: z.string().nullable(),
+    /** v0.2.0 (BREAKING): null until answered (only asked of business sellers) or when the seller
+     *  type is itself not set. A confirmed private seller still reads `false`, as before. */
+    vatRegistered: z.boolean().nullable(),
+    /** "seller_override" | "derived_from_seller_type" | "not_set" — WHY the numbers are what they
+     *  are, so the response stops being a set of unattributed constants. "not_set" is new in
+     *  v0.2.0 and means exactly `feeNotSetReason !== null`. Still an open string (ADR 0027). */
     feeBasis: z.string(),
+}).superRefine((e, ctx) => {
+  const rateNull = e.feeRate === null;
+  const reasonSet = e.feeNotSetReason !== null;
+  if (rateNull !== (e.feeFixed === null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["feeFixed"],
+      message: "feeRate and feeFixed are one fee: both null or both numbers" });
+  }
+  if (rateNull !== reasonSet) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["feeNotSetReason"],
+      message: rateNull
+        ? "feeRate is null, so feeNotSetReason is required: a null fee must say why it is null"
+        : "feeNotSetReason is set but feeRate is a number: a fee that is known has no reason to be missing" });
+  }
 });
 export type CardValueEconomics = z.infer<typeof CardValueEconomicsSchema>;
 
