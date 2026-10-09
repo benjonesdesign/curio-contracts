@@ -16,13 +16,15 @@
 // 200 once the request is understood; a failed read is 503 with nothing written. Nothing is reported
 // `changed` unless the row came back from the write. Undo is the same call the other way round.
 //
-// ── A SEPARATE ENUM FROM ListingRefusalReason, WITH THREE SHARED WIRE STRINGS ────────────────
+// ── SEPARATE FROM ListingRefusalReason: ITS OWN ENUM, MEANING AND LABEL GROUP ────────────────
 // `ListingRefusalReason` answers "why can this copy not be LISTED". `InventoryChangeRefusalReason`
 // answers "why was this copy not CHANGED (marked Mine / set aside / put back)". Different
-// questions with different remedies and wording, so two enums. They REUSE the same wire strings
-// where the state is the same: `sold`, `archived` and `set_aside` mean the same thing in both. A
-// live copy is the one pair that differs in name (`already_live` there, `live_on_ebay` here: "End
-// the listing first. It's live on eBay."). A client may share its label for a shared string. Both
+// questions with different remedies and wording, so two enums, and the wire strings may COINCIDE
+// (`sold`, `archived`, `set_aside` appear in both) without the enums, meanings or labels being the
+// same. The labels come from @curio/copy's `changeRefusalReasonLabels` (this enum) and
+// `listingRefusalReasonLabels` / `listingRefusalShortLabels` (the listing one); a client never maps
+// one enum's value through the other's labels. A live copy is named differently in each
+// (`already_live` there, `live_on_ebay` here: "End the listing first. It's live on eBay."). Both
 // are closed and forward-compatible.
 //
 // ── VALUE TOTALS (Ben, 2026-10-09; supersedes the earlier "held out of totals" note) ─────────

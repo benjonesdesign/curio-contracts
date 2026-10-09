@@ -388,6 +388,8 @@ final class BreakdownAndRefusalTests: XCTestCase {
             let r = try decode(ListingRefusal.self, "{\"error\":\"x\",\"code\":\"card_not_listable\",\"reason\":\"\(raw)\"}")
             XCTAssertEqual(r.reason, expected)
         }
-        XCTAssertEqual(try decode(InventoryChangeRefusalReason.self, #""sold""#).rawValue, "sold", "the same wire string in the change enum")
+        // a separate enum: its own `live_on_ebay`, which is not a listing reason
+        XCTAssertEqual(try decode(InventoryChangeRefusalReason.self, #""live_on_ebay""#), .liveOnEbay)
+        guard case .unrecognised = try decode(ListingRefusalReason.self, #""live_on_ebay""#) else { return XCTFail("a change refusal is not a listing reason") }
     }
 }

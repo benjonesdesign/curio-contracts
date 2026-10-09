@@ -29,11 +29,13 @@ import { z } from "zod";
  *                              ATTEMPT on one (C16b, WE2b, E9k). Provisional until design confirms.
  *  - `archived`                the copy is out of the inventory (ARCHIVED or RETURNED). Same screens.
  *
- *    `sold` and `archived` are the SAME wire strings as two values of
- *    `InventoryChangeRefusalReason` (inventory-change.ts), which answers a different question ("why
- *    was this copy not CHANGED: marked Mine, set aside, put back") from its own enum. One string,
- *    one meaning of the state; two enums because the other values differ (`live_on_ebay` there,
- *    `already_live` here). A client may share its label for the two.
+ *    SEPARATE FROM `InventoryChangeRefusalReason` (inventory-change.ts). That enum answers a
+ *    different question ("why was this copy not CHANGED: marked Mine, set aside, put back"). Its
+ *    wire strings may COINCIDE with some of these (`sold`, `archived`, `set_aside`), but the two
+ *    enums, their meanings and their LABEL GROUPS do not: these reasons are labelled from
+ *    @curio/copy's `listingRefusalReasonLabels` (and `listingRefusalShortLabels` for a table cell),
+ *    the change refusals from its own `changeRefusalReasonLabels`. A client never maps one enum's
+ *    value through the other's labels.
  *
  * NOT here, deliberately: `held`. A HELD copy may be listed on purpose (it moves to
  * READY_TO_LIST), so holding is a suggestion rule ("left out of List now"), not a refusal.

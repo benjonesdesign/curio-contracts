@@ -284,6 +284,8 @@ class BreakdownAndRefusalTest {
     fun `sold and archived are listing refusal reasons`() {
         assertEquals(ListingRefusalReason.SOLD, json.decodeFromString<ListingRefusal>("""{"error":"x","code":"card_not_listable","reason":"sold"}""").reason)
         assertEquals(ListingRefusalReason.ARCHIVED, json.decodeFromString<ListingRefusal>("""{"error":"x","code":"card_not_listable","reason":"archived"}""").reason)
-        assertEquals("sold", json.decodeFromString<InventoryChangeRefusalReason>("\"sold\"").rawValue)
+        // a separate enum: its own live_on_ebay, which is not a listing reason
+        assertEquals(InventoryChangeRefusalReason.LIVE_ON_EBAY, json.decodeFromString<InventoryChangeRefusalReason>("\"live_on_ebay\""))
+        assertEquals(ListingRefusalReason.Unknown("live_on_ebay"), json.decodeFromString<ListingRefusalReason>("\"live_on_ebay\""))
     }
 }

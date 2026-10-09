@@ -19,16 +19,29 @@ describe("the one closed list of reasons a copy cannot be listed (v0.2.0)", () =
     expect(ListingRefusalReasonSchema.safeParse("held").success).toBe(false);
   });
 
-  it("has sold and archived (a listing attempt on a sold / archived copy), the SAME wire strings the change refusals use", () => {
+  it("has sold and archived (a listing attempt on a sold / archived copy)", () => {
     for (const reason of ["sold", "archived"]) {
       expect(ListingRefusalReasonSchema.safeParse(reason).success, reason).toBe(true);
       expect(ListingRefusalSchema.safeParse({ error: "x", code: "card_not_listable", reason }).success, reason).toBe(true);
-      expect(InventoryChangeRefusalReasonSchema.options as readonly string[], reason).toContain(reason);
     }
-    // ...but they are separate enums: the change enum's own values are not listing reasons
+  });
+
+  it("keeps the listing and the change refusal enums SEPARATE: own lists, own meanings, no leakage", () => {
+    // The wire strings may coincide (sold, archived, set_aside)...
+    const shared = ListingRefusalReasonSchema.options.filter((v) => (InventoryChangeRefusalReasonSchema.options as readonly string[]).includes(v));
+    expect([...shared].sort()).toEqual(["archived", "set_aside", "sold"]);
+    // ...but each enum's OWN values are not the other's: a change refusal is never a listing reason
     for (const own of ["live_on_ebay", "not_found", "write_failed"]) {
       expect(ListingRefusalReasonSchema.safeParse(own).success, own).toBe(false);
+      expect(InventoryChangeRefusalReasonSchema.safeParse(own).success, own).toBe(true);
     }
+    // ...and a listing reason is never a change refusal
+    for (const own of ["mine", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]) {
+      expect(ListingRefusalReasonSchema.safeParse(own).success, own).toBe(true);
+      expect(InventoryChangeRefusalReasonSchema.safeParse(own).success, own).toBe(false);
+    }
+    // and the change enum's list is pinned on its own, so it cannot drift into the listing one
+    expect([...InventoryChangeRefusalReasonSchema.options]).toEqual(["live_on_ebay", "sold", "archived", "set_aside", "not_found", "write_failed"]);
   });
 
   it("has slab_unverified, and the flat graded_not_verified is NOT a reason or a code (it converts at the server switch)", () => {
