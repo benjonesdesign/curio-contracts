@@ -275,15 +275,15 @@ export declare const EbayPublishErrorSchema: z.ZodDiscriminatedUnion<"code", [z.
 }>, z.ZodObject<{
     code: z.ZodLiteral<"card_not_listable">;
     message: z.ZodString;
-    reason: z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
+    reason: z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived"]>;
 }, "strip", z.ZodTypeAny, {
     code: "card_not_listable";
     message: string;
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
 }, {
     code: "card_not_listable";
     message: string;
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
 }>, z.ZodObject<{
     code: z.ZodLiteral<"game_not_available">;
     message: z.ZodString;
@@ -548,15 +548,15 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
     }>, z.ZodObject<{
         code: z.ZodLiteral<"card_not_listable">;
         message: z.ZodString;
-        reason: z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
+        reason: z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived"]>;
     }, "strip", z.ZodTypeAny, {
         code: "card_not_listable";
         message: string;
-        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
     }, {
         code: "card_not_listable";
         message: string;
-        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
     }>, z.ZodObject<{
         code: z.ZodLiteral<"game_not_available">;
         message: z.ZodString;
@@ -681,7 +681,7 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
     } | {
         code: "card_not_listable";
         message: string;
-        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
     } | {
         game: string | null;
         code: "game_not_available";
@@ -773,7 +773,7 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
     } | {
         code: "card_not_listable";
         message: string;
-        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live";
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived";
     } | {
         game: string | null;
         code: "game_not_available";

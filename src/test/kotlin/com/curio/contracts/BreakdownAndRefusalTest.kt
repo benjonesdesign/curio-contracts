@@ -279,4 +279,11 @@ class BreakdownAndRefusalTest {
         assertEquals(InventoryStatusKey.IDENTIFYING, json.decodeFromString<InventoryStatusKey>("\"identifying\""))
         assertEquals(InventoryStatusKey.Unknown("snoozed"), json.decodeFromString<InventoryStatusKey>("\"snoozed\""))
     }
+
+    @Test
+    fun `sold and archived are listing refusal reasons`() {
+        assertEquals(ListingRefusalReason.SOLD, json.decodeFromString<ListingRefusal>("""{"error":"x","code":"card_not_listable","reason":"sold"}""").reason)
+        assertEquals(ListingRefusalReason.ARCHIVED, json.decodeFromString<ListingRefusal>("""{"error":"x","code":"card_not_listable","reason":"archived"}""").reason)
+        assertEquals("sold", json.decodeFromString<InventoryChangeRefusalReason>("\"sold\"").rawValue)
+    }
 }

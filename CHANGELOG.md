@@ -204,7 +204,7 @@ wire type exists yet, and when one does its cost share uses the LOW END of the a
 
 **5. Status enum.** New closed `PhysicalCardStatus` (the sixteen the web repo writes, plus
 `UNMATCHED` and `HELD`); `PhysicalCard.heldAt` (`held_at`, non-null when HELD). Seller-visible
-labels ("Not identified", "Held by you") are docs only.
+labels ("Not identified", "Held") are docs only.
 
 **6. Tax only when set.** `StoredPricingSettings.taxRate` and `EffectivePricingSettings.taxRate` are
 `number | null` (null = not set, no tax set aside, buying or selling; PATCH `null` clears). The DB
@@ -276,6 +276,15 @@ Verification (round 3): `npm run build` (161/161 schemas), `npm run check` (no d
 the postage basis branches, the default packing minutes, every inventory-change guard, the graded
 guards); the first pass left 2 survivors (a truncating sum and an unisolated basis/source branch),
 each fixed with an isolated test; all red at the end.
+
+### Round 4 addendum (2026-10-09): `sold` and `archived` listing refusals, "Held" wording
+
+Additive, provisional until design confirms. `ListingRefusalReason` gains `sold` and `archived` (a
+listing attempt on a sold / archived copy; C16b, WE2b, E9k), appended, so the ordered list is `mine`,
+`set_aside`, `unmatched`, `slab_unverified`, `condition_not_confirmed`, `no_price`, `no_sku`,
+`game_not_available`, `already_live`, `sold`, `archived`; `slab_unverified` stays.
+`InventoryChangeRefusalReason` keeps its own enum and reuses the same wire strings. HELD's
+seller-visible word is "Held" everywhere in the contract docs ("Held by you" is dropped).
 
 ### Round 4 (2026-10-09, late): Ben's round-3 rulings
 

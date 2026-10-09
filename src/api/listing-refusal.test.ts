@@ -1,21 +1,34 @@
 // MUTATION-CHECKED 2026-10-08 (v0.2.0 listing refusals): see CHANGELOG "Mutation check, round 2".
 
 import { describe, it, expect } from "vitest";
+import { InventoryChangeRefusalReasonSchema } from "./inventory-change.js";
 import {
   ListingRefusalSchema, ListingRefusalReasonSchema, ListingRefusalCodeSchema, LISTING_REFUSAL_HTTP_STATUS,
 } from "./listing-refusal.js";
 
 describe("the one closed list of reasons a copy cannot be listed (v0.2.0)", () => {
-  it("is exactly the nine reasons the plans, the spec, the guards and the slab ruling name", () => {
+  it("is exactly the eleven reasons the plans, the spec, the guards, the slab ruling and the sold/archived attempt name", () => {
     // Pinned as a list on purpose: adding a reason is a lockstep release, and this is the test
     // that makes it a decision rather than an edit.
     expect([...ListingRefusalReasonSchema.options]).toEqual([
-      "mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live",
+      "mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived",
     ]);
   });
 
   it("does NOT include `held`: a held copy may be listed on purpose, so holding is a suggestion rule, not a refusal", () => {
     expect(ListingRefusalReasonSchema.safeParse("held").success).toBe(false);
+  });
+
+  it("has sold and archived (a listing attempt on a sold / archived copy), the SAME wire strings the change refusals use", () => {
+    for (const reason of ["sold", "archived"]) {
+      expect(ListingRefusalReasonSchema.safeParse(reason).success, reason).toBe(true);
+      expect(ListingRefusalSchema.safeParse({ error: "x", code: "card_not_listable", reason }).success, reason).toBe(true);
+      expect(InventoryChangeRefusalReasonSchema.options as readonly string[], reason).toContain(reason);
+    }
+    // ...but they are separate enums: the change enum's own values are not listing reasons
+    for (const own of ["live_on_ebay", "not_found", "write_failed"]) {
+      expect(ListingRefusalReasonSchema.safeParse(own).success, own).toBe(false);
+    }
   });
 
   it("has slab_unverified, and the flat graded_not_verified is NOT a reason or a code (it converts at the server switch)", () => {

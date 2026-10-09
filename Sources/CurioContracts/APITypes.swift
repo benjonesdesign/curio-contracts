@@ -1927,6 +1927,8 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
     case noSku
     case gameNotAvailable
     case alreadyLive
+    case sold
+    case archived
     /// A value this build does not know. Carries the wire value so it round-trips unchanged.
     /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
     case unrecognised(String)
@@ -1942,6 +1944,8 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
         case .noSku: return "no_sku"
         case .gameNotAvailable: return "game_not_available"
         case .alreadyLive: return "already_live"
+        case .sold: return "sold"
+        case .archived: return "archived"
         case .unrecognised(let raw): return raw
         }
     }
@@ -1957,6 +1961,8 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
         case "no_sku": self = .noSku
         case "game_not_available": self = .gameNotAvailable
         case "already_live": self = .alreadyLive
+        case "sold": self = .sold
+        case "archived": self = .archived
         default: self = .unrecognised(rawValue)
         }
     }

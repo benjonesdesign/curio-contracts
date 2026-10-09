@@ -382,4 +382,12 @@ final class BreakdownAndRefusalTests: XCTestCase {
         guard case .unrecognised(let raw) = try decode(InventoryStatusKey.self, #""snoozed""#) else { return XCTFail("expected .unrecognised") }
         XCTAssertEqual(raw, "snoozed")
     }
+
+    func testSoldAndArchivedAreListingRefusalReasons() throws {
+        for (raw, expected) in [("sold", ListingRefusalReason.sold), ("archived", .archived)] {
+            let r = try decode(ListingRefusal.self, "{\"error\":\"x\",\"code\":\"card_not_listable\",\"reason\":\"\(raw)\"}")
+            XCTAssertEqual(r.reason, expected)
+        }
+        XCTAssertEqual(try decode(InventoryChangeRefusalReason.self, #""sold""#).rawValue, "sold", "the same wire string in the change enum")
+    }
 }

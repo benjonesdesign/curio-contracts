@@ -173,7 +173,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
     listable: z.ZodBoolean;
     /** WHY this copy cannot publish; null when it can. The one closed list (listing-refusal.ts).
      *  A client treats an unrecognised reason as "not listable". */
-    refusalReason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>>;
+    refusalReason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived"]>>;
     /** What the seller would receive, line by line, at the requested price/format. NULL when the
      *  server did not price the copy because the refusal is not about the figure (Mine, set aside,
      *  not identified, game not live, already live). A copy refused for `condition_not_confirmed`
@@ -562,7 +562,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         setAsideAt: string | null;
     };
     listable: boolean;
-    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
     belowFloor: boolean | null;
 }, {
     breakdown: {
@@ -627,7 +627,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         setAsideAt: string | null;
     };
     listable: boolean;
-    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
     belowFloor: boolean | null;
 }>, {
     breakdown: {
@@ -692,7 +692,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         setAsideAt: string | null;
     };
     listable: boolean;
-    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
     belowFloor: boolean | null;
 }, {
     breakdown: {
@@ -757,7 +757,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         setAsideAt: string | null;
     };
     listable: boolean;
-    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
     belowFloor: boolean | null;
 }>;
 export type ListingPreviewItem = z.infer<typeof ListingPreviewItemSchema>;
@@ -915,7 +915,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         listable: z.ZodBoolean;
         /** WHY this copy cannot publish; null when it can. The one closed list (listing-refusal.ts).
          *  A client treats an unrecognised reason as "not listable". */
-        refusalReason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>>;
+        refusalReason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived"]>>;
         /** What the seller would receive, line by line, at the requested price/format. NULL when the
          *  server did not price the copy because the refusal is not about the figure (Mine, set aside,
          *  not identified, game not live, already live). A copy refused for `condition_not_confirmed`
@@ -1304,7 +1304,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }, {
         breakdown: {
@@ -1369,7 +1369,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }>, {
         breakdown: {
@@ -1434,7 +1434,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }, {
         breakdown: {
@@ -1499,7 +1499,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }>, "many">;
     /** One entry per distinct request `group`, in first-seen order. Empty when no item named one. */
@@ -1638,7 +1638,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }[];
     totals: {
@@ -1724,7 +1724,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }[];
     totals: {
@@ -1810,7 +1810,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }[];
     totals: {
@@ -1896,7 +1896,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             setAsideAt: string | null;
         };
         listable: boolean;
-        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+        refusalReason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null;
         belowFloor: boolean | null;
     }[];
     totals: {

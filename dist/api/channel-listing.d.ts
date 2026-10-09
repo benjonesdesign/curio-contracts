@@ -34,7 +34,7 @@ export declare const ChannelListingResponseSchema: z.ZodEffects<z.ZodObject<{
     code: z.ZodOptional<z.ZodNullable<z.ZodEnum<["card_not_listable", "game_not_available", "sku_required", "sku_unavailable", "card_read_failed", "card_not_found"]>>>;
     /** v0.2.0. Why, when `code` is `card_not_listable`. The same closed list as every other listing
      *  surface (listing-refusal.ts). */
-    reason: z.ZodOptional<z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>>>;
+    reason: z.ZodOptional<z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live", "sold", "archived"]>>>;
 }, "strip", z.ZodTypeAny, {
     status: "listed" | "failed";
     url: string | null;
@@ -42,7 +42,7 @@ export declare const ChannelListingResponseSchema: z.ZodEffects<z.ZodObject<{
     channelListingId: string | null;
     error?: string | null | undefined;
     code?: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found" | null | undefined;
-    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null | undefined;
+    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null | undefined;
 }, {
     status: "listed" | "failed";
     url: string | null;
@@ -50,7 +50,7 @@ export declare const ChannelListingResponseSchema: z.ZodEffects<z.ZodObject<{
     channelListingId: string | null;
     error?: string | null | undefined;
     code?: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found" | null | undefined;
-    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null | undefined;
+    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null | undefined;
 }>, {
     status: "listed" | "failed";
     url: string | null;
@@ -58,7 +58,7 @@ export declare const ChannelListingResponseSchema: z.ZodEffects<z.ZodObject<{
     channelListingId: string | null;
     error?: string | null | undefined;
     code?: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found" | null | undefined;
-    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null | undefined;
+    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null | undefined;
 }, {
     status: "listed" | "failed";
     url: string | null;
@@ -66,6 +66,6 @@ export declare const ChannelListingResponseSchema: z.ZodEffects<z.ZodObject<{
     channelListingId: string | null;
     error?: string | null | undefined;
     code?: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found" | null | undefined;
-    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null | undefined;
+    reason?: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | "sold" | "archived" | null | undefined;
 }>;
 export type ChannelListingResponse = z.infer<typeof ChannelListingResponseSchema>;

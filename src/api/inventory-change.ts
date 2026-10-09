@@ -16,12 +16,14 @@
 // 200 once the request is understood; a failed read is 503 with nothing written. Nothing is reported
 // `changed` unless the row came back from the write. Undo is the same call the other way round.
 //
-// ── NOT THE SAME VOCABULARY AS ListingRefusalReason ─────────────────────────────────────────
+// ── A SEPARATE ENUM FROM ListingRefusalReason, WITH THREE SHARED WIRE STRINGS ────────────────
 // `ListingRefusalReason` answers "why can this copy not be LISTED". `InventoryChangeRefusalReason`
-// answers "why was this copy not CHANGED (marked Mine / set aside / put back)". They overlap in
-// meaning for one pair (a live copy: `already_live` vs `live_on_ebay`) because they are different
-// questions with different remedies and different wording ("End the listing first. It's live on
-// eBay."). Both are closed and forward-compatible.
+// answers "why was this copy not CHANGED (marked Mine / set aside / put back)". Different
+// questions with different remedies and wording, so two enums. They REUSE the same wire strings
+// where the state is the same: `sold`, `archived` and `set_aside` mean the same thing in both. A
+// live copy is the one pair that differs in name (`already_live` there, `live_on_ebay` here: "End
+// the listing first. It's live on eBay."). A client may share its label for a shared string. Both
+// are closed and forward-compatible.
 //
 // ── VALUE TOTALS (Ben, 2026-10-09; supersedes the earlier "held out of totals" note) ─────────
 // A HELD copy COUNTS in the stock value, and the held part is returned APART (`heldValue`) so a

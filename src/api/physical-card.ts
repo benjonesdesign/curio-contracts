@@ -28,7 +28,7 @@
 //              not a status) and not set aside (EXCEPTION).
 //
 // ── WHAT THE SELLER SEES (docs only; the contract carries codes, never English) ─────────────
-//   UNMATCHED → "Not identified"      HELD → "Held by you"      EXCEPTION → "Set aside"
+//   UNMATCHED → "Not identified"      HELD → "Held"      EXCEPTION → "Set aside"
 //   Mine is NOT a status. A Mine copy is READY_TO_LIST (or similar) with `allocation_channel =
 //   'keep'`; it reaches a client as the refusal reason `mine`, never as a status value.
 //   The label table, and the screens each one appears on, is in docs/V0.2.0-ADOPTION.md.

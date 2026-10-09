@@ -1535,6 +1535,12 @@ public sealed interface ListingRefusalReason {
     public object ALREADY_LIVE : ListingRefusalReason {
         override val rawValue: String get() = "already_live"
     }
+    public object SOLD : ListingRefusalReason {
+        override val rawValue: String get() = "sold"
+    }
+    public object ARCHIVED : ListingRefusalReason {
+        override val rawValue: String get() = "archived"
+    }
 
     /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
     public data class Unknown(override val rawValue: String) : ListingRefusalReason
@@ -1550,6 +1556,8 @@ public sealed interface ListingRefusalReason {
             "no_sku" -> NO_SKU
             "game_not_available" -> GAME_NOT_AVAILABLE
             "already_live" -> ALREADY_LIVE
+            "sold" -> SOLD
+            "archived" -> ARCHIVED
             else -> Unknown(raw)
         }
     }

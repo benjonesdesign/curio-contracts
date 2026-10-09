@@ -34,7 +34,7 @@ import { z } from "zod";
 /**
  * WHY a copy cannot be listed. Closed. Precedence when several apply is the server's call; the
  * recommended order (matching #243's predicate, then the rest) is:
- * set_aside, mine, unmatched, slab_unverified, game_not_available, already_live,
+ * set_aside, mine, unmatched, slab_unverified, game_not_available, already_live, sold, archived,
  * condition_not_confirmed, no_price, no_sku.
  *
  *  - `mine`                    the seller keeps it (`allocation_channel = keep`). A copy is Mine OR
@@ -56,6 +56,16 @@ import { z } from "zod";
  *                              Yu-Gi-Oh! copies stay visible and editable but are not listed.
  *  - `already_live`            the copy is already on a marketplace; a second listing would
  *                              duplicate it.
+ *  - `sold`                    the copy has been sold (SOLD, PICKED, DISPATCHED, COMPLETED, or a
+ *                              recorded sale): there is nothing left to list. Shown for a listing
+ *                              ATTEMPT on one (C16b, WE2b, E9k). Provisional until design confirms.
+ *  - `archived`                the copy is out of the inventory (ARCHIVED or RETURNED). Same screens.
+ *
+ *    `sold` and `archived` are the SAME wire strings as two values of
+ *    `InventoryChangeRefusalReason` (inventory-change.ts), which answers a different question ("why
+ *    was this copy not CHANGED: marked Mine, set aside, put back") from its own enum. One string,
+ *    one meaning of the state; two enums because the other values differ (`live_on_ebay` there,
+ *    `already_live` here). A client may share its label for the two.
  *
  * NOT here, deliberately: `held`. A HELD copy may be listed on purpose (it moves to
  * READY_TO_LIST), so holding is a suggestion rule ("left out of List now"), not a refusal.
@@ -70,6 +80,8 @@ export const ListingRefusalReasonSchema = z.enum([
   "no_sku",
   "game_not_available",
   "already_live",
+  "sold",
+  "archived",
 ]);
 export type ListingRefusalReason = z.infer<typeof ListingRefusalReasonSchema>;
 

@@ -14,7 +14,7 @@ describe("PhysicalCardStatus (v0.2.0)", () => {
     ]);
   });
 
-  it("accepts UNMATCHED (\"Not identified\") and HELD (\"Held by you\")", () => {
+  it("accepts UNMATCHED (\"Not identified\") and HELD (\"Held\")", () => {
     expect(PhysicalCardStatusSchema.safeParse("UNMATCHED").success).toBe(true);
     expect(PhysicalCardStatusSchema.safeParse("HELD").success).toBe(true);
   });
