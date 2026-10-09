@@ -1,5 +1,345 @@
 # Changelog
 
+## v0.2.0 — BREAKING: most to pay and the fee position are nullable, and a null always says why
+
+**Untagged.** The version is bumped in `package.json` / `package-lock.json`; Ben tags. Rulings:
+`LANE-REPORTS/owner.DESIGN-REVIEW-2026-10.md` "Rulings, round 2", item 1 — *"the breaking change
+now, once: contracts v0.2.0 with a nullable most to pay and nullable fee position, adopted in
+lockstep by web, iOS and Android before the server sends a null"* — and the same document's dropping
+of #224's Option A (so there is **no** `acceptsMaxBuyVerdict` request flag and no `Decision.maxBuy`
+object; the field stays flat and becomes nullable). Plans drawn on: PLAN-MOST-TO-PAY-SHARE-OF-SALE
+(#224), PLAN-SELLER-TYPE-FIRST-ASK (#230), PLAN-GAP-032-036 (#218), PLAN-GAP-012-025 (#220),
+PLAN-POSTAGE-FUNCTION (#229, read for the `postage` line only).
+
+### Why
+
+Until now the contract could not say "we do not know". `profiles.seller_type` is `not null default
+'private'`, the buying margin falls back to the SELLING floor, and an asking price is accepted as a
+valuation — so "never asked" and "answered private" were the same row, and the most-to-pay a seller
+acts on at a table was a number in every case. A nullable alone would be the conflated-null shape
+(decisions/0024) again, so **a null always carries a reason, and a number never does.**
+
+### The wire change (what the server will send, once switched)
+
+| Field | Before | After |
+|---|---|---|
+| `Decision.maxBuyGbp` | `number` | `number \| null` |
+| `Decision.maxBuyUnavailableReason` | — | `"margin_not_set" \| "seller_type_not_set" \| "vat_not_set" \| "asking_price_only" \| "no_price" \| "not_viable" \| null` (required key) |
+| `Decision.minAcceptGbp` | `number` | `number \| null` (null exactly when `economics.feeGbp` is null) |
+| `Decision.offerPctAtMax` | `number` | `number \| null` (null exactly when `maxBuyGbp` is null) |
+| `Decision.economics.feeGbp` | `number` | `number \| null` |
+| `Decision.economics.feeNotSetReason` | — | `"seller_type_not_set" \| "vat_not_set" \| null` (required key) |
+| `Decision.economics.taxProvisionGbp`, `.expectedNetGbp` | `number` | `number \| null` (null with `feeGbp`) |
+| `CardValueEconomics.feeRate`, `.feeFixed` | `number` | `number \| null` (together) |
+| `CardValueEconomics.feeNotSetReason` | — | `FeeNotSetReason \| null` (required key) |
+| `CardValueEconomics.sellerType`, `.vatRegistered` | `string`, `boolean` | `string \| null`, `boolean \| null` |
+| `PricingBreakdownResponse.ebayFee`, `.grossProfit`, `.taxProvision`, `.netProfit`, `.netMarginPct`, `.minViablePrice` | `number` | `number \| null` (all together) |
+| `PricingBreakdownResponse.isMarketBelowMin` | `boolean` | `boolean \| null` |
+| `PricingBreakdownResponse.feeNotSetReason` | — | `FeeNotSetReason \| null` (required key) |
+| `Profile.sellerType` | `SellerType` | `SellerType \| null` |
+| `Profile.effectivePricingSettings` | `PricingSettings` | `EffectivePricingSettings` (`ebayFeeRate`/`ebayFeeFixed` nullable) |
+
+Added to `Profile` (all required keys, nullable): `sellerTypeConfirmedAt`, `suggestedSellerType`,
+`vatRegistered`, `vatConfirmedAt`, `feeNotSetReason`, `buyingTargetMarginPct`,
+`buyingTargetMarginSetAt`, `buyingTaxRate`, `buyingTaxRateSetAt`. Added to `ProfilePatch` (optional):
+`vatRegistered`, `buyingTargetMarginPct`, `buyingTaxRate`.
+
+**New schemas, additive:** `FeeNotSetReason`, `MaxBuyUnavailableReason`, `EffectivePricingSettings`,
+and the shared `PricedBreakdown` family (`src/api/priced-breakdown.ts`: `PricedBreakdown`,
+`PricedLine`, `PricedLineSource`, `PricedLineEditKey`, `PricedBreakdownMode`, `PricedTotals`,
+`PricedCompare`, `PricedChannel`, `FeeBasis`, `PricedFeePosition`, `PricedNotSet`, `PricedPrice`).
+`PricedBreakdown` was declared in the first cut of this release without being attached to a
+response; **round 2 below attaches it** (and adds `unknownReason`, `estimate` and `included` to
+`PricedLine`).
+
+**Not changed:** `RouteEconomics` (`/api/recommend`, retiring) was already nullable and gets no
+reason; `PricingSettings` stays a request body with a non-null fee; `DecideRequest.targetMarginPct`
+keeps its name and its "% of what they pay" doc comment (#224 Decision 2, whether the field changes
+meaning, is NOT in Ben's round-2 ruling); `postage_rules` (#229) is not here (the SKU shape is: round 2); `Decision.economics.postageGbp`/`packagingGbp` stay numbers (neither depends on seller type).
+
+### The invariants (a SERVER-side guard — read this before relying on the generated types)
+
+Two sibling fields plus a Zod `superRefine`, **not** a discriminated union, although the generators
+have emitted `z.discriminatedUnion` since v0.1.45. A union at `Decision` level would turn `Decision`
+into a Swift `enum` / Kotlin sealed type, so every `decision.route` read would become a `switch`; the
+ruling is a `Double` becoming a `Double?`, a one-token fix per site. The cost: **the rule lives only
+in TypeScript.** Swift's and Kotlin's `Decision` can be constructed with a null `maxBuyGbp` and a
+null reason. The producer (web's `buildDecision`, which parses its own response with
+`DecideResponseSchema`) is the only party that enforces them, which is why they are tested here:
+
+1. `maxBuyGbp` null ⇔ `maxBuyUnavailableReason` set. 2. `offerPctAtMax` null ⇔ `maxBuyGbp` null.
+3. `feeGbp` null ⇔ `feeNotSetReason` set; `taxProvisionGbp` and `expectedNetGbp` are null with it.
+4. `minAcceptGbp` null ⇔ `feeGbp` null. 5. `feeGbp` null ⇒ `maxBuyGbp` null. 6. A fee-position
+`maxBuyUnavailableReason` equals `economics.feeNotSetReason`. The same pattern holds on
+`CardValueEconomics`, `PricingBreakdownResponse` and `Profile` (a value and its confirmation time are
+one fact; the effective fee is null exactly when `feeNotSetReason` is set).
+
+Two things in that list are judgement calls beyond the letter of the ruling, made because the ruling
+is "once": **`minAcceptGbp`** is the Best Offer auto-decline floor and the auction start price, and it
+contains the fee — computed with an assumed £0 private-seller fee it is *lower* than a business
+seller's true floor, so it would accept offers that lose money; and **`taxProvisionGbp` /
+`expectedNetGbp`** contain the fee by construction. Leaving them numbers would keep the private-seller
+assumption alive in the figures beside the null.
+
+### Source-breaking, per platform — what each must change
+
+**TypeScript (web).** `Decision['maxBuyGbp' | 'minAcceptGbp' | 'offerPctAtMax']` and
+`DecisionEconomics['feeGbp' | 'taxProvisionGbp' | 'expectedNetGbp']` become `number | null`;
+`maxBuyUnavailableReason` and `feeNotSetReason` are new REQUIRED keys, so `buildDecision`'s object
+literal fails `tsc` until it supplies them (`null` while the switch is off). `DecisionSchema`,
+`DecisionEconomicsSchema`, `CardValueEconomicsSchema`, `PricingBreakdownResponseSchema`,
+`ProfileSchema` and `EffectivePricingSettingsSchema` are now `ZodEffects`, so `.shape`, `.extend`,
+`.pick`, `.omit` and `.partial` no longer exist on them (the web repo uses none; checked by grep).
+
+**Swift (iOS).** `Double` → `Double?` on `Decision.maxBuyGbp`, `.minAcceptGbp`, `.offerPctAtMax`,
+`DecisionEconomics.feeGbp`, `.taxProvisionGbp`, `.expectedNetGbp`, `CardValueEconomics.feeRate`,
+`.feeFixed`, and the six `PricingBreakdownResponse` figures; `String`/`Bool` → optional on
+`CardValueEconomics.sellerType`/`.vatRegistered` and `PricingBreakdownResponse.isMarketBelowMin`;
+`ProfileResponse.sellerType` → `SellerType?`, and `effectivePricingSettings` changes TYPE
+(`PricingSettings` → `EffectivePricingSettings`). Every memberwise `init` gains the new parameters, so
+test fixtures that construct these types break. `MaxBuyUnavailableReason` and `FeeNotSetReason` are
+forward-compatible enums: an exhaustive `switch` needs the `.unrecognised(String)` case, and a client
+must read an unrecognised reason as "no figure", never as a number. Synthesised `Codable` decodes a
+null or an absent key to `nil`.
+
+**Kotlin (Android).** The same fields `Double` → `Double?` (`= null`); `MaxBuyUnavailableReason` and
+`FeeNotSetReason` are sealed interfaces, so a `when` needs the `Unknown` branch. `MoneyRow(…,
+decision.maxBuyGbp)` style call sites take a nullable.
+
+**An old client breaks on the first null.** A pinned v0.1.45 Swift/Kotlin `Decision` decodes
+`maxBuyGbp` as a non-optional `Double`; a JSON `null` there is a `DecodingError.valueNotFound` /
+`SerializationException` for the **whole** `Decision`, not the field (demonstrated in this release's
+mutation check: with `maxBuyGbp` reverted to non-null, the new Swift and Kotlin tests fail on exactly
+that). iOS's `decide`/`decideFull` return `nil` on a decode failure (`SupabaseService.swift:1312-1319`), so
+the card lookup falls to "No recommendation available" (`CurioCaptureApp.swift:1179`). This is the entire reason for the sequence below.
+
+### The lockstep sequence (Ben, round 2)
+
+1. **Contracts:** merge this; Ben tags `v0.2.0`.
+2. **Web:** bump the pin and compile. The server keeps sending **numbers** — every nullable field
+   non-null, `maxBuyUnavailableReason: null`, `feeNotSetReason: null`. This is safe for every
+   installed client: the two new keys are ignored (Swift `JSONDecoder` and the Android `Json` configs
+   use `ignoreUnknownKeys`).
+3. **iOS and Android:** bump the pin, adopt (render the reason, never a figure), ship.
+4. **Only when all three have adopted** does the server send a null — a **server-side switch**, not
+   a contract change. Per-request gating is not available (Option A's flag is dropped), so the
+   switch is global; see `docs/V0.2.0-ADOPTION.md` "The switch" for what "adopted" has to mean given
+   that an installed older build breaks on the first null.
+
+Per-platform checklists with file and line citations: **`docs/V0.2.0-ADOPTION.md`**. A client still
+on v0.1.45 also inherits the source-breaking v0.1.46–v0.1.49 changes in one jump (renames, the
+eighteen-arm error union, the tier rename); those are in the entries below.
+
+### Round 2 (same release, 2026-10-08): the single contract iOS, Android and web adopt
+
+Round 1 (above) is the nullable most-to-pay and fee position. Round 2 extends the SAME untagged
+v0.2.0 so that one tag carries every shape the three lanes were about to adopt separately. Still
+untagged, still one BREAKING release. Authority: the native build spec ("Money, prices and the
+seller's figures", "Where to start"), `domain-model.md` (UNMATCHED, HELD, SKU "when the copy is
+created", BulkRecord), the JTBD-GAP handoffs, and pokemon-tool plans/PRs #218 #222 #224 #227 #228
+#229 #230 #233 #235 #243 #246. Owner corrections applied (coordinator, same day): SKU is `SKU-` +
+8 hex, given on add, never editable; HELD is a status with `held_at`; tax applies only when the
+seller sets a rate, buying and selling; the time lines are `packing_time` and `listing_time`;
+lot share uses the LOW END of the asking range. **Every breaking change, per platform, is in
+`docs/V0.2.0-ADOPTION.md` "Round 2: what else breaks".**
+
+**1a. Postage service code (added after round 2, product-owner ruling).** `PricedLine.service`
+(optional, nullable) on the `postage` line: the closed `PostageService` enum, declared once in
+`common.ts`: `rm48_ll`, `rm24_ll`, `tracked48_sp`, `special_delivery` (exactly the four services
+Dispatch H6 draws, as the keys #229 stores). Free postage is a threshold and buyer-pays is a mode,
+so neither is a service: when the buyer pays the line has `note: buyer_pays` and `service` null;
+above the free threshold the seller pays the service Dispatch would use and `service` names it.
+Forward-compatible (decisions/0027): Swift `.unrecognised(raw)`, Kotlin `Unknown(raw)`. NO labels in
+the contract: they come from @curio/copy (design/copy to supply); until then clients show generic
+"Postage". Guards: service only on `postage`, never with `buyer_pays`, never on an unknown figure.
+Isolated tests, one golden vector, Swift and Kotlin tests; 7 more mutations, all red.
+
+**1. `PricedBreakdown` attached to real responses.**
+- `PricingBreakdownResponse.breakdown` (required, `mode: "selling"`); request gains optional
+  `physicalCardId`, `format`, `postageMode`, `packingKey` (seller intent only, ADR 0028).
+- `DecideResponse.breakdown` (required); `QuickScanResponse.breakdown` and `DecideBatchResult.breakdown`
+  (required key, `null` exactly when `decision` is null). Requests gain `theirPriceGbp`,
+  `postageMode`, `packingKey`.
+- NEW `ListingPreviewRequest` / `ListingPreviewResponse` (`src/api/listing-preview.ts`): per copy,
+  `card` (with SKU), `listable`, `refusalReason`, a selling `breakdown`, `belowFloor`; plus group
+  and batch totals the server sums, so no screen sums a column. Route path undecided (below).
+- `PricedLine` gains `unknownReason` (required; the six-value `MaxBuyUnavailableReason`
+  vocabulary), `estimate` and `included` (both required). **An unknown figure is null WITH a
+  reason; a known one never has one; "Unknown is never £0"** (guarded). `max_buy` is a whole pound,
+  rounded down by the server. Sign: value lines positive, deductions negative.
+  `packing_time` is in `lines`, negative, taken off, with `minutes`; **`listing_time` is NOT in
+  `lines`: it is in the new required `PricedBreakdown.beside` array** (positive magnitude,
+  `minutes`, `included: false`, never in the arithmetic; empty without an hourly rate), mirroring
+  pokemon-tool #244; `your_time` is retired. The `ebay_fee` line carries `perOrderBand`
+  (`low | high | null`) and `feeBasisVerified` (false until eBay's page confirms the £10 band is
+  tested on item + buyer postage), as #244's `feeBreakdown`. A mode's total line (`you_receive` /
+  `max_buy`) is always present.
+- Cross-checks (server-side guards): the breakdown beside a decision agrees with it (floor of
+  `decision.maxBuyGbp` = the breakdown's total; reasons and fee agree), the flat figures in
+  `PricingBreakdownResponse` agree with its breakdown, and a preview's totals are exactly the sum of
+  its rows in whole pence.
+
+**2. One closed refusal vocabulary** (`src/api/listing-refusal.ts`). `ListingRefusalReason`
+(`mine`, `set_aside`, `unmatched`, `condition_not_confirmed`, `no_price`, `no_sku`,
+`game_not_available`, `already_live`) and `ListingRefusalCode` (`card_not_listable` 409,
+`game_not_available` 422, `sku_required` 422, `sku_unavailable` 503, `card_read_failed` 503,
+`card_not_found` 404; table `LISTING_REFUSAL_HTTP_STATUS`). Carried by `ListingRefusal`
+(`{error, code, reason}`), six new `EbayPublishError` arms (`failure` union), `ChannelListingResponse`
+(`code`, `reason`, beside its envelope) and `ListingPreviewItem.refusalReason`. **This models the
+plan/spec's `card_not_listable` (409) + reason, NOT pokemon-tool #243's flat `card_mine` /
+`card_set_aside` / 422 `condition_not_confirmed`: a Ben decision, mapping in the adoption doc.**
+`held` is deliberately not a reason (a held copy may be listed on purpose).
+
+**3. Game availability** (`src/api/game-availability.ts`): `GamesResponse` (`{games: [{game,
+displayName, availability}]}`, `availability` = `available | coming`; this follows #228/#246, not
+the brief's `id/name/enabled` shorthand), `GameRefusal` (the 422 `game_coming` / `game_not_available`
+body) and `IdentifyAmbiguousResponse.unavailableGame`.
+
+**4. SKU at creation, never editable.** New `PhysicalCard` (`src/api/physical-card.ts`) with a
+non-null, non-empty, OPAQUE `sku`. `CaptureCommitResponse` gains required `sku` and `status`;
+`EbayPublishSuccess` gains required `sku`; **`EbayPublishRequest.sku` is REMOVED** and
+`sku-immutable.test.ts` fails the build if any request/patch/input schema ever carries a `sku`. A
+BulkRecord has no SKU (only its lot listing does, on that listing's response); no BulkRecord/lot
+wire type exists yet, and when one does its cost share uses the LOW END of the asking range.
+
+**5. Status enum.** New closed `PhysicalCardStatus` (the sixteen the web repo writes, plus
+`UNMATCHED` and `HELD`); `PhysicalCard.heldAt` (`held_at`, non-null when HELD). Seller-visible
+labels ("Not identified", "Held") are docs only.
+
+**6. Tax only when set.** `StoredPricingSettings.taxRate` and `EffectivePricingSettings.taxRate` are
+`number | null` (null = not set, no tax set aside, buying or selling; PATCH `null` clears). The DB
+default 0.20 stays until a separate migration (needs Ben's go); contracts only model null.
+
+**Generator/internal.** `MaxBuyUnavailableReason` and `PriceKind` moved to `common.ts` (no
+generated-name change; breaks a TS deep import of `decide.js`/`pricing-breakdown.js` for them).
+`PricedBreakdown` is registered by name before any emit (it came out as `Breakdown` once nested).
+`src/test-support/` holds shared fixtures and is excluded from the build.
+
+**Verification (round 2).** `npm run build` (141/141 schemas emitted, Swift and Kotlin),
+`npm run check` (no drift), `tsc --noEmit`, `npx vitest run` (31 files, 454 tests), `swift build`
+and `swift test` (36), `./gradlew test --offline` (43; new `BreakdownAndRefusalTest`, updated
+`DecideRoundTripTest`/`GoldenVectorTest`). Four new golden vectors (unknown refusal reason, unknown
+status inside a preview, unknown availability, unknown line reason).
+
+**Mutation check, round 2 (2026-10-08).** 80 mutations applied by hand, each disabling one rule or
+loosening one field; each ran against the owning test file and **every one went red**; all green
+against current (list: every `superRefine` rule in priced-breakdown, pricing-breakdown, decide,
+listing-preview, listing-refusal, game-availability, physical-card, channel-listing; `sku` back in
+`EbayPublishRequest`, optional on the success/commit responses, shape-validated, nullable; the
+refusal enums gaining `held`/`card_mine`; 409 to 422; taxRate non-null; and so on). Method note: the
+first pass left 13 survivors, and the #244 alignment (`beside`, minutes, fee basis) left 4 more of
+the same kind. Eleven exposed tests passing for the wrong reason (another rule
+rejected the same fixture), so each got an isolated test (an unknown-key line in the wrong container,
+a buying breakdown that otherwise agrees,
+a decision of 84.77 shown 84 to separate floor from round-to-nearest, 0.29 and 1.13 to separate
+rounding from truncation, ...). Three were dead code (a fractional-total rule already implied by the
+line rule and equality, a null/known fee mismatch already caught by the fee-basis and reason rules,
+and a listing_time-in-lines key rule already implied by "lines are all included") and were deleted. On Swift and Kotlin, four schema mutations (line reason, refusal reason,
+`heldAt` and stored `taxRate` made non-null) each failed both platforms' new tests.
+
+### Round 3 (2026-10-09): Ben's rulings, Mine / set aside, graded slabs
+
+Plain commits on the same untagged v0.2.0. Rulings: LANE-REPORTS/DECISIONS.md (FOR-BEN 3, 4, 11, 14,
+22-25); shapes from pokemon-tool #259/#260 (Mine, set aside, put back, stats) and #263 (graded slabs).
+
+- **`maxBuyGbp` is WHOLE POUNDS everywhere** (`Decision` and the breakdown's `max_buy`): rounded down
+  by the server, pence refused by the guard on both, and the two must be equal. Closes the draft's
+  open "pence or pounds" question.
+- **Rounding invariant.** Every line to the penny; the total is the SUM OF THE ROUNDED LINES
+  (`you_receive` exactly, `max_buy` rounded down to the pound, never negative); an unknown included
+  line makes the total null. Guarded, plus golden vector `total_is_not_the_sum_of_the_rounded_lines`.
+- **You receive may be NEGATIVE**: the true negative, flagged `note: "below_cost"` (guarded).
+- **One tax rate.** `Profile.buyingTaxRate` / `buyingTaxRateSetAt` and `ProfilePatch.buyingTaxRate`
+  REMOVED; `pricingSettings.taxRate` (stored and effective) is `number | null`, bounded 0 <= t < 1.
+- **Packing time**: ruled default 4 minutes a parcel + 2 per extra card (`defaultPackingMinutes`),
+  `estimate: true` when used; `listing_time` stays beside. **Postage precedence** (policy for
+  published, Dispatch rules for estimates) as the closed `PostageBasis` on the postage line.
+- **Mine / set aside / put back** (additive): `SetAsideReason`, `InventoryChangeRefusalReason`,
+  `InventoryChangeOutcome`, the three requests, `InventoryChangeResponse`; `PhysicalCard` gains
+  required `isMine`, `mineSetAt`, `setAsideReason`, `setAsideAt` (Mine is not a status); `StatsResponse`
+  with `counts {stock, mine, setAside}` and `collectionValue`. HELD and Not identified are in no value.
+- **Graded slabs** (additive): `GradedCreateRequest/Response`, `SlabGrader`, `CertCheck`;
+  `ListingRefusalReason` gains **`slab_unverified`**; the `graded_not_verified` arm stays (deprecated)
+  and converts at the server switch.
+- Lockstep rule now defined: `ECONOMICS_V2_WIRED` stays OFF until web is deployed on v0.2.0, the iOS
+  and Android builds are merged, and a minimum-version check exists before outside testers.
+
+- **Follow-up (pokemon-tool #255), additive:** optional request fields `postageFor` (`PostageFor`:
+  `estimate` | `published`; Dispatch rules vs the eBay policy, the request-side twin of
+  `postageBasis`) and `cardsInParcel` (integer 1-500; drives the 4 + 2-per-extra-card packing
+  default) on `PricingBreakdownRequest`, and on `ListingPreviewRequest` (`postageFor` per batch,
+  `cardsInParcel` per copy).
+
+Verification (round 3): `npm run build` (161/161 schemas), `npm run check` (no drift), `tsc`, vitest
+(33 files, 519 tests), `swift test` (45), `./gradlew test --offline` (50), 5 new golden vectors.
+**Mutation check, round 3.** 57 hand mutations (every rule above, the sum/rounding/negative logic,
+the postage basis branches, the default packing minutes, every inventory-change guard, the graded
+guards); the first pass left 2 survivors (a truncating sum and an unisolated basis/source branch),
+each fixed with an isolated test; all red at the end.
+
+### Round 4 addendum (2026-10-09): `sold` and `archived` listing refusals, "Held" wording
+
+Additive, provisional until design confirms. `ListingRefusalReason` gains `sold` and `archived` (a
+listing attempt on a sold / archived copy; C16b, WE2b, E9k), appended, so the ordered list is `mine`,
+`set_aside`, `unmatched`, `slab_unverified`, `condition_not_confirmed`, `no_price`, `no_sku`,
+`game_not_available`, `already_live`, `sold`, `archived`; `slab_unverified` stays.
+`InventoryChangeRefusalReason` stays a SEPARATE enum with its own meaning and its own @curio/copy
+label group (`changeRefusalReasonLabels`; the listing reasons use `listingRefusalReasonLabels`);
+some wire strings coincide, the enums and labels do not. HELD's
+seller-visible word is "Held" everywhere in the contract docs ("Held by you" is dropped).
+
+### Round 4 (2026-10-09, late): Ben's round-3 rulings
+
+Plain commits on the same untagged v0.2.0 (LANE-REPORTS/DECISIONS.md "Rulings, round 3"; design
+answers 2026-10-09). The full "what clients must change" list is in `docs/V0.2.0-ADOPTION.md`
+"Round 4".
+
+- **`asking_price_only` is a flag on a shown figure, not a null reason.** `Decision.askingPriceOnly`
+  and `PricedTotals.askingPriceOnly` (new required booleans; false when the figure is null; the two
+  must agree). `MaxBuyUnavailableReason` loses `asking_price_only` (five values left); the null +
+  reason is only for "no figure at all" (`no_price`).
+- **Listing time is gone everywhere**: `listing_time` retired as a line key, `PricedBreakdown.beside`
+  and `PricedLine.included` removed (they existed only for it). Packing time stays, `estimate: true`
+  when the ruled default (4 minutes a parcel + 2 per extra card) is used.
+- **Negative receive**: still the true negative; the note code is now **`pays_to_sell`** (was
+  `below_cost`, which compared to a cost the contract never has); client label "You'd pay to sell
+  this".
+- **Value totals**: `StatsResponse.estValue` INCLUDES held copies; new `heldValue` (null, not 0, when
+  no held copy is priced; never above `estValue`); `counts` gains `held` (partition: set aside >
+  Mine > held > stock). Supersedes "held out of totals".
+- **Additive**: `InventoryStatusKey` (adds `identifying`; `archived` is a status filter value),
+  `InventoryStatusFilter`, `INVENTORY_SELECT_ALL_CAP = 200`, `StopHoldingRequest`
+  (`POST /api/inventory/stop-holding`, answered by `InventoryChangeResponse`).
+- Verification: `npm run build` (165/165), `npm run check`, vitest (33 files, 533), swift 48, gradle
+  green; 2 new golden vectors (`retired_asking_price_only_reason_on_a_decision`,
+  `unknown_graded_cert_check` re-homed); 25 more hand mutations, all red (one dead conditional
+  removed).
+
+### Generator change (internal, but it is why `DecisionEconomics` is not called `Economics2`)
+
+`zod-to-swift.ts` / `zod-to-kotlin.ts` handled `ZodEffects` (a `.refine`/`.superRefine`) by unwrapping
+it, which was enough while the only refinements sat on number fields. A cross-field rule on an
+exported OBJECT schema exposed two defects: the name registered on the wrapper was ignored (the
+inner object was named from the *field* — `Economics`, taken, so `Economics2`), and the wrapper was
+never recorded as visited, so `assert-coverage` reported the exported schema as never emitted. Both
+fixed; tests in `scripts/zod-to-{swift,kotlin}.test.ts`.
+
+### Verification
+
+`npm run build`, `npm run check` (no drift), `npx vitest run` (257), `swift build` and `swift test`
+(18, including the new `NullableMostToPayTests`), `./gradlew test --offline` (31, including three new
+`DecideRoundTripTest` cases). No digit-suffixed generated type name was introduced
+(`generated-names.test.ts` unchanged and green).
+
+**Mutation check (2026-10-08).** 33 mutations, each disabling one guard or reverting one field to
+its pre-v0.2.0 shape, run against the owning test file; every one went red in the named test(s) and
+all are green against current. The one that first survived (making `maxBuyUnavailableReason`
+`.optional()`) exposed a test that was passing for the wrong reason (the refinement happened to
+reject `undefined` on the number path); it now also omits the key on the null path. Separately, with
+`maxBuyGbp` reverted to non-null and the outputs regenerated, the Swift test
+`testNullMostToPayAndFeeDecodeWithTheirReasons` fails with `valueNotFound ... Path: maxBuyGbp`, and
+three Kotlin tests fail.
+
 ## v0.1.49 — tier rename: free/starter/growth/pro → free/collector/pro/dealer
 
 Pricing model v1 (`website/PRICING-STRATEGY.md`). `EntitlementTierSchema` is now

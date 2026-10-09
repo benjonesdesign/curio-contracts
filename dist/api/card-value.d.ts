@@ -68,34 +68,69 @@ export declare const PriceBandSchema: z.ZodObject<{
  *  shares only the field name `economics`; the emitter took that name from the field and invented
  *  `Economics2` for this one, which is how two unrelated concepts came to look like a versioned
  *  pair. Named, not suffixed. */
-export declare const CardValueEconomicsSchema: z.ZodObject<{
-    feeRate: z.ZodNumber;
-    feeFixed: z.ZodNumber;
+export declare const CardValueEconomicsSchema: z.ZodEffects<z.ZodObject<{
+    /** v0.2.0 (BREAKING): null when the fee position is not set — see `feeNotSetReason`. NOT 0:
+     *  a client that computes `netRevenue` from these coefficients (installed iOS does) and reads
+     *  a missing rate as 0 is back to costing every seller as private. Null `feeRate` and null
+     *  `feeFixed` travel together, and so does the reason. */
+    feeRate: z.ZodNullable<z.ZodNumber>;
+    feeFixed: z.ZodNullable<z.ZodNumber>;
+    /** WHY `feeRate`/`feeFixed` are null. Null exactly when they are numbers. A seller-set fee
+     *  override is a stated cost, so it yields numbers (feeBasis "seller_override") even with the
+     *  seller type unset. */
+    feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
     postage: z.ZodNumber;
     packaging: z.ZodNumber;
     taxRate: z.ZodNumber;
-    sellerType: z.ZodString;
-    vatRegistered: z.ZodBoolean;
-    /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
-     *  response stops being a set of unattributed constants. */
+    /** v0.2.0 (BREAKING): null until the seller has answered "private or business?". Was a
+     *  string that read "private" for a seller who had never been asked. */
+    sellerType: z.ZodNullable<z.ZodString>;
+    /** v0.2.0 (BREAKING): null until answered (only asked of business sellers) or when the seller
+     *  type is itself not set. A confirmed private seller still reads `false`, as before. */
+    vatRegistered: z.ZodNullable<z.ZodBoolean>;
+    /** "seller_override" | "derived_from_seller_type" | "not_set" — WHY the numbers are what they
+     *  are, so the response stops being a set of unattributed constants. "not_set" is new in
+     *  v0.2.0 and means exactly `feeNotSetReason !== null`. Still an open string (ADR 0027). */
     feeBasis: z.ZodString;
 }, "strip", z.ZodTypeAny, {
     taxRate: number;
-    feeRate: number;
-    feeFixed: number;
+    feeRate: number | null;
+    feeFixed: number | null;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
     postage: number;
     packaging: number;
-    sellerType: string;
-    vatRegistered: boolean;
+    sellerType: string | null;
+    vatRegistered: boolean | null;
     feeBasis: string;
 }, {
     taxRate: number;
-    feeRate: number;
-    feeFixed: number;
+    feeRate: number | null;
+    feeFixed: number | null;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
     postage: number;
     packaging: number;
-    sellerType: string;
-    vatRegistered: boolean;
+    sellerType: string | null;
+    vatRegistered: boolean | null;
+    feeBasis: string;
+}>, {
+    taxRate: number;
+    feeRate: number | null;
+    feeFixed: number | null;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    postage: number;
+    packaging: number;
+    sellerType: string | null;
+    vatRegistered: boolean | null;
+    feeBasis: string;
+}, {
+    taxRate: number;
+    feeRate: number | null;
+    feeFixed: number | null;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    postage: number;
+    packaging: number;
+    sellerType: string | null;
+    vatRegistered: boolean | null;
     feeBasis: string;
 }>;
 export type CardValueEconomics = z.infer<typeof CardValueEconomicsSchema>;
@@ -151,34 +186,69 @@ export declare const CardValueResponseSchema: z.ZodObject<{
      * ADR 0026 exists to stop. Declared here because it IS on the wire and an undeclared field is a
      * silently-stripped one; declaring it is not an endorsement.
      */
-    economics: z.ZodOptional<z.ZodNullable<z.ZodObject<{
-        feeRate: z.ZodNumber;
-        feeFixed: z.ZodNumber;
+    economics: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodObject<{
+        /** v0.2.0 (BREAKING): null when the fee position is not set — see `feeNotSetReason`. NOT 0:
+         *  a client that computes `netRevenue` from these coefficients (installed iOS does) and reads
+         *  a missing rate as 0 is back to costing every seller as private. Null `feeRate` and null
+         *  `feeFixed` travel together, and so does the reason. */
+        feeRate: z.ZodNullable<z.ZodNumber>;
+        feeFixed: z.ZodNullable<z.ZodNumber>;
+        /** WHY `feeRate`/`feeFixed` are null. Null exactly when they are numbers. A seller-set fee
+         *  override is a stated cost, so it yields numbers (feeBasis "seller_override") even with the
+         *  seller type unset. */
+        feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
         postage: z.ZodNumber;
         packaging: z.ZodNumber;
         taxRate: z.ZodNumber;
-        sellerType: z.ZodString;
-        vatRegistered: z.ZodBoolean;
-        /** "seller_override" | "derived_from_seller_type" — WHY the numbers are what they are, so the
-         *  response stops being a set of unattributed constants. */
+        /** v0.2.0 (BREAKING): null until the seller has answered "private or business?". Was a
+         *  string that read "private" for a seller who had never been asked. */
+        sellerType: z.ZodNullable<z.ZodString>;
+        /** v0.2.0 (BREAKING): null until answered (only asked of business sellers) or when the seller
+         *  type is itself not set. A confirmed private seller still reads `false`, as before. */
+        vatRegistered: z.ZodNullable<z.ZodBoolean>;
+        /** "seller_override" | "derived_from_seller_type" | "not_set" — WHY the numbers are what they
+         *  are, so the response stops being a set of unattributed constants. "not_set" is new in
+         *  v0.2.0 and means exactly `feeNotSetReason !== null`. Still an open string (ADR 0027). */
         feeBasis: z.ZodString;
     }, "strip", z.ZodTypeAny, {
         taxRate: number;
-        feeRate: number;
-        feeFixed: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
         postage: number;
         packaging: number;
-        sellerType: string;
-        vatRegistered: boolean;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
         feeBasis: string;
     }, {
         taxRate: number;
-        feeRate: number;
-        feeFixed: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
         postage: number;
         packaging: number;
-        sellerType: string;
-        vatRegistered: boolean;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
+        feeBasis: string;
+    }>, {
+        taxRate: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        postage: number;
+        packaging: number;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
+        feeBasis: string;
+    }, {
+        taxRate: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        postage: number;
+        packaging: number;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
         feeBasis: string;
     }>>>;
     /** Do you already hold one? Powers "You already own N" + jump-to-it. An anonymous caller owns
@@ -213,12 +283,13 @@ export declare const CardValueResponseSchema: z.ZodObject<{
     pricingDegraded: boolean;
     economics?: {
         taxRate: number;
-        feeRate: number;
-        feeFixed: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
         postage: number;
         packaging: number;
-        sellerType: string;
-        vatRegistered: boolean;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
         feeBasis: string;
     } | null | undefined;
     owned?: {
@@ -243,12 +314,13 @@ export declare const CardValueResponseSchema: z.ZodObject<{
     finishUsed: string | null;
     economics?: {
         taxRate: number;
-        feeRate: number;
-        feeFixed: number;
+        feeRate: number | null;
+        feeFixed: number | null;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
         postage: number;
         packaging: number;
-        sellerType: string;
-        vatRegistered: boolean;
+        sellerType: string | null;
+        vatRegistered: boolean | null;
         feeBasis: string;
     } | null | undefined;
     editionAmbiguity?: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null | undefined;

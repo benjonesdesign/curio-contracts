@@ -1,3 +1,4 @@
+// MUTATION-CHECKED 2026-10-08 (v0.2.0 SKU at creation): see CHANGELOG "Mutation check, round 2".
 import { describe, it, expect } from "vitest";
 import { CaptureCommitRequestSchema, CaptureCommitResponseSchema } from "./capture-commit.js";
 
@@ -74,6 +75,8 @@ describe("CaptureCommitResponseSchema", () => {
   it("parses a realistic response", () => {
     const res = CaptureCommitResponseSchema.parse({
       physicalCardId: "abc-123",
+      sku: "SKU-ABC12345",
+      status: "READY_TO_LIST",
       legacyCardId: null,
       game: "pokemon",
       gameDisplayName: "Pokémon",
@@ -92,6 +95,8 @@ describe("CaptureCommitResponseSchema", () => {
   it("accepts a response with no image field at all — additive, older callers still validate", () => {
     const res = CaptureCommitResponseSchema.parse({
       physicalCardId: "abc-123",
+      sku: "SKU-ABC12345",
+      status: "READY_TO_LIST",
       legacyCardId: null,
       game: "pokemon",
       gameDisplayName: "Pokémon",
@@ -110,6 +115,8 @@ describe("CaptureCommitResponseSchema", () => {
   it("carries the catalogue match image through commit", () => {
     const res = CaptureCommitResponseSchema.parse({
       physicalCardId: "abc-123",
+      sku: "SKU-ABC12345",
+      status: "READY_TO_LIST",
       legacyCardId: null,
       game: "pokemon",
       gameDisplayName: "Pokémon",
@@ -124,5 +131,38 @@ describe("CaptureCommitResponseSchema", () => {
       image: "https://images.pokemontcg.io/base1/4.png",
     });
     expect(res.image).toBe("https://images.pokemontcg.io/base1/4.png");
+  });
+
+  // ── v0.2.0: a copy has its SKU WHEN IT IS CREATED, and capture-commit creates it ────────────────
+  const BASE = {
+    physicalCardId: "abc-123", sku: "SKU-ABC12345", status: "READY_TO_LIST", legacyCardId: null,
+    game: "pokemon", gameDisplayName: "Pokémon", name: "Charizard", setName: "Base Set", cardNumber: "4/102",
+    condition: "NM", rarity: "Rare Holo", suggestedPrice: 120.5, ebay: { low: 90, avg: 120.5, top: 180 }, subGrades: null,
+  };
+
+  it("carries the new copy's SKU and status", () => {
+    const res = CaptureCommitResponseSchema.parse(BASE);
+    expect(res.sku).toBe("SKU-ABC12345");
+    expect(res.status).toBe("READY_TO_LIST");
+  });
+
+  it("REQUIRES the SKU: there is no 'no SKU yet' state, so it cannot be absent or null", () => {
+    const { sku: _s, ...noSku } = BASE;
+    expect(CaptureCommitResponseSchema.safeParse(noSku).success).toBe(false);
+    expect(CaptureCommitResponseSchema.safeParse({ ...BASE, sku: null }).success).toBe(false);
+    expect(CaptureCommitResponseSchema.safeParse({ ...BASE, sku: "" }).success).toBe(false);
+  });
+
+  it("treats the SKU as OPAQUE: any non-empty string is a SKU, because clients never parse it", () => {
+    for (const sku of ["SKU-ABC12345", "A17-B03-0042", "x", "sku with spaces", "ÆŒ-1"]) {
+      expect(CaptureCommitResponseSchema.safeParse({ ...BASE, sku }).success, sku).toBe(true);
+    }
+  });
+
+  it("accepts the two new statuses, and REJECTS one this server does not emit", () => {
+    for (const status of ["UNMATCHED", "HELD", "NEEDS_ID_REVIEW", "NEEDS_DECISION"]) {
+      expect(CaptureCommitResponseSchema.safeParse({ ...BASE, status }).success, status).toBe(true);
+    }
+    expect(CaptureCommitResponseSchema.safeParse({ ...BASE, status: "ready_to_list" }).success).toBe(false);
   });
 });

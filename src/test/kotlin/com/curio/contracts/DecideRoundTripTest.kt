@@ -21,12 +21,29 @@ class DecideRoundTripTest {
           "confidence": "high",
           "liquidity": "high",
           "economics": {
-            "marketValueGbp": 40.0, "feeGbp": 6.79, "postageGbp": 1.55, "packagingGbp": 0.1,
+            "marketValueGbp": 40.0, "feeGbp": 6.79, "feeNotSetReason": null, "postageGbp": 1.55, "packagingGbp": 0.1,
             "costBasisGbp": null, "taxProvisionGbp": 6.31, "expectedNetGbp": 25.25
           },
-          "maxBuyGbp": 25.23, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
+          "maxBuyGbp": 25.0, "maxBuyUnavailableReason": null, "askingPriceOnly": false, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
           "degraded": false, "degradedReasons": []
         }
+    """.trimIndent()
+
+    /** v0.2.0: the lines behind the decision travel with it (REQUIRED on DecideResponse). */
+    private val breakdown = """
+        {"mode": "buying",
+         "lines": [
+           {"key": "sale_price", "label": "Sale price", "amountGbp": 40.0, "unknownReason": null, "source": "price_provider",
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": "asking_basis"},
+           {"key": "max_buy", "label": "Most to pay", "amountGbp": 25.0, "unknownReason": null, "source": "fee_model",
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null}
+         ],
+         "totals": {"youReceiveGbp": null, "maxBuyGbp": 25.0, "askingPriceOnly": false},
+         "compare": null,
+         "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"},
+         "notSet": [],
+         "price": {"gbp": 40.0, "source": "ebay-uk-sold", "kind": "realised", "asOf": null, "cached": false},
+         "computedAt": "2026-10-08T09:30:00.000Z"}
     """.trimIndent()
 
     @Test
@@ -56,7 +73,7 @@ class DecideRoundTripTest {
         val d = json.decodeFromString<QuickScanResponse>(body)
         assertEquals("Charizard", d.match?.name)
         assertEquals(RecommendedRoute.LIST_SINGLE, d.decision?.route)
-        assertEquals(25.23, d.decision?.maxBuyGbp)
+        assertEquals(25.0, d.decision?.maxBuyGbp)
         assertEquals(1.65, d.decision?.minAcceptGbp)
     }
 
@@ -75,7 +92,7 @@ class DecideRoundTripTest {
         // One shape, two entry points. If the generator ever emitted two structurally-identical
         // classes, this would not compile.
         val fromDecide: Decision =
-            json.decodeFromString<DecideResponse>("""{"decision": $decision, "price": $price}""").decision
+            json.decodeFromString<DecideResponse>("""{"decision": $decision, "price": $price, "breakdown": $breakdown}""").decision
         val fromQuickScan: Decision? = json.decodeFromString<QuickScanResponse>(
             """{"identified": true, "candidates": [], "decision": $decision}""",
         ).decision
@@ -119,9 +136,11 @@ class DecideRoundTripTest {
     fun `a decide response carries decision and provenance together`() {
         val body = """
             {"decision": $decision,
-             "price": {"source": "poketrace-ebay", "confidence": "medium", "currencyNote": "Converted from USD"}}
+             "price": {"source": "poketrace-ebay", "confidence": "medium", "currencyNote": "Converted from USD"},
+             "breakdown": $breakdown}
         """.trimIndent()
         val d = json.decodeFromString<DecideResponse>(body)
+        assertEquals(25.0, d.breakdown.totals.maxBuyGbp)
         assertEquals(RecommendedRoute.LIST_SINGLE, d.decision.route)
         assertEquals("Converted from USD", d.price.currencyNote)
         assertNull(d.gradeEV)
@@ -131,5 +150,52 @@ class DecideRoundTripTest {
     fun `setCode reaches the request — the OCR'd set signal a collapsed call would have dropped`() {
         val d = json.decodeFromString<QuickScanRequest>("""{"cardNumber": "138/221", "setCode": "SFD"}""")
         assertEquals("SFD", d.setCode)
+    }
+
+    // ── v0.2.0: a null most-to-pay and a null fee decode, and keep their reason ──────────────────
+    // The cross-field rule ("null always carries a reason") is a SERVER-side guard in the Zod
+    // schema; the generated Kotlin cannot express it. What it CAN prove is that the nullable shape
+    // decodes and that the reason survives, which is what the client renders from.
+    private val unsetDecision = """
+        {
+          "route": "list_single", "reason": "sound_single_listing", "alternatives": [],
+          "confidence": "high", "liquidity": "high",
+          "economics": {
+            "marketValueGbp": 136.0, "feeGbp": null, "feeNotSetReason": "seller_type_not_set",
+            "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null,
+            "taxProvisionGbp": null, "expectedNetGbp": null
+          },
+          "maxBuyGbp": null, "maxBuyUnavailableReason": "seller_type_not_set", "askingPriceOnly": false, "askingPriceOnly": false,
+          "minAcceptGbp": null, "offerPctAtMax": null,
+          "degraded": false, "degradedReasons": []
+        }
+    """.trimIndent()
+
+    @Test
+    fun `a decision with the fee position unset decodes with nulls and its reasons`() {
+        val d = json.decodeFromString<Decision>(unsetDecision)
+        assertNull(d.maxBuyGbp)
+        assertEquals(MaxBuyUnavailableReason.SELLER_TYPE_NOT_SET, d.maxBuyUnavailableReason)
+        assertNull(d.economics.feeGbp)
+        assertEquals(FeeNotSetReason.SELLER_TYPE_NOT_SET, d.economics.feeNotSetReason)
+        assertNull(d.economics.expectedNetGbp)
+        assertNull(d.minAcceptGbp)
+    }
+
+    @Test
+    fun `an unrecognised most-to-pay reason decodes to Unknown instead of failing the decision`() {
+        // ADR 0027: a reason added next year must not take the whole decision down on a pinned build.
+        val d = json.decodeFromString<Decision>(unsetDecision.replace("\"maxBuyUnavailableReason\": \"seller_type_not_set\"", "\"maxBuyUnavailableReason\": \"some_future_reason\""))
+        assertNull(d.maxBuyGbp)
+        assertEquals(MaxBuyUnavailableReason.Unknown("some_future_reason"), d.maxBuyUnavailableReason)
+    }
+
+    @Test
+    fun `a null most-to-pay survives an encode and decode round trip with its reason`() {
+        val d = json.decodeFromString<Decision>(unsetDecision)
+        val again = json.decodeFromString<Decision>(json.encodeToString(Decision.serializer(), d))
+        assertEquals(d, again)
+        assertNull(again.maxBuyGbp)
+        assertEquals(MaxBuyUnavailableReason.SELLER_TYPE_NOT_SET, again.maxBuyUnavailableReason)
     }
 }

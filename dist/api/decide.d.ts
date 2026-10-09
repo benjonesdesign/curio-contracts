@@ -39,34 +39,85 @@ export declare const DecisionAlternativeSchema: z.ZodObject<{
     reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
     expectedNetGbp?: number | null | undefined;
 }>;
-export declare const DecisionEconomicsSchema: z.ZodObject<{
+/**
+ * v0.2.0 (BREAKING): the three figures that CONTAIN the seller's fee are nullable, and a null fee
+ * carries its reason.
+ *
+ * `feeGbp` was `z.number()`, so a seller who had never said whether they are private or a business
+ * was costed as a private seller (fee £0) and shown a net that was wrong in the optimistic
+ * direction. Ben's ruling (owner.DESIGN-REVIEW-2026-10, round 2, item 1) is that nothing assumes a
+ * private seller; this is the contract half of it.
+ *
+ * The fee position is ONE fact, so it moves as one:
+ *   `feeGbp`, `taxProvisionGbp` and `expectedNetGbp` are all null together, with `feeNotSetReason`
+ *   set; or all three are numbers, with `feeNotSetReason` null. `taxProvisionGbp` is tax on the
+ *   profit and `expectedNetGbp` is the profit, so with an unknown fee both are unknown too — a
+ *   number there would be a guess wearing a figure. Enforced by the refinement below (a SERVER-SIDE
+ *   guard: the generated Swift/Kotlin types cannot express it, see CHANGELOG v0.2.0).
+ *
+ * `postageGbp` and `packagingGbp` stay numbers: neither depends on seller type.
+ *
+ * Why not a discriminated union (`z.discriminatedUnion("feeState", ...)`) when the generators now
+ * emit them (v0.1.45)? Because it would change `DecisionEconomics` from a struct into an enum on
+ * both platforms: every `decision.economics.postageGbp` read would become a `switch`. The ruling is
+ * "a `Double` becomes a `Double?`", which is a one-token fix per site; a union is a rewrite of every
+ * site that reads a field which did not change.
+ */
+export declare const DecisionEconomicsSchema: z.ZodEffects<z.ZodObject<{
     marketValueGbp: z.ZodNumber;
-    /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-    feeGbp: z.ZodNumber;
+    /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+     *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+     *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+    feeGbp: z.ZodNullable<z.ZodNumber>;
+    /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+    feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
     postageGbp: z.ZodNumber;
     packagingGbp: z.ZodNumber;
     /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
      *  free acquisition inflates every net figure on the screen people scan with. */
     costBasisGbp: z.ZodNullable<z.ZodNumber>;
-    taxProvisionGbp: z.ZodNumber;
-    expectedNetGbp: z.ZodNumber;
+    /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+    taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+    /** Null with `feeGbp` (the profit includes the fee). */
+    expectedNetGbp: z.ZodNullable<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     marketValueGbp: number;
-    expectedNetGbp: number;
-    feeGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
-    taxProvisionGbp: number;
+    taxProvisionGbp: number | null;
 }, {
     marketValueGbp: number;
-    expectedNetGbp: number;
-    feeGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
     postageGbp: number;
     packagingGbp: number;
     costBasisGbp: number | null;
-    taxProvisionGbp: number;
+    taxProvisionGbp: number | null;
+}>, {
+    marketValueGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
+    postageGbp: number;
+    packagingGbp: number;
+    costBasisGbp: number | null;
+    taxProvisionGbp: number | null;
+}, {
+    marketValueGbp: number;
+    feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+    expectedNetGbp: number | null;
+    feeGbp: number | null;
+    postageGbp: number;
+    packagingGbp: number;
+    costBasisGbp: number | null;
+    taxProvisionGbp: number | null;
 }>;
+export type DecisionEconomics = z.infer<typeof DecisionEconomicsSchema>;
 /**
  * What the engine had to fill in for itself, because the seller had not said.
  *
@@ -108,7 +159,7 @@ export declare const DecisionAssumptionSchema: z.ZodObject<{
     valueGbp?: number | null | undefined;
 }>;
 export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
-export declare const DecisionSchema: z.ZodObject<{
+export declare const DecisionSchema: z.ZodEffects<z.ZodObject<{
     route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
     reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
     alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -138,42 +189,95 @@ export declare const DecisionSchema: z.ZodObject<{
     }>, "many">>;
     confidence: z.ZodEnum<["high", "medium", "low"]>;
     liquidity: z.ZodEnum<["high", "medium", "low"]>;
-    economics: z.ZodObject<{
+    economics: z.ZodEffects<z.ZodObject<{
         marketValueGbp: z.ZodNumber;
-        /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-        feeGbp: z.ZodNumber;
+        /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+         *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+         *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+        feeGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+        feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
         postageGbp: z.ZodNumber;
         packagingGbp: z.ZodNumber;
         /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
          *  free acquisition inflates every net figure on the screen people scan with. */
         costBasisGbp: z.ZodNullable<z.ZodNumber>;
-        taxProvisionGbp: z.ZodNumber;
-        expectedNetGbp: z.ZodNumber;
+        /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+        taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+        /** Null with `feeGbp` (the profit includes the fee). */
+        expectedNetGbp: z.ZodNullable<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     }, {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
+    }>, {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    }, {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
     }>;
-    /** ACQUISITION: the most the seller should PAY for this card. */
-    maxBuyGbp: z.ZodNumber;
+    /**
+     * ACQUISITION: the most the seller should PAY for this card.
+     *
+     * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+     * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+     * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+     * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+     * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+     * the reason ("Set your buying margin", "Not set"), never a figure.
+     */
+    maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+    /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+     *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+    maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+     * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+     * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+     * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+     * seller has not set a margin / seller type) this is false.
+     */
+    askingPriceOnly: z.ZodBoolean;
     /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
      *  floor, the auction start price (a start price is a free reserve), and the
-     *  "this shouldn't be an auction" test against the top realised comp. */
-    minAcceptGbp: z.ZodNumber;
-    /** `maxBuyGbp` as a % of market value, to one decimal place. */
-    offerPctAtMax: z.ZodNumber;
+     *  "this shouldn't be an auction" test against the top realised comp.
+     *
+     *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+     *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+     *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+     *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+     *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+    minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+    /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+     *  `maxBuyGbp` is null (a percentage of nothing). */
+    offerPctAtMax: z.ZodNullable<z.ZodNumber>;
     /**
      * True when the decision was made without complete information — an offline client with no
      * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -216,12 +320,13 @@ export declare const DecisionSchema: z.ZodObject<{
     }[];
     economics: {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     };
     assumptions: {
         value: string | null;
@@ -229,9 +334,11 @@ export declare const DecisionSchema: z.ZodObject<{
         valueGbp?: number | null | undefined;
     }[];
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-    maxBuyGbp: number;
-    minAcceptGbp: number;
-    offerPctAtMax: number;
+    maxBuyGbp: number | null;
+    askingPriceOnly: boolean;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
     degraded: boolean;
     degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
 }, {
@@ -240,17 +347,84 @@ export declare const DecisionSchema: z.ZodObject<{
     route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
     economics: {
         marketValueGbp: number;
-        expectedNetGbp: number;
-        feeGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
         postageGbp: number;
         packagingGbp: number;
         costBasisGbp: number | null;
-        taxProvisionGbp: number;
+        taxProvisionGbp: number | null;
     };
     reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-    maxBuyGbp: number;
-    minAcceptGbp: number;
-    offerPctAtMax: number;
+    maxBuyGbp: number | null;
+    askingPriceOnly: boolean;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
+    degraded: boolean;
+    alternatives?: {
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
+    }[] | undefined;
+    assumptions?: {
+        value: string | null;
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }[] | undefined;
+    degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+}>, {
+    confidence: "high" | "medium" | "low";
+    liquidity: "high" | "medium" | "low";
+    route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+    alternatives: {
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+        expectedNetGbp?: number | null | undefined;
+    }[];
+    economics: {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    };
+    assumptions: {
+        value: string | null;
+        code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+        valueGbp?: number | null | undefined;
+    }[];
+    reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+    maxBuyGbp: number | null;
+    askingPriceOnly: boolean;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
+    degraded: boolean;
+    degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+}, {
+    confidence: "high" | "medium" | "low";
+    liquidity: "high" | "medium" | "low";
+    route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+    economics: {
+        marketValueGbp: number;
+        feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+        expectedNetGbp: number | null;
+        feeGbp: number | null;
+        postageGbp: number;
+        packagingGbp: number;
+        costBasisGbp: number | null;
+        taxProvisionGbp: number | null;
+    };
+    reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+    maxBuyGbp: number | null;
+    askingPriceOnly: boolean;
+    maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+    minAcceptGbp: number | null;
+    offerPctAtMax: number | null;
     degraded: boolean;
     alternatives?: {
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -371,11 +545,18 @@ export declare const DecideRequestSchema: z.ZodObject<{
         minSaleValue: number;
         postageCost: number;
     }>>;
+    /** What they are asking for the card. The server computes the over/under once
+     *  (`breakdown.compare`) so no screen subtracts two figures. */
+    theirPriceGbp: z.ZodOptional<z.ZodNumber>;
+    /** Who bears postage on the resale, for this card. Absent = the seller's Dispatch rule. */
+    postageMode: z.ZodOptional<z.ZodEnum<["seller_pays", "buyer_pays"]>>;
+    /** A keyed packing choice (open string; the catalogue is the server's). */
+    packingKey: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
+    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     collectionType?: "personal" | "resale" | undefined;
     physicalCardId?: string | undefined;
-    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     isVintage?: boolean | null | undefined;
     pricingSettings?: {
         ebayFeeRate: number;
@@ -389,11 +570,14 @@ export declare const DecideRequestSchema: z.ZodObject<{
     } | undefined;
     marketValueGbp?: number | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
+    theirPriceGbp?: number | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
+    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     collectionType?: "personal" | "resale" | undefined;
     physicalCardId?: string | undefined;
-    condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     isVintage?: boolean | null | undefined;
     pricingSettings?: {
         ebayFeeRate: number;
@@ -407,10 +591,13 @@ export declare const DecideRequestSchema: z.ZodObject<{
     } | undefined;
     marketValueGbp?: number | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
+    theirPriceGbp?: number | undefined;
 }>;
 export type DecideRequest = z.infer<typeof DecideRequestSchema>;
-export declare const DecideResponseSchema: z.ZodObject<{
-    decision: z.ZodObject<{
+export declare const DecideResponseSchema: z.ZodEffects<z.ZodObject<{
+    decision: z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -440,42 +627,95 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+         * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+         * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+         * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+        /**
+         * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+         * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+         * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+         * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+         * seller has not set a margin / seller type) this is false.
+         */
+        askingPriceOnly: z.ZodBoolean;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -518,12 +758,13 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -531,9 +772,11 @@ export declare const DecideResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -542,17 +785,84 @@ export declare const DecideResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -608,7 +918,332 @@ export declare const DecideResponseSchema: z.ZodObject<{
         rawNetGbp: number | null;
         gradeEVGbp: number | null;
     }>>;
+    /** v0.2.0. Every line of the most to pay, with its source: sale price, eBay fee, packing,
+     *  [packing time], postage, your margin, [tax set aside], most to pay. Beside the decision, as
+     *  `price` and `gradeEV` are — it is the line-by-line answer to the same calculation, and a
+     *  screen renders it instead of computing anything. Consistent with `decision` (guarded). */
+    breakdown: z.ZodEffects<z.ZodObject<{
+        mode: z.ZodEnum<["selling", "buying"]>;
+        lines: z.ZodArray<z.ZodEffects<z.ZodObject<{
+            key: z.ZodString;
+            label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            amountGbp: z.ZodNullable<z.ZodNumber>;
+            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+            source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
+            assumed: z.ZodBoolean;
+            estimate: z.ZodBoolean;
+            editable: z.ZodBoolean;
+            editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
+            minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+            postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
+            perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
+            feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            note: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, "many">;
+        totals: z.ZodObject<{
+            youReceiveGbp: z.ZodNullable<z.ZodNumber>;
+            maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            askingPriceOnly: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }>;
+        compare: z.ZodNullable<z.ZodObject<{
+            theirPriceGbp: z.ZodNumber;
+            overUnderGbp: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }>>;
+        feePosition: z.ZodObject<{
+            sellerType: z.ZodNullable<z.ZodEnum<["private", "business"]>>;
+            vatRegistered: z.ZodNullable<z.ZodBoolean>;
+            channel: z.ZodEnum<["ebay", "direct"]>;
+            feeBasis: z.ZodEnum<["derived", "seller_override", "not_set"]>;
+        }, "strip", z.ZodTypeAny, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }>;
+        notSet: z.ZodArray<z.ZodEnum<["sellerType", "vatPosition", "targetMargin"]>, "many">;
+        price: z.ZodObject<{
+            gbp: z.ZodNullable<z.ZodNumber>;
+            source: z.ZodNullable<z.ZodString>;
+            kind: z.ZodNullable<z.ZodEnum<["realised", "asking"]>>;
+            asOf: z.ZodNullable<z.ZodString>;
+            cached: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }>;
+        computedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>;
 }, "strip", z.ZodTypeAny, {
+    price: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    };
     decision: {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
@@ -620,12 +1255,13 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -633,16 +1269,57 @@ export declare const DecideResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     };
-    price: {
-        source: string | null;
-        confidence: "high" | "medium" | "low" | null;
-        currencyNote: string | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
     };
     gradeEV?: {
         confidence: "medium" | "low" | null;
@@ -654,23 +1331,31 @@ export declare const DecideResponseSchema: z.ZodObject<{
         gradeEVGbp: number | null;
     } | undefined;
 }, {
+    price: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    };
     decision: {
         confidence: "high" | "medium" | "low";
         liquidity: "high" | "medium" | "low";
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -684,10 +1369,233 @@ export declare const DecideResponseSchema: z.ZodObject<{
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     };
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    };
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+}>, {
     price: {
         source: string | null;
         confidence: "high" | "medium" | "low" | null;
         currencyNote: string | null;
+    };
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    };
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    };
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+}, {
+    price: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    };
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    };
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
     };
     gradeEV?: {
         confidence: "medium" | "low" | null;
@@ -712,25 +1620,29 @@ export declare const DecideBatchCardSchema: z.ZodObject<{
     /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
     compatibleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
+    /** What they are asking for this card (v0.2.0); the server computes the over/under. */
+    theirPriceGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     marketValueGbp: number | null;
     costBasisGbp: number | null;
-    collectionType?: "personal" | "resale" | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    collectionType?: "personal" | "resale" | undefined;
     isVintage?: boolean | null | undefined;
     priceSource?: string | null | undefined;
     saleCount?: number | null | undefined;
+    theirPriceGbp?: number | null | undefined;
     compatibleCount?: number | null | undefined;
 }, {
     id: string;
     marketValueGbp: number | null;
     costBasisGbp: number | null;
-    collectionType?: "personal" | "resale" | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+    collectionType?: "personal" | "resale" | undefined;
     isVintage?: boolean | null | undefined;
     priceSource?: string | null | undefined;
     saleCount?: number | null | undefined;
+    theirPriceGbp?: number | null | undefined;
     compatibleCount?: number | null | undefined;
 }>;
 export type DecideBatchCard = z.infer<typeof DecideBatchCardSchema>;
@@ -747,28 +1659,33 @@ export declare const DecideBatchRequestSchema: z.ZodObject<{
         /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
         compatibleCount: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         collectionType: z.ZodOptional<z.ZodEnum<["personal", "resale"]>>;
+        /** What they are asking for this card (v0.2.0); the server computes the over/under. */
+        theirPriceGbp: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     }, "strip", z.ZodTypeAny, {
         id: string;
         marketValueGbp: number | null;
         costBasisGbp: number | null;
-        collectionType?: "personal" | "resale" | undefined;
         condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        collectionType?: "personal" | "resale" | undefined;
         isVintage?: boolean | null | undefined;
         priceSource?: string | null | undefined;
         saleCount?: number | null | undefined;
+        theirPriceGbp?: number | null | undefined;
         compatibleCount?: number | null | undefined;
     }, {
         id: string;
         marketValueGbp: number | null;
         costBasisGbp: number | null;
-        collectionType?: "personal" | "resale" | undefined;
         condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        collectionType?: "personal" | "resale" | undefined;
         isVintage?: boolean | null | undefined;
         priceSource?: string | null | undefined;
         saleCount?: number | null | undefined;
+        theirPriceGbp?: number | null | undefined;
         compatibleCount?: number | null | undefined;
     }>, "many">;
-    /** Applies to the whole batch — a seller preference, not a per-card fact. */
+    /** Applies to the whole batch — a seller preference, not a per-card fact. v0.2.0: so are
+     *  `postageMode` and `packingKey` below. */
     targetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
     pricingSettings: z.ZodOptional<z.ZodObject<{
         ebayFeeRate: z.ZodNumber;
@@ -798,16 +1715,19 @@ export declare const DecideBatchRequestSchema: z.ZodObject<{
         minSaleValue: number;
         postageCost: number;
     }>>;
+    postageMode: z.ZodOptional<z.ZodEnum<["seller_pays", "buyer_pays"]>>;
+    packingKey: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     cards: {
         id: string;
         marketValueGbp: number | null;
         costBasisGbp: number | null;
-        collectionType?: "personal" | "resale" | undefined;
         condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        collectionType?: "personal" | "resale" | undefined;
         isVintage?: boolean | null | undefined;
         priceSource?: string | null | undefined;
         saleCount?: number | null | undefined;
+        theirPriceGbp?: number | null | undefined;
         compatibleCount?: number | null | undefined;
     }[];
     pricingSettings?: {
@@ -821,16 +1741,19 @@ export declare const DecideBatchRequestSchema: z.ZodObject<{
         postageCost: number;
     } | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
 }, {
     cards: {
         id: string;
         marketValueGbp: number | null;
         costBasisGbp: number | null;
-        collectionType?: "personal" | "resale" | undefined;
         condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
+        collectionType?: "personal" | "resale" | undefined;
         isVintage?: boolean | null | undefined;
         priceSource?: string | null | undefined;
         saleCount?: number | null | undefined;
+        theirPriceGbp?: number | null | undefined;
         compatibleCount?: number | null | undefined;
     }[];
     pricingSettings?: {
@@ -844,16 +1767,18 @@ export declare const DecideBatchRequestSchema: z.ZodObject<{
         postageCost: number;
     } | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
 }>;
 export type DecideBatchRequest = z.infer<typeof DecideBatchRequestSchema>;
-export declare const DecideBatchResultSchema: z.ZodObject<{
+export declare const DecideBatchResultSchema: z.ZodEffects<z.ZodObject<{
     id: z.ZodString;
     /**
      * NULL when that card has no market value yet — the same principle as quick-scan's null
      * decision: a decision computed from a value we do not have is a guess wearing a number. One
      * unpriceable card does not fail the batch.
      */
-    decision: z.ZodNullable<z.ZodObject<{
+    decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -883,42 +1808,95 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+         * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+         * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+         * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+        /**
+         * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+         * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+         * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+         * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+         * seller has not set a margin / seller type) this is false.
+         */
+        askingPriceOnly: z.ZodBoolean;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -961,12 +1939,13 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -974,9 +1953,11 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -985,17 +1966,84 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1026,6 +2074,324 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         confidence: "high" | "medium" | "low" | null;
         currencyNote: string | null;
     }>>>;
+    /** v0.2.0. The lines behind this card's decision; null exactly when `decision` is null (a card
+     *  with no market value has nothing to itemise — not a breakdown of zeros). */
+    breakdown: z.ZodNullable<z.ZodEffects<z.ZodObject<{
+        mode: z.ZodEnum<["selling", "buying"]>;
+        lines: z.ZodArray<z.ZodEffects<z.ZodObject<{
+            key: z.ZodString;
+            label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            amountGbp: z.ZodNullable<z.ZodNumber>;
+            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+            source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
+            assumed: z.ZodBoolean;
+            estimate: z.ZodBoolean;
+            editable: z.ZodBoolean;
+            editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
+            minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+            postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
+            perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
+            feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            note: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, "many">;
+        totals: z.ZodObject<{
+            youReceiveGbp: z.ZodNullable<z.ZodNumber>;
+            maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            askingPriceOnly: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }>;
+        compare: z.ZodNullable<z.ZodObject<{
+            theirPriceGbp: z.ZodNumber;
+            overUnderGbp: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }>>;
+        feePosition: z.ZodObject<{
+            sellerType: z.ZodNullable<z.ZodEnum<["private", "business"]>>;
+            vatRegistered: z.ZodNullable<z.ZodBoolean>;
+            channel: z.ZodEnum<["ebay", "direct"]>;
+            feeBasis: z.ZodEnum<["derived", "seller_override", "not_set"]>;
+        }, "strip", z.ZodTypeAny, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }>;
+        notSet: z.ZodArray<z.ZodEnum<["sellerType", "vatPosition", "targetMargin"]>, "many">;
+        price: z.ZodObject<{
+            gbp: z.ZodNullable<z.ZodNumber>;
+            source: z.ZodNullable<z.ZodString>;
+            kind: z.ZodNullable<z.ZodEnum<["realised", "asking"]>>;
+            asOf: z.ZodNullable<z.ZodString>;
+            cached: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }>;
+        computedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     decision: {
@@ -1039,12 +2405,13 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1052,11 +2419,57 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
     } | null;
     price?: {
         source: string | null;
@@ -1072,17 +2485,20 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1096,6 +2512,220 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
     } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    } | null;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+}>, {
+    id: string;
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    } | null;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+}, {
+    id: string;
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    } | null;
     price?: {
         source: string | null;
         confidence: "high" | "medium" | "low" | null;
@@ -1105,14 +2735,14 @@ export declare const DecideBatchResultSchema: z.ZodObject<{
 }>;
 export type DecideBatchResult = z.infer<typeof DecideBatchResultSchema>;
 export declare const DecideBatchResponseSchema: z.ZodObject<{
-    results: z.ZodArray<z.ZodObject<{
+    results: z.ZodArray<z.ZodEffects<z.ZodObject<{
         id: z.ZodString;
         /**
          * NULL when that card has no market value yet — the same principle as quick-scan's null
          * decision: a decision computed from a value we do not have is a guess wearing a number. One
          * unpriceable card does not fail the batch.
          */
-        decision: z.ZodNullable<z.ZodObject<{
+        decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
             route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
             reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
             alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -1142,42 +2772,95 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }>, "many">>;
             confidence: z.ZodEnum<["high", "medium", "low"]>;
             liquidity: z.ZodEnum<["high", "medium", "low"]>;
-            economics: z.ZodObject<{
+            economics: z.ZodEffects<z.ZodObject<{
                 marketValueGbp: z.ZodNumber;
-                /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-                feeGbp: z.ZodNumber;
+                /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+                 *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+                 *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+                feeGbp: z.ZodNullable<z.ZodNumber>;
+                /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+                feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
                 postageGbp: z.ZodNumber;
                 packagingGbp: z.ZodNumber;
                 /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
                  *  free acquisition inflates every net figure on the screen people scan with. */
                 costBasisGbp: z.ZodNullable<z.ZodNumber>;
-                taxProvisionGbp: z.ZodNumber;
-                expectedNetGbp: z.ZodNumber;
+                /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+                taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+                /** Null with `feeGbp` (the profit includes the fee). */
+                expectedNetGbp: z.ZodNullable<z.ZodNumber>;
             }, "strip", z.ZodTypeAny, {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             }, {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
+            }>, {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            }, {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
             }>;
-            /** ACQUISITION: the most the seller should PAY for this card. */
-            maxBuyGbp: z.ZodNumber;
+            /**
+             * ACQUISITION: the most the seller should PAY for this card.
+             *
+             * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+             * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+             * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+             * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+             * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+             * the reason ("Set your buying margin", "Not set"), never a figure.
+             */
+            maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+             *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+            maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+            /**
+             * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+             * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+             * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+             * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+             * seller has not set a margin / seller type) this is false.
+             */
+            askingPriceOnly: z.ZodBoolean;
             /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
              *  floor, the auction start price (a start price is a free reserve), and the
-             *  "this shouldn't be an auction" test against the top realised comp. */
-            minAcceptGbp: z.ZodNumber;
-            /** `maxBuyGbp` as a % of market value, to one decimal place. */
-            offerPctAtMax: z.ZodNumber;
+             *  "this shouldn't be an auction" test against the top realised comp.
+             *
+             *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+             *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+             *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+             *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+             *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+            minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+            /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+             *  `maxBuyGbp` is null (a percentage of nothing). */
+            offerPctAtMax: z.ZodNullable<z.ZodNumber>;
             /**
              * True when the decision was made without complete information — an offline client with no
              * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -1220,12 +2903,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1233,9 +2917,11 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
         }, {
@@ -1244,17 +2930,84 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        }>, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        }, {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1285,6 +3038,324 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             confidence: "high" | "medium" | "low" | null;
             currencyNote: string | null;
         }>>>;
+        /** v0.2.0. The lines behind this card's decision; null exactly when `decision` is null (a card
+         *  with no market value has nothing to itemise — not a breakdown of zeros). */
+        breakdown: z.ZodNullable<z.ZodEffects<z.ZodObject<{
+            mode: z.ZodEnum<["selling", "buying"]>;
+            lines: z.ZodArray<z.ZodEffects<z.ZodObject<{
+                key: z.ZodString;
+                label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+                amountGbp: z.ZodNullable<z.ZodNumber>;
+                unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+                source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
+                assumed: z.ZodBoolean;
+                estimate: z.ZodBoolean;
+                editable: z.ZodBoolean;
+                editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
+                minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+                service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+                postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
+                perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
+                feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+                note: z.ZodNullable<z.ZodString>;
+            }, "strip", z.ZodTypeAny, {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }, {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }>, {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }, {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }>, "many">;
+            totals: z.ZodObject<{
+                youReceiveGbp: z.ZodNullable<z.ZodNumber>;
+                maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+                askingPriceOnly: z.ZodBoolean;
+            }, "strip", z.ZodTypeAny, {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            }, {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            }>;
+            compare: z.ZodNullable<z.ZodObject<{
+                theirPriceGbp: z.ZodNumber;
+                overUnderGbp: z.ZodNumber;
+            }, "strip", z.ZodTypeAny, {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            }, {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            }>>;
+            feePosition: z.ZodObject<{
+                sellerType: z.ZodNullable<z.ZodEnum<["private", "business"]>>;
+                vatRegistered: z.ZodNullable<z.ZodBoolean>;
+                channel: z.ZodEnum<["ebay", "direct"]>;
+                feeBasis: z.ZodEnum<["derived", "seller_override", "not_set"]>;
+            }, "strip", z.ZodTypeAny, {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            }, {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            }>;
+            notSet: z.ZodArray<z.ZodEnum<["sellerType", "vatPosition", "targetMargin"]>, "many">;
+            price: z.ZodObject<{
+                gbp: z.ZodNullable<z.ZodNumber>;
+                source: z.ZodNullable<z.ZodString>;
+                kind: z.ZodNullable<z.ZodEnum<["realised", "asking"]>>;
+                asOf: z.ZodNullable<z.ZodString>;
+                cached: z.ZodBoolean;
+            }, "strip", z.ZodTypeAny, {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            }, {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            }>;
+            computedAt: z.ZodString;
+        }, "strip", z.ZodTypeAny, {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        }, {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        }>, {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        }, {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        }>>;
     }, "strip", z.ZodTypeAny, {
         id: string;
         decision: {
@@ -1298,12 +3369,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1311,11 +3383,57 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
         } | null;
         price?: {
             source: string | null;
@@ -1331,17 +3449,20 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1354,6 +3475,220 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }>, {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            alternatives: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[];
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            assumptions: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[];
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
+        } | null;
+        price?: {
+            source: string | null;
+            confidence: "high" | "medium" | "low" | null;
+            currencyNote: string | null;
+        } | null | undefined;
+        decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    }, {
+        id: string;
+        decision: {
+            confidence: "high" | "medium" | "low";
+            liquidity: "high" | "medium" | "low";
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            economics: {
+                marketValueGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
+                postageGbp: number;
+                packagingGbp: number;
+                costBasisGbp: number | null;
+                taxProvisionGbp: number | null;
+            };
+            reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
+            degraded: boolean;
+            alternatives?: {
+                route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+                reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+                expectedNetGbp?: number | null | undefined;
+            }[] | undefined;
+            assumptions?: {
+                value: string | null;
+                code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+                valueGbp?: number | null | undefined;
+            }[] | undefined;
+            degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
         } | null;
         price?: {
             source: string | null;
@@ -1376,12 +3711,13 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             }[];
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             assumptions: {
                 value: string | null;
@@ -1389,11 +3725,57 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[];
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
         } | null;
         price?: {
             source: string | null;
@@ -1411,17 +3793,20 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
             economics: {
                 marketValueGbp: number;
-                expectedNetGbp: number;
-                feeGbp: number;
+                feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+                expectedNetGbp: number | null;
+                feeGbp: number | null;
                 postageGbp: number;
                 packagingGbp: number;
                 costBasisGbp: number | null;
-                taxProvisionGbp: number;
+                taxProvisionGbp: number | null;
             };
             reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-            maxBuyGbp: number;
-            minAcceptGbp: number;
-            offerPctAtMax: number;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+            maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            minAcceptGbp: number | null;
+            offerPctAtMax: number | null;
             degraded: boolean;
             alternatives?: {
                 route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1434,6 +3819,50 @@ export declare const DecideBatchResponseSchema: z.ZodObject<{
                 valueGbp?: number | null | undefined;
             }[] | undefined;
             degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+        } | null;
+        breakdown: {
+            mode: "selling" | "buying";
+            lines: {
+                estimate: boolean;
+                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+                key: string;
+                amountGbp: number | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+                assumed: boolean;
+                editable: boolean;
+                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+                note: string | null;
+                label?: string | null | undefined;
+                minutes?: number | null | undefined;
+                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+                perOrderBand?: "high" | "low" | null | undefined;
+                feeBasisVerified?: boolean | null | undefined;
+            }[];
+            totals: {
+                youReceiveGbp: number | null;
+                maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
+            };
+            compare: {
+                theirPriceGbp: number;
+                overUnderGbp: number;
+            } | null;
+            feePosition: {
+                channel: "ebay" | "direct";
+                sellerType: "private" | "business" | null;
+                vatRegistered: boolean | null;
+                feeBasis: "derived" | "seller_override" | "not_set";
+            };
+            notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+            price: {
+                source: string | null;
+                cached: boolean;
+                gbp: number | null;
+                kind: "realised" | "asking" | null;
+                asOf: string | null;
+            };
+            computedAt: string;
         } | null;
         price?: {
             source: string | null;
@@ -1467,6 +3896,11 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     /** As on DecideRequest — a seller preference, not a cost assertion. More useful here, if
      *  anything: an anonymous scanner has no saved profile to default from. */
     targetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
+    /** v0.2.0 — as on DecideRequest: what they are asking, who bears postage, a keyed packing
+     *  choice. Seller intent only. */
+    theirPriceGbp: z.ZodOptional<z.ZodNumber>;
+    postageMode: z.ZodOptional<z.ZodEnum<["seller_pays", "buyer_pays"]>>;
+    packingKey: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     name?: string | undefined;
@@ -1476,6 +3910,9 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     finish?: string | null | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
+    theirPriceGbp?: number | undefined;
 }, {
     game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | undefined;
     name?: string | undefined;
@@ -1485,6 +3922,9 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     finish?: string | null | undefined;
     targetMarginPct?: number | undefined;
+    postageMode?: "seller_pays" | "buyer_pays" | undefined;
+    packingKey?: string | undefined;
+    theirPriceGbp?: number | undefined;
 }>;
 export type QuickScanRequest = z.infer<typeof QuickScanRequestSchema>;
 export declare const QuickScanCandidateSchema: z.ZodObject<{
@@ -1544,7 +3984,7 @@ export declare const QuickScanCandidateSchema: z.ZodObject<{
     cardNumber?: string | null | undefined;
     image?: string | null | undefined;
 }>;
-export declare const QuickScanResponseSchema: z.ZodObject<{
+export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
     /** Whether the scanned identity resolved to a real catalogue card. */
     identified: z.ZodBoolean;
     /** Cross-game candidates when the identity is ambiguous. Empty otherwise. */
@@ -1669,7 +4109,7 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
      * zeroed money in it, which a client would render as "£0 max buy" rather than "we don't know
      * what this is".
      */
-    decision: z.ZodNullable<z.ZodObject<{
+    decision: z.ZodNullable<z.ZodEffects<z.ZodObject<{
         route: z.ZodEnum<["list_single", "bundle", "bulk", "hold", "grade_review", "restoration_review", "do_not_list"]>;
         reason: z.ZodEnum<["below_bulk_floor", "net_below_minimum", "grade_worth_reviewing", "thin_market", "bundle_lot_available", "sound_single_listing"]>;
         alternatives: z.ZodDefault<z.ZodArray<z.ZodObject<{
@@ -1699,42 +4139,95 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }>, "many">>;
         confidence: z.ZodEnum<["high", "medium", "low"]>;
         liquidity: z.ZodEnum<["high", "medium", "low"]>;
-        economics: z.ZodObject<{
+        economics: z.ZodEffects<z.ZodObject<{
             marketValueGbp: z.ZodNumber;
-            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025). */
-            feeGbp: z.ZodNumber;
+            /** What the seller actually pays eBay, with their VAT position applied (ADR 0025).
+             *  NULL when the fee position is not set — see `feeNotSetReason`. NOT zero: £0 is a private
+             *  seller's real fee, and a client rendering null as £0 re-creates the bug this field fixes. */
+            feeGbp: z.ZodNullable<z.ZodNumber>;
+            /** WHY `feeGbp` is null. Null exactly when `feeGbp` is a number. */
+            feeNotSetReason: z.ZodNullable<z.ZodEnum<["seller_type_not_set", "vat_not_set"]>>;
             postageGbp: z.ZodNumber;
             packagingGbp: z.ZodNumber;
             /** NULL when the seller does not own the card yet — NOT zero. Treating an unbought card as a
              *  free acquisition inflates every net figure on the screen people scan with. */
             costBasisGbp: z.ZodNullable<z.ZodNumber>;
-            taxProvisionGbp: z.ZodNumber;
-            expectedNetGbp: z.ZodNumber;
+            /** Null with `feeGbp` (tax on a profit that cannot be computed). */
+            taxProvisionGbp: z.ZodNullable<z.ZodNumber>;
+            /** Null with `feeGbp` (the profit includes the fee). */
+            expectedNetGbp: z.ZodNullable<z.ZodNumber>;
         }, "strip", z.ZodTypeAny, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         }, {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
+        }>, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        }, {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
         }>;
-        /** ACQUISITION: the most the seller should PAY for this card. */
-        maxBuyGbp: z.ZodNumber;
+        /**
+         * ACQUISITION: the most the seller should PAY for this card.
+         *
+         * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+         * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+         * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+         * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+         * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
+         * the reason ("Set your buying margin", "Not set"), never a figure.
+         */
+        maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+        /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
+         *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
+        maxBuyUnavailableReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+        /**
+         * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+         * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+         * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+         * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+         * seller has not set a margin / seller type) this is false.
+         */
+        askingPriceOnly: z.ZodBoolean;
         /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
          *  floor, the auction start price (a start price is a free reserve), and the
-         *  "this shouldn't be an auction" test against the top realised comp. */
-        minAcceptGbp: z.ZodNumber;
-        /** `maxBuyGbp` as a % of market value, to one decimal place. */
-        offerPctAtMax: z.ZodNumber;
+         *  "this shouldn't be an auction" test against the top realised comp.
+         *
+         *  v0.2.0 (BREAKING): null exactly when `economics.feeGbp` is null. The floor is the price at
+         *  which net-of-fees clears the seller's minimum profit, so it contains the fee; computed with an
+         *  assumed £0 private-seller fee it would be LOWER than the true floor for a business seller,
+         *  and an auto-decline floor that is too low accepts offers that lose money. A consumer must
+         *  not arm Best Offer's auto-decline, nor propose an auction start price, from a null here. */
+        minAcceptGbp: z.ZodNullable<z.ZodNumber>;
+        /** `maxBuyGbp` as a % of market value, to one decimal place. v0.2.0: null exactly when
+         *  `maxBuyGbp` is null (a percentage of nothing). */
+        offerPctAtMax: z.ZodNullable<z.ZodNumber>;
         /**
          * True when the decision was made without complete information — an offline client with no
          * comps and no fee context. The route is still the best available call; degraded means "trust
@@ -1777,12 +4270,13 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1790,9 +4284,11 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
     }, {
@@ -1801,17 +4297,84 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    }>, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    }, {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1892,6 +4455,323 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
      * structurally could not — a T1 parity gap on a safety disclosure.
      */
     editionAmbiguity: z.ZodDefault<z.ZodNullable<z.ZodEnum<["first_edition_shadowless_unlimited", "first_edition_unlimited"]>>>;
+    /** v0.2.0. The lines behind `decision`; null exactly when `decision` is null. */
+    breakdown: z.ZodNullable<z.ZodEffects<z.ZodObject<{
+        mode: z.ZodEnum<["selling", "buying"]>;
+        lines: z.ZodArray<z.ZodEffects<z.ZodObject<{
+            key: z.ZodString;
+            label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+            amountGbp: z.ZodNullable<z.ZodNumber>;
+            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
+            source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
+            assumed: z.ZodBoolean;
+            estimate: z.ZodBoolean;
+            editable: z.ZodBoolean;
+            editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
+            minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+            postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
+            perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
+            feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+            note: z.ZodNullable<z.ZodString>;
+        }, "strip", z.ZodTypeAny, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }, {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }>, "many">;
+        totals: z.ZodObject<{
+            youReceiveGbp: z.ZodNullable<z.ZodNumber>;
+            maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            askingPriceOnly: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }, {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        }>;
+        compare: z.ZodNullable<z.ZodObject<{
+            theirPriceGbp: z.ZodNumber;
+            overUnderGbp: z.ZodNumber;
+        }, "strip", z.ZodTypeAny, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }, {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        }>>;
+        feePosition: z.ZodObject<{
+            sellerType: z.ZodNullable<z.ZodEnum<["private", "business"]>>;
+            vatRegistered: z.ZodNullable<z.ZodBoolean>;
+            channel: z.ZodEnum<["ebay", "direct"]>;
+            feeBasis: z.ZodEnum<["derived", "seller_override", "not_set"]>;
+        }, "strip", z.ZodTypeAny, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }, {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        }>;
+        notSet: z.ZodArray<z.ZodEnum<["sellerType", "vatPosition", "targetMargin"]>, "many">;
+        price: z.ZodObject<{
+            gbp: z.ZodNullable<z.ZodNumber>;
+            source: z.ZodNullable<z.ZodString>;
+            kind: z.ZodNullable<z.ZodEnum<["realised", "asking"]>>;
+            asOf: z.ZodNullable<z.ZodString>;
+            cached: z.ZodBoolean;
+        }, "strip", z.ZodTypeAny, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }, {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        }>;
+        computedAt: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }, {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    }>>;
 }, "strip", z.ZodTypeAny, {
     candidates: {
         name: string;
@@ -1915,12 +4795,13 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         }[];
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         assumptions: {
             value: string | null;
@@ -1928,11 +4809,57 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[];
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
     } | null;
     identified: boolean;
     conditionAssessed: boolean;
@@ -1968,17 +4895,20 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
         route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
         economics: {
             marketValueGbp: number;
-            expectedNetGbp: number;
-            feeGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
             postageGbp: number;
             packagingGbp: number;
             costBasisGbp: number | null;
-            taxProvisionGbp: number;
+            taxProvisionGbp: number | null;
         };
         reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
-        maxBuyGbp: number;
-        minAcceptGbp: number;
-        offerPctAtMax: number;
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
         degraded: boolean;
         alternatives?: {
             route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
@@ -1991,6 +4921,282 @@ export declare const QuickScanResponseSchema: z.ZodObject<{
             valueGbp?: number | null | undefined;
         }[] | undefined;
         degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    } | null;
+    identified: boolean;
+    candidates?: {
+        name: string;
+        nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
+        confidence?: "high" | "medium" | "low" | null | undefined;
+        rarity?: string | null | undefined;
+        setName?: string | null | undefined;
+        cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
+    }[] | undefined;
+    match?: {
+        name: string;
+        nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
+        confidence?: "high" | "medium" | "low" | null | undefined;
+        rarity?: string | null | undefined;
+        setName?: string | null | undefined;
+        cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
+    } | null | undefined;
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+    editionAmbiguity?: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null | undefined;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    conditionAssessed?: boolean | undefined;
+}>, {
+    candidates: {
+        name: string;
+        nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
+        confidence?: "high" | "medium" | "low" | null | undefined;
+        rarity?: string | null | undefined;
+        setName?: string | null | undefined;
+        cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
+    }[];
+    editionAmbiguity: "first_edition_shadowless_unlimited" | "first_edition_unlimited" | null;
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        alternatives: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[];
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        assumptions: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[];
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        degradedReasons: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[];
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
+    } | null;
+    identified: boolean;
+    conditionAssessed: boolean;
+    match?: {
+        name: string;
+        nativeId: string;
+        game?: "pokemon" | "pokemon-jp" | "mtg" | "yugioh" | "lorcana" | "one-piece" | "digimon" | "dbs-fusion" | null | undefined;
+        confidence?: "high" | "medium" | "low" | null | undefined;
+        rarity?: string | null | undefined;
+        setName?: string | null | undefined;
+        cardNumber?: string | null | undefined;
+        image?: string | null | undefined;
+    } | null | undefined;
+    gradeEV?: {
+        confidence: "medium" | "low" | null;
+        psa10PriceGbp: number | null;
+        p10: number | null;
+        p9: number | null;
+        gradingCostGbp: number | null;
+        rawNetGbp: number | null;
+        gradeEVGbp: number | null;
+    } | undefined;
+    price?: {
+        source: string | null;
+        confidence: "high" | "medium" | "low" | null;
+        currencyNote: string | null;
+    } | null | undefined;
+    decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+}, {
+    decision: {
+        confidence: "high" | "medium" | "low";
+        liquidity: "high" | "medium" | "low";
+        route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+        economics: {
+            marketValueGbp: number;
+            feeNotSetReason: "seller_type_not_set" | "vat_not_set" | null;
+            expectedNetGbp: number | null;
+            feeGbp: number | null;
+            postageGbp: number;
+            packagingGbp: number;
+            costBasisGbp: number | null;
+            taxProvisionGbp: number | null;
+        };
+        reason: "below_bulk_floor" | "net_below_minimum" | "grade_worth_reviewing" | "thin_market" | "bundle_lot_available" | "sound_single_listing";
+        maxBuyGbp: number | null;
+        askingPriceOnly: boolean;
+        maxBuyUnavailableReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+        minAcceptGbp: number | null;
+        offerPctAtMax: number | null;
+        degraded: boolean;
+        alternatives?: {
+            route: "list_single" | "bundle" | "bulk" | "hold" | "grade_review" | "restoration_review" | "do_not_list";
+            reason: "net_negative_after_costs" | "bundle_shares_postage" | "list_ungraded_instead" | "list_now_accept_slower" | "list_alone_instead";
+            expectedNetGbp?: number | null | undefined;
+        }[] | undefined;
+        assumptions?: {
+            value: string | null;
+            code: "condition" | "channel" | "postage" | "packaging" | "seller_type" | "vat_registered" | "tax_rate" | "cost_basis";
+            valueGbp?: number | null | undefined;
+        }[] | undefined;
+        degradedReasons?: ("no_sale_count" | "fees_unknown" | "compatible_count_unknown")[] | undefined;
+    } | null;
+    breakdown: {
+        mode: "selling" | "buying";
+        lines: {
+            estimate: boolean;
+            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+            key: string;
+            amountGbp: number | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
+            assumed: boolean;
+            editable: boolean;
+            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
+            note: string | null;
+            label?: string | null | undefined;
+            minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
+            perOrderBand?: "high" | "low" | null | undefined;
+            feeBasisVerified?: boolean | null | undefined;
+        }[];
+        totals: {
+            youReceiveGbp: number | null;
+            maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
+        };
+        compare: {
+            theirPriceGbp: number;
+            overUnderGbp: number;
+        } | null;
+        feePosition: {
+            channel: "ebay" | "direct";
+            sellerType: "private" | "business" | null;
+            vatRegistered: boolean | null;
+            feeBasis: "derived" | "seller_override" | "not_set";
+        };
+        notSet: ("sellerType" | "vatPosition" | "targetMargin")[];
+        price: {
+            source: string | null;
+            cached: boolean;
+            gbp: number | null;
+            kind: "realised" | "asking" | null;
+            asOf: string | null;
+        };
+        computedAt: string;
     } | null;
     identified: boolean;
     candidates?: {

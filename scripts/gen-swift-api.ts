@@ -31,7 +31,9 @@ import {
   PriceProvenanceSchema, DecisionGradeEVSchema, DecisionAssumptionSchema, DecisionAssumptionCodeSchema, DecideBatchRequestSchema,
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
-import { LiquiditySchema, DecisionUnavailableSchema } from "../src/api/common.js";
+import {
+  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema, PostageServiceSchema, PostageBasisSchema, PostageForSchema,
+} from "../src/api/common.js";
 import {
   EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
   PriceBandSchema, CardValueEconomicsSchema,
@@ -56,9 +58,35 @@ import {
 } from "../src/api/listing-template.js";
 import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema } from "../src/api/pricing-breakdown.js";
 import {
+  PricedBreakdownSchema, PricedLineSchema, PricedLineSourceSchema, PricedLineEditKeySchema,
+  PricedBreakdownModeSchema, PricedTotalsSchema, PricedCompareSchema, PricedChannelSchema,
+  FeeBasisSchema, PricedFeePositionSchema, PricedNotSetSchema, PricedPriceSchema, PostageModeSchema, PerOrderBandSchema,
+} from "../src/api/priced-breakdown.js";
+import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
-  DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema,
+  DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
+import { PhysicalCardSchema, PhysicalCardStatusSchema, SetAsideReasonSchema } from "../src/api/physical-card.js";
+import { InventoryStatusKeySchema } from "../src/api/inventory-list.js";
+import {
+  GradedCreateRequestSchema, GradedCreateResponseSchema, SlabGraderSchema, SlabCollectionTypeSchema, CertCheckSchema,
+} from "../src/api/inventory-graded.js";
+import {
+  MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
+  InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
+  InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
+} from "../src/api/inventory-change.js";
+import {
+  ListingRefusalSchema, ListingRefusalCodeSchema, ListingRefusalReasonSchema,
+} from "../src/api/listing-refusal.js";
+import {
+  GamesResponseSchema, GameInfoSchema, GameAvailabilitySchema, GameRefusalSchema, GameRefusalCodeSchema,
+  UnavailableGameSchema,
+} from "../src/api/game-availability.js";
+import {
+  ListingPreviewRequestSchema, ListingPreviewItemRequestSchema, ListingPreviewResponseSchema,
+  ListingPreviewItemSchema, ListingPreviewTotalsSchema, ListingPreviewGroupSchema,
+} from "../src/api/listing-preview.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -126,6 +154,67 @@ registerName(StoredPricingSettingsPatchSchema, "StoredPricingSettingsPatch");
 registerName(IdentifyCandidateSchema, "IdentifyCandidate");
 registerName(IdentifyAmbiguousTierSchema, "IdentifyAmbiguousTier");
 
+// v0.2.0: a null most-to-pay / null fee carries a reason. Named here, once, and shared by every
+// schema that reports them — an inline copy per schema is how `Liquidity2` was minted.
+registerName(MaxBuyUnavailableReasonSchema, "MaxBuyUnavailableReason");
+registerName(FeeNotSetReasonSchema, "FeeNotSetReason");
+// Hoisted out of PricingBreakdownResponse's inline enum so PricedPrice.kind reuses it; the
+// generated name is unchanged (it was "PriceKind" from the field name).
+registerName(PriceKindSchema, "PriceKind");
+registerName(EffectivePricingSettingsSchema, "EffectivePricingSettings");
+// PricedBreakdown (v0.2.0, additive). Every nested type named: `source` is already three unrelated
+// vocabularies in this contract (Source/Source2/Source3 are debt), so a fourth inferred from the
+// field name would be the next digit-suffix.
+// Registered BEFORE any emit: PricedBreakdown is now reached as a NESTED field first (PricingBreakdownResponse.
+// breakdown, DecideResponse.breakdown), and an unregistered nested schema takes its FIELD name —
+// it came out as `Breakdown`.
+registerName(PricedBreakdownSchema, "PricedBreakdown");
+registerName(PricedLineSchema, "PricedLine");
+registerName(PricedLineSourceSchema, "PricedLineSource");
+registerName(PricedLineEditKeySchema, "PricedLineEditKey");
+registerName(PricedBreakdownModeSchema, "PricedBreakdownMode");
+registerName(PricedTotalsSchema, "PricedTotals");
+registerName(PricedCompareSchema, "PricedCompare");
+registerName(PricedChannelSchema, "PricedChannel");
+registerName(FeeBasisSchema, "FeeBasis");
+registerName(PricedFeePositionSchema, "PricedFeePosition");
+registerName(PricedNotSetSchema, "PricedNotSet");
+registerName(PricedPriceSchema, "PricedPrice");
+registerName(PostageModeSchema, "PostageMode");
+registerName(PerOrderBandSchema, "PerOrderBand");
+registerName(PostageServiceSchema, "PostageService");
+registerName(PostageBasisSchema, "PostageBasis");
+registerName(PostageForSchema, "PostageFor");
+
+// v0.2.0: the copy, its status, and the ONE closed refusal vocabulary. Every enum named here so
+// the emitter never mints a digit-suffixed twin (`status`, `reason`, `code` and `availability` are
+// all field names that recur across unrelated schemas).
+registerName(PhysicalCardStatusSchema, "PhysicalCardStatus");
+registerName(SetAsideReasonSchema, "SetAsideReason");
+registerName(InventoryStatusKeySchema, "InventoryStatusKey");
+registerName(SlabGraderSchema, "SlabGrader");
+registerName(SlabCollectionTypeSchema, "SlabCollectionType");
+registerName(CertCheckSchema, "CertCheck");
+registerName(InventoryChangeRefusalReasonSchema, "InventoryChangeRefusalReason");
+registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
+registerName(InventoryChangeResultSchema, "InventoryChangeResult");
+registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
+registerName(InventoryCountsSchema, "InventoryCounts");
+registerName(CollectionValueSchema, "CollectionValue");
+registerName(PhysicalCardSchema, "PhysicalCard");
+registerName(ListingRefusalReasonSchema, "ListingRefusalReason");
+registerName(ListingRefusalCodeSchema, "ListingRefusalCode");
+registerName(ListingRefusalSchema, "ListingRefusal");
+registerName(GameAvailabilitySchema, "GameAvailability");
+registerName(GameInfoSchema, "GameInfo");
+registerName(GameRefusalCodeSchema, "GameRefusalCode");
+registerName(GameRefusalSchema, "GameRefusal");
+registerName(UnavailableGameSchema, "UnavailableGame");
+registerName(ListingPreviewItemRequestSchema, "ListingPreviewItemRequest");
+registerName(ListingPreviewItemSchema, "ListingPreviewItem");
+registerName(ListingPreviewTotalsSchema, "ListingPreviewTotals");
+registerName(ListingPreviewGroupSchema, "ListingPreviewGroup");
+
 emitSwift(ApiErrorSchema, "ApiError");
 emitSwift(IdentifyRequestSchema, "IdentifyRequest");
 emitSwift(IdentifyResponseSchema, "IdentifyResponse");
@@ -164,6 +253,24 @@ emitSwift(PricingBreakdownRequestSchema, "PricingBreakdownRequest");
 emitSwift(PricingBreakdownResponseSchema, "PricingBreakdownResponse");
 emitSwift(ProfileResponseSchema, "ProfileResponse");
 emitSwift(ProfilePatchSchema, "ProfilePatch");
+emitSwift(PricedBreakdownSchema, "PricedBreakdown");
+emitSwift(PhysicalCardSchema, "PhysicalCard");
+emitSwift(ListingRefusalSchema, "ListingRefusal");
+emitSwift(GamesResponseSchema, "GamesResponse");
+emitSwift(GameRefusalSchema, "GameRefusal");
+emitSwift(ListingPreviewRequestSchema, "ListingPreviewRequest");
+emitSwift(ListingPreviewResponseSchema, "ListingPreviewResponse");
+emitSwift(MineRequestSchema, "MineRequest");
+emitSwift(SetAsideRequestSchema, "SetAsideRequest");
+emitSwift(PutBackRequestSchema, "PutBackRequest");
+emitSwift(StopHoldingRequestSchema, "StopHoldingRequest");
+// A standalone enum with no referent inside the contract yet (the list rows arrive with the list
+// contract), so nothing pulls it in; emitted so a client can compile its status switch now.
+emitSwift(InventoryStatusKeySchema, "InventoryStatusKey");
+emitSwift(InventoryChangeResponseSchema, "InventoryChangeResponse");
+emitSwift(StatsResponseSchema, "StatsResponse");
+emitSwift(GradedCreateRequestSchema, "GradedCreateRequest");
+emitSwift(GradedCreateResponseSchema, "GradedCreateResponse");
 
 
 emitSwift(DecideRequestSchema, "DecideRequest");

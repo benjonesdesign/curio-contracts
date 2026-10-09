@@ -143,3 +143,31 @@ describe("IdentifyAmbiguousResponseSchema", () => {
     expect(() => IdentifyAmbiguousResponseSchema.parse({ tier: "tier0", candidates: [] })).toThrow();
   });
 });
+
+describe("IdentifyAmbiguousResponse.unavailableGame (v0.2.0, additive)", () => {
+  it("names a game that is coming when the card is not a Pokémon card (#246): candidates empty", () => {
+    const res = IdentifyAmbiguousResponseSchema.parse({
+      tier: "ambiguous", candidates: [],
+      unavailableGame: { game: "mtg", displayName: "Magic: The Gathering", availability: "coming" },
+    });
+    expect(res.unavailableGame?.game).toBe("mtg");
+    expect(res.candidates).toEqual([]);
+  });
+
+  it("is absent on an ordinary ambiguous result: older servers and ordinary cases still validate", () => {
+    expect(IdentifyAmbiguousResponseSchema.parse({ tier: "ambiguous", candidates: [] }).unavailableGame).toBeUndefined();
+    expect(IdentifyAmbiguousResponseSchema.parse({ tier: "ambiguous", candidates: [], unavailableGame: null }).unavailableGame).toBeNull();
+  });
+
+  it("keeps `game` a plain string: the route sends \"unknown\" for an id it does not recognise", () => {
+    expect(IdentifyAmbiguousResponseSchema.safeParse({
+      tier: "ambiguous", candidates: [], unavailableGame: { game: "unknown", displayName: "This game", availability: "coming" },
+    }).success).toBe(true);
+  });
+
+  it("REJECTS an availability outside the closed list", () => {
+    expect(IdentifyAmbiguousResponseSchema.safeParse({
+      tier: "ambiguous", candidates: [], unavailableGame: { game: "mtg", displayName: "x", availability: "soon" },
+    }).success).toBe(false);
+  });
+});

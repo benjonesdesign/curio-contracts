@@ -26,6 +26,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CatalogueLookupResponseSchema } from "./api/catalogue-lookup.js";
 import { EbayPublishErrorResponseSchema } from "./api/ebay-publish.js";
+import { ListingPreviewResponseSchema } from "./api/listing-preview.js";
+import { GamesResponseSchema } from "./api/game-availability.js";
+import { PricedBreakdownSchema } from "./api/priced-breakdown.js";
+import { PhysicalCardSchema } from "./api/physical-card.js";
+import { InventoryChangeResponseSchema } from "./api/inventory-change.js";
+import { GradedCreateResponseSchema } from "./api/inventory-graded.js";
+import { DecisionSchema } from "./api/decide.js";
 
 type Vector = {
   name: string;
@@ -48,6 +55,13 @@ const { vectors } = JSON.parse(
 const SCHEMAS: Record<string, { safeParse: (v: unknown) => { success: boolean } }> = {
   CatalogueLookupResponse: CatalogueLookupResponseSchema,
   EbayPublishErrorResponse: EbayPublishErrorResponseSchema,
+  ListingPreviewResponse: ListingPreviewResponseSchema,
+  GamesResponse: GamesResponseSchema,
+  PricedBreakdown: PricedBreakdownSchema,
+  PhysicalCard: PhysicalCardSchema,
+  InventoryChangeResponse: InventoryChangeResponseSchema,
+  GradedCreateResponse: GradedCreateResponseSchema,
+  Decision: DecisionSchema,
 };
 
 describe("golden vectors (decisions/0026)", () => {
