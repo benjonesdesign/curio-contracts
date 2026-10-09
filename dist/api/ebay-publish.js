@@ -25,10 +25,16 @@
 // turn "eBay said something new" into "the app broke". Per ADR 0027 item 2a, native clients must
 // NEVER ORIGINATE an unknown case — it is a decode outcome, not a value to construct.
 import { z } from "zod";
+import { ListingRefusalReasonSchema } from "./listing-refusal.js";
 // ── Request ─────────────────────────────────────────────────────────────────────────────────
 export const EbayListingFormatSchema = z.enum(["FIXED_PRICE", "AUCTION"]);
 export const EbayPublishRequestSchema = z.object({
-    sku: z.string().min(1),
+    // v0.2.0 (BREAKING): `sku` is REMOVED from the request. A SKU is `SKU-` + 8 hex, given when the
+    // copy is added, and NEVER EDITABLE: no request type in this contract carries one (asserted by
+    // sku-immutable.test.ts). The server reads it from the copy named by `physicalCardId`; a retry
+    // that sent a different SKU is how a second live listing is created (PLAN-SKU-ONE-RECIPE #227).
+    // A pinned build that still sends `sku` keeps working: zod strips unknown keys, so the route
+    // ignores it (and may log the mismatch). Swift/Kotlin lose the `sku` init parameter: delete it.
     title: z.string().min(1).max(80),
     description: z.string(),
     condition: z.string(),
@@ -45,6 +51,13 @@ export const EbayPublishRequestSchema = z.object({
 // ── Success ─────────────────────────────────────────────────────────────────────────────────
 export const EbayPublishSuccessSchema = z.object({
     status: z.literal("published"),
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key). The SKU the listing was published under: the copy's own
+     * (`SKU-` + 8 hex, given when it was added), or — when a BulkRecord was listed as one lot — the
+     * SKU the server minted for that single listing (a pile has none of its own). Non-null, opaque:
+     * display and copy it, never parse it, never send one back.
+     */
+    sku: z.string().min(1),
     offerId: z.string(),
     listingId: z.string().nullable(),
     listingUrl: z.string().nullable(),
@@ -176,6 +189,56 @@ export const EbayPublishErrorSchema = z.discriminatedUnion("code", [
         // NOT the seller's fault and NOT actionable by them: our own eBay app credentials are absent.
         // A client must not tell a seller to reconnect their account for this one.
         code: z.literal("not_configured"),
+        message: z.string(),
+    }),
+    // ── Added v0.2.0: refusals made BEFORE eBay is contacted ─────────────────────────────────
+    //
+    // The listing guards (#243), the game gate (#246) and the SKU rule (#227) all refuse a copy
+    // without touching eBay, and none of them was in this union: a client decoded them to the
+    // forward-compatible fallback and could only say "unknown error" for six real, actionable
+    // failures. This is the v0.1.46 lesson again (a union covering 18 of 24 codes is a contract that
+    // reaches no client for the other six), so they land together. The same family travels
+    // everywhere else a copy is refused, as `ListingRefusal` (listing-refusal.ts); the arms below
+    // mirror it with this union's `message` field.
+    //
+    // ⚠️ For a client to decode these, the ROUTE must put them under `failure` like every other
+    // arm. The bodies #243 and #246 return today are the flat `{ error, code }` only, with no
+    // `failure`: the web lane builds the envelope (error === failure.message) when it adopts this.
+    z.object({
+        // 409. THE state-conflict refusal; `reason` says which (listing-refusal.ts). Replaces #243's
+        // `card_mine` / `card_set_aside` / `condition_not_confirmed` as separate codes (Ben decision:
+        // docs/V0.2.0-ADOPTION.md "Refusal codes").
+        code: z.literal("card_not_listable"),
+        message: z.string(),
+        reason: ListingRefusalReasonSchema,
+    }),
+    z.object({
+        // 422. The copy's game is not live (Pokémon only at beta). `game` is null for an id this build
+        // does not know. Existing copies of the game stay visible and editable; they are not listed.
+        code: z.literal("game_not_available"),
+        message: z.string(),
+        game: z.string().nullable(),
+        displayName: z.string(),
+    }),
+    z.object({
+        // 422. The request names no copy (or lot) to give a SKU to.
+        code: z.literal("sku_required"),
+        message: z.string(),
+    }),
+    z.object({
+        // 503. Seller can retry; nothing was sent to eBay (the SKU is saved before the first eBay call).
+        code: z.literal("sku_unavailable"),
+        message: z.string(),
+    }),
+    z.object({
+        // 503. Seek could not read the copy's record. FAIL CLOSED: never treated as "listable".
+        // Retried with the rest of a batch.
+        code: z.literal("card_read_failed"),
+        message: z.string(),
+    }),
+    z.object({
+        // 404. No such copy for this account.
+        code: z.literal("card_not_found"),
         message: z.string(),
     }),
 ]);

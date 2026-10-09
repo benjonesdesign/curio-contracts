@@ -65,6 +65,7 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
     ocrName: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     game?: string | undefined;
+    games?: string[] | undefined;
     imagePaths?: string[] | undefined;
     imageUrls?: string[] | undefined;
     inlineImages?: string[] | undefined;
@@ -78,13 +79,13 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
         }[] | undefined;
     }[] | undefined;
     imageHash?: string | undefined;
-    games?: string[] | undefined;
     ocrCardNumber?: string | undefined;
     ocrSetCode?: string | undefined;
     ocrSetName?: string | undefined;
     ocrName?: string | undefined;
 }, {
     game?: string | undefined;
+    games?: string[] | undefined;
     imagePaths?: string[] | undefined;
     imageUrls?: string[] | undefined;
     inlineImages?: string[] | undefined;
@@ -98,7 +99,6 @@ export declare const IdentifyRequestSchema: z.ZodObject<{
         }[] | undefined;
     }[] | undefined;
     imageHash?: string | undefined;
-    games?: string[] | undefined;
     ocrCardNumber?: string | undefined;
     ocrSetCode?: string | undefined;
     ocrSetName?: string | undefined;
@@ -337,6 +337,22 @@ export declare const IdentifyAmbiguousResponseSchema: z.ZodObject<{
         cardNumber: string | null;
         nativeId: string;
     }>, "many">;
+    /** v0.2.0, additive. Present when the card is of a game that is "coming" (Pokémon only at
+     *  beta, #246): `candidates` is empty and this names the game, so a current client says
+     *  "Magic: The Gathering is coming" while a pinned one renders "not recognised". */
+    unavailableGame: z.ZodOptional<z.ZodNullable<z.ZodObject<{
+        game: z.ZodString;
+        displayName: z.ZodString;
+        availability: z.ZodEnum<["available", "coming"]>;
+    }, "strip", z.ZodTypeAny, {
+        game: string;
+        displayName: string;
+        availability: "available" | "coming";
+    }, {
+        game: string;
+        displayName: string;
+        availability: "available" | "coming";
+    }>>>;
 }, "strip", z.ZodTypeAny, {
     tier: "ambiguous";
     candidates: {
@@ -346,6 +362,11 @@ export declare const IdentifyAmbiguousResponseSchema: z.ZodObject<{
         cardNumber: string | null;
         nativeId: string;
     }[];
+    unavailableGame?: {
+        game: string;
+        displayName: string;
+        availability: "available" | "coming";
+    } | null | undefined;
 }, {
     tier: "ambiguous";
     candidates: {
@@ -355,5 +376,10 @@ export declare const IdentifyAmbiguousResponseSchema: z.ZodObject<{
         cardNumber: string | null;
         nativeId: string;
     }[];
+    unavailableGame?: {
+        game: string;
+        displayName: string;
+        availability: "available" | "coming";
+    } | null | undefined;
 }>;
 export type IdentifyAmbiguousResponse = z.infer<typeof IdentifyAmbiguousResponseSchema>;

@@ -7,7 +7,9 @@
 // seller is deciding a price) — this route is the only correct way for iOS to get live net-profit
 // feedback on Spec 06's price step.
 import { z } from "zod";
-import { FeeNotSetReasonSchema } from "./common.js";
+import { FeeNotSetReasonSchema, PriceKindSchema } from "./common.js";
+import { EbayListingFormatSchema } from "./ebay-publish.js";
+import { PostageModeSchema, PricedBreakdownSchema } from "./priced-breakdown.js";
 import { PricingSettingsSchema } from "./recommend.js";
 export const PricingBreakdownRequestSchema = z.object({
     /** The price the seller is currently considering — recomputed live as they edit it. */
@@ -29,12 +31,21 @@ export const PricingBreakdownRequestSchema = z.object({
      * saved profile settings, then lib/pricing.ts's DEFAULT_SETTINGS. Mirrors RecommendRequestSchema's
      * identical `pricingSettings` field. */
     settings: PricingSettingsSchema.optional(),
+    // ── v0.2.0: the seller's INTENT for the line-by-line breakdown (ADR 0028) ───────────────────
+    // A client may send what the seller WANTS (a price, a format, who pays postage, a packing
+    // choice) and never what the world COSTS: fee rates, postage rates and tax stay on the server.
+    /** The copy being priced. With it the server reads the stored game, condition, per-card
+     *  overrides and (for an auction) the start price; without it the breakdown is for a loose
+     *  price, as before. */
+    physicalCardId: z.string().optional(),
+    /** AUCTION prices the receipt at the start price, with the line note `at_start_price`. */
+    format: EbayListingFormatSchema.optional(),
+    /** Who bears postage for this card, for this request. Absent = the seller's Dispatch rule. */
+    postageMode: PostageModeSchema.optional(),
+    /** A keyed packing choice from the server-owned catalogue (open string: the catalogue is the
+     *  server's, and a key a client has never seen must not fail the request). */
+    packingKey: z.string().optional(),
 });
-/** Where the market price came from, in the only two classes that matter to a seller. Hoisted
- *  from the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an
- *  inline copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`)
- *  are unchanged. */
-export const PriceKindSchema = z.enum(["realised", "asking"]);
 /**
  * v0.2.0 (BREAKING): every figure that CONTAINS the seller's eBay fee is nullable, together, with
  * `feeNotSetReason` saying why. They are one fact:
@@ -47,8 +58,9 @@ export const PriceKindSchema = z.enum(["realised", "asking"]);
  * does — leaving them numbers would keep the private-seller assumption alive in the two figures a
  * seller acts on. `packagingCost` and `shippingCost` do not depend on seller type and stay numbers.
  *
- * The richer, line-by-line answer is `PricedBreakdown` (./priced-breakdown.ts), which this
- * endpoint will also carry; these flat fields remain for clients that only want the headline.
+ * The richer, line-by-line answer is `PricedBreakdown` (./priced-breakdown.ts), now carried in
+ * `breakdown` (v0.2.0); the flat fields remain for clients that only want the headline, and the
+ * two are cross-checked below (a server-side guard: Swift/Kotlin cannot express it).
  */
 export const PricingBreakdownResponseSchema = z.object({
     purchaseCost: z.number(),
@@ -77,6 +89,9 @@ export const PricingBreakdownResponseSchema = z.object({
      * human-readable caveat text, so a caller gets one machine-readable field instead of having to
      * string-match source ids to guess the distinction. */
     priceKind: PriceKindSchema,
+    /** v0.2.0. Every line of "You receive", with its source: sale price, eBay fee, postage, packing,
+     *  you receive. `mode` is "selling". A client renders these lines in order and sums nothing. */
+    breakdown: PricedBreakdownSchema,
 }).superRefine((r, ctx) => {
     const feeNull = r.ebayFee === null;
     if (feeNull !== (r.feeNotSetReason !== null)) {
@@ -93,4 +108,33 @@ export const PricingBreakdownResponseSchema = z.object({
                     : `${k} is null but ebayFee is a number: it is computable once the fee is known` });
         }
     }
+    // ── The flat figures and the breakdown are ONE answer ──────────────────────────────────────
+    const b = r.breakdown;
+    if (b.mode !== "selling") {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown", "mode"],
+            message: 'POST /api/pricing/breakdown prices a SALE: breakdown.mode must be "selling"' });
+    }
+    if (feeNull !== (b.feePosition.feeBasis === "not_set")) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown", "feePosition", "feeBasis"],
+            message: feeNull
+                ? 'ebayFee is null, so breakdown.feePosition.feeBasis must be "not_set"'
+                : 'ebayFee is a number, so breakdown.feePosition.feeBasis cannot be "not_set"' });
+    }
+    const feeLine = b.lines.find((l) => l.key === "ebay_fee");
+    if (feeLine) {
+        // (A null/known disagreement between the flat fee and the fee line is already refused: by the
+        // reason check below, and by feeBasis above.)
+        if (feeLine.amountGbp !== null && r.ebayFee !== null && Math.abs(-feeLine.amountGbp - r.ebayFee) > 0.005) {
+            // The line is a deduction (negative); the flat field is the positive fee. Half a penny of
+            // slack: the line is in whole pence, the flat figure may carry the unrounded fee.
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown"],
+                message: `the ebay_fee line (${feeLine.amountGbp}) is not the negative of ebayFee (${r.ebayFee})` });
+        }
+        if (feeNull && feeLine.unknownReason !== r.feeNotSetReason) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown"],
+                message: `the ebay_fee line's unknownReason (${feeLine.unknownReason ?? "null"}) is not feeNotSetReason (${r.feeNotSetReason ?? "null"}): one fact, reported once` });
+        }
+    }
+    // (A receipt beside a null fee is already refused by PricedBreakdown itself: an unset fee
+    // position withholds the mode's total, and feeBasis must be "not_set" here, checked above.)
 });

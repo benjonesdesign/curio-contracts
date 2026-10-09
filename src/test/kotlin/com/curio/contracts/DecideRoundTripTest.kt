@@ -29,6 +29,24 @@ class DecideRoundTripTest {
         }
     """.trimIndent()
 
+    /** v0.2.0: the lines behind the decision travel with it (REQUIRED on DecideResponse). */
+    private val breakdown = """
+        {"mode": "buying",
+         "lines": [
+           {"key": "sale_price", "label": "Sale price", "amountGbp": 40.0, "unknownReason": null, "source": "price_provider",
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": "asking_basis"},
+           {"key": "max_buy", "label": "Most to pay", "amountGbp": 25.0, "unknownReason": null, "source": "fee_model",
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null}
+         ],
+         "beside": [],
+         "totals": {"youReceiveGbp": null, "maxBuyGbp": 25.0},
+         "compare": null,
+         "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"},
+         "notSet": [],
+         "price": {"gbp": 40.0, "source": "ebay-uk-sold", "kind": "realised", "asOf": null, "cached": false},
+         "computedAt": "2026-10-08T09:30:00.000Z"}
+    """.trimIndent()
+
     @Test
     fun `an unresolved identity yields a NULL decision, not an empty one`() {
         // The composition decision. An ambiguous card has no decision to make, because there is no
@@ -75,7 +93,7 @@ class DecideRoundTripTest {
         // One shape, two entry points. If the generator ever emitted two structurally-identical
         // classes, this would not compile.
         val fromDecide: Decision =
-            json.decodeFromString<DecideResponse>("""{"decision": $decision, "price": $price}""").decision
+            json.decodeFromString<DecideResponse>("""{"decision": $decision, "price": $price, "breakdown": $breakdown}""").decision
         val fromQuickScan: Decision? = json.decodeFromString<QuickScanResponse>(
             """{"identified": true, "candidates": [], "decision": $decision}""",
         ).decision
@@ -119,9 +137,11 @@ class DecideRoundTripTest {
     fun `a decide response carries decision and provenance together`() {
         val body = """
             {"decision": $decision,
-             "price": {"source": "poketrace-ebay", "confidence": "medium", "currencyNote": "Converted from USD"}}
+             "price": {"source": "poketrace-ebay", "confidence": "medium", "currencyNote": "Converted from USD"},
+             "breakdown": $breakdown}
         """.trimIndent()
         val d = json.decodeFromString<DecideResponse>(body)
+        assertEquals(25.0, d.breakdown.totals.maxBuyGbp)
         assertEquals(RecommendedRoute.LIST_SINGLE, d.decision.route)
         assertEquals("Converted from USD", d.price.currencyNote)
         assertNull(d.gradeEV)

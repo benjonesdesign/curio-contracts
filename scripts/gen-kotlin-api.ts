@@ -32,9 +32,11 @@ import {
   DecisionAlternativeSchema, QuickScanRequestSchema, QuickScanResponseSchema,
   QuickScanCandidateSchema, RouteReasonSchema, AlternativeReasonSchema, DegradedReasonSchema,
   PriceProvenanceSchema, DecisionGradeEVSchema, DecisionAssumptionSchema, DecisionAssumptionCodeSchema, DecideBatchRequestSchema,
-  DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema, MaxBuyUnavailableReasonSchema,
+  DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
-import { LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema } from "../src/api/common.js";
+import {
+  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema,
+} from "../src/api/common.js";
 import {
   EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
   PriceBandSchema, CardValueEconomicsSchema,
@@ -57,16 +59,28 @@ import {
   ListingTemplateSchema, ListingTemplateInputSchema, ListingTemplateListResponseSchema,
   ListingTemplateTokenSchema,
 } from "../src/api/listing-template.js";
-import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema, PriceKindSchema } from "../src/api/pricing-breakdown.js";
+import { PricingBreakdownRequestSchema, PricingBreakdownResponseSchema } from "../src/api/pricing-breakdown.js";
 import {
   PricedBreakdownSchema, PricedLineSchema, PricedLineSourceSchema, PricedLineEditKeySchema,
   PricedBreakdownModeSchema, PricedTotalsSchema, PricedCompareSchema, PricedChannelSchema,
-  FeeBasisSchema, PricedFeePositionSchema, PricedNotSetSchema, PricedPriceSchema,
+  FeeBasisSchema, PricedFeePositionSchema, PricedNotSetSchema, PricedPriceSchema, PostageModeSchema, PerOrderBandSchema,
 } from "../src/api/priced-breakdown.js";
 import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
   DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
+import { PhysicalCardSchema, PhysicalCardStatusSchema } from "../src/api/physical-card.js";
+import {
+  ListingRefusalSchema, ListingRefusalCodeSchema, ListingRefusalReasonSchema,
+} from "../src/api/listing-refusal.js";
+import {
+  GamesResponseSchema, GameInfoSchema, GameAvailabilitySchema, GameRefusalSchema, GameRefusalCodeSchema,
+  UnavailableGameSchema,
+} from "../src/api/game-availability.js";
+import {
+  ListingPreviewRequestSchema, ListingPreviewItemRequestSchema, ListingPreviewResponseSchema,
+  ListingPreviewItemSchema, ListingPreviewTotalsSchema, ListingPreviewGroupSchema,
+} from "../src/api/listing-preview.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
@@ -145,6 +159,10 @@ registerName(EffectivePricingSettingsSchema, "EffectivePricingSettings");
 // PricedBreakdown (v0.2.0, additive). Every nested type named: `source` is already three unrelated
 // vocabularies in this contract (Source/Source2/Source3 are debt), so a fourth inferred from the
 // field name would be the next digit-suffix.
+// Registered BEFORE any emit: PricedBreakdown is now reached as a NESTED field first (PricingBreakdownResponse.
+// breakdown, DecideResponse.breakdown), and an unregistered nested schema takes its FIELD name —
+// it came out as `Breakdown`.
+registerName(PricedBreakdownSchema, "PricedBreakdown");
 registerName(PricedLineSchema, "PricedLine");
 registerName(PricedLineSourceSchema, "PricedLineSource");
 registerName(PricedLineEditKeySchema, "PricedLineEditKey");
@@ -156,6 +174,26 @@ registerName(FeeBasisSchema, "FeeBasis");
 registerName(PricedFeePositionSchema, "PricedFeePosition");
 registerName(PricedNotSetSchema, "PricedNotSet");
 registerName(PricedPriceSchema, "PricedPrice");
+registerName(PostageModeSchema, "PostageMode");
+registerName(PerOrderBandSchema, "PerOrderBand");
+
+// v0.2.0: the copy, its status, and the ONE closed refusal vocabulary. Every enum named here so
+// the emitter never mints a digit-suffixed twin (`status`, `reason`, `code` and `availability` are
+// all field names that recur across unrelated schemas).
+registerName(PhysicalCardStatusSchema, "PhysicalCardStatus");
+registerName(PhysicalCardSchema, "PhysicalCard");
+registerName(ListingRefusalReasonSchema, "ListingRefusalReason");
+registerName(ListingRefusalCodeSchema, "ListingRefusalCode");
+registerName(ListingRefusalSchema, "ListingRefusal");
+registerName(GameAvailabilitySchema, "GameAvailability");
+registerName(GameInfoSchema, "GameInfo");
+registerName(GameRefusalCodeSchema, "GameRefusalCode");
+registerName(GameRefusalSchema, "GameRefusal");
+registerName(UnavailableGameSchema, "UnavailableGame");
+registerName(ListingPreviewItemRequestSchema, "ListingPreviewItemRequest");
+registerName(ListingPreviewItemSchema, "ListingPreviewItem");
+registerName(ListingPreviewTotalsSchema, "ListingPreviewTotals");
+registerName(ListingPreviewGroupSchema, "ListingPreviewGroup");
 
 emitKotlin(ApiErrorSchema, "ApiError");
 emitKotlin(IdentifyRequestSchema, "IdentifyRequest");
@@ -196,6 +234,12 @@ emitKotlin(PricingBreakdownResponseSchema, "PricingBreakdownResponse");
 emitKotlin(ProfileResponseSchema, "ProfileResponse");
 emitKotlin(ProfilePatchSchema, "ProfilePatch");
 emitKotlin(PricedBreakdownSchema, "PricedBreakdown");
+emitKotlin(PhysicalCardSchema, "PhysicalCard");
+emitKotlin(ListingRefusalSchema, "ListingRefusal");
+emitKotlin(GamesResponseSchema, "GamesResponse");
+emitKotlin(GameRefusalSchema, "GameRefusal");
+emitKotlin(ListingPreviewRequestSchema, "ListingPreviewRequest");
+emitKotlin(ListingPreviewResponseSchema, "ListingPreviewResponse");
 
 
 emitKotlin(DecideRequestSchema, "DecideRequest");

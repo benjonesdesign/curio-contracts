@@ -2,7 +2,6 @@ import { z } from "zod";
 export declare const EbayListingFormatSchema: z.ZodEnum<["FIXED_PRICE", "AUCTION"]>;
 export type EbayListingFormat = z.infer<typeof EbayListingFormatSchema>;
 export declare const EbayPublishRequestSchema: z.ZodObject<{
-    sku: z.ZodString;
     title: z.ZodString;
     description: z.ZodString;
     condition: z.ZodString;
@@ -21,7 +20,6 @@ export declare const EbayPublishRequestSchema: z.ZodObject<{
     description: string;
     condition: string;
     priceGbp: number;
-    sku: string;
     title: string;
     photoUrls: string[];
     format: "FIXED_PRICE" | "AUCTION";
@@ -34,7 +32,6 @@ export declare const EbayPublishRequestSchema: z.ZodObject<{
     description: string;
     condition: string;
     priceGbp: number;
-    sku: string;
     title: string;
     photoUrls: string[];
     game?: string | undefined;
@@ -47,18 +44,27 @@ export declare const EbayPublishRequestSchema: z.ZodObject<{
 export type EbayPublishRequest = z.infer<typeof EbayPublishRequestSchema>;
 export declare const EbayPublishSuccessSchema: z.ZodObject<{
     status: z.ZodLiteral<"published">;
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key). The SKU the listing was published under: the copy's own
+     * (`SKU-` + 8 hex, given when it was added), or — when a BulkRecord was listed as one lot — the
+     * SKU the server minted for that single listing (a pile has none of its own). Non-null, opaque:
+     * display and copy it, never parse it, never send one back.
+     */
+    sku: z.ZodString;
     offerId: z.ZodString;
     listingId: z.ZodNullable<z.ZodString>;
     listingUrl: z.ZodNullable<z.ZodString>;
     production: z.ZodBoolean;
 }, "strip", z.ZodTypeAny, {
     status: "published";
+    sku: string;
     offerId: string;
     listingId: string | null;
     listingUrl: string | null;
     production: boolean;
 }, {
     status: "published";
+    sku: string;
     offerId: string;
     listingId: string | null;
     listingUrl: string | null;
@@ -265,6 +271,69 @@ export declare const EbayPublishErrorSchema: z.ZodDiscriminatedUnion<"code", [z.
     message: string;
 }, {
     code: "not_configured";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"card_not_listable">;
+    message: z.ZodString;
+    reason: z.ZodEnum<["mine", "set_aside", "unmatched", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
+}, "strip", z.ZodTypeAny, {
+    code: "card_not_listable";
+    message: string;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+}, {
+    code: "card_not_listable";
+    message: string;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"game_not_available">;
+    message: z.ZodString;
+    game: z.ZodNullable<z.ZodString>;
+    displayName: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    game: string | null;
+    code: "game_not_available";
+    message: string;
+    displayName: string;
+}, {
+    game: string | null;
+    code: "game_not_available";
+    message: string;
+    displayName: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"sku_required">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "sku_required";
+    message: string;
+}, {
+    code: "sku_required";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"sku_unavailable">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "sku_unavailable";
+    message: string;
+}, {
+    code: "sku_unavailable";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"card_read_failed">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "card_read_failed";
+    message: string;
+}, {
+    code: "card_read_failed";
+    message: string;
+}>, z.ZodObject<{
+    code: z.ZodLiteral<"card_not_found">;
+    message: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    code: "card_not_found";
+    message: string;
+}, {
+    code: "card_not_found";
     message: string;
 }>]>;
 export type EbayPublishError = z.infer<typeof EbayPublishErrorSchema>;
@@ -476,6 +545,69 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
     }, {
         code: "not_configured";
         message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"card_not_listable">;
+        message: z.ZodString;
+        reason: z.ZodEnum<["mine", "set_aside", "unmatched", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
+    }, "strip", z.ZodTypeAny, {
+        code: "card_not_listable";
+        message: string;
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+    }, {
+        code: "card_not_listable";
+        message: string;
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"game_not_available">;
+        message: z.ZodString;
+        game: z.ZodNullable<z.ZodString>;
+        displayName: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        game: string | null;
+        code: "game_not_available";
+        message: string;
+        displayName: string;
+    }, {
+        game: string | null;
+        code: "game_not_available";
+        message: string;
+        displayName: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"sku_required">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "sku_required";
+        message: string;
+    }, {
+        code: "sku_required";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"sku_unavailable">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "sku_unavailable";
+        message: string;
+    }, {
+        code: "sku_unavailable";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"card_read_failed">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "card_read_failed";
+        message: string;
+    }, {
+        code: "card_read_failed";
+        message: string;
+    }>, z.ZodObject<{
+        code: z.ZodLiteral<"card_not_found">;
+        message: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        code: "card_not_found";
+        message: string;
+    }, {
+        code: "card_not_found";
+        message: string;
     }>]>;
 }, "strip", z.ZodTypeAny, {
     error: string;
@@ -545,6 +677,27 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         message: string;
     } | {
         code: "not_configured";
+        message: string;
+    } | {
+        code: "card_not_listable";
+        message: string;
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+    } | {
+        game: string | null;
+        code: "game_not_available";
+        message: string;
+        displayName: string;
+    } | {
+        code: "sku_required";
+        message: string;
+    } | {
+        code: "sku_unavailable";
+        message: string;
+    } | {
+        code: "card_read_failed";
+        message: string;
+    } | {
+        code: "card_not_found";
         message: string;
     };
     code?: string | undefined;
@@ -616,6 +769,27 @@ export declare const EbayPublishErrorResponseSchema: z.ZodObject<{
         message: string;
     } | {
         code: "not_configured";
+        message: string;
+    } | {
+        code: "card_not_listable";
+        message: string;
+        reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live";
+    } | {
+        game: string | null;
+        code: "game_not_available";
+        message: string;
+        displayName: string;
+    } | {
+        code: "sku_required";
+        message: string;
+    } | {
+        code: "sku_unavailable";
+        message: string;
+    } | {
+        code: "card_read_failed";
+        message: string;
+    } | {
+        code: "card_not_found";
         message: string;
     };
     code?: string | undefined;

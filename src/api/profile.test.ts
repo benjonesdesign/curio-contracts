@@ -241,3 +241,40 @@ describe("Profile: the buying margin and tax are 'Not set' until chosen (v0.2.0,
     expect(p).not.toHaveProperty("feeNotSetReason");
   });
 });
+
+// ── v0.2.0: tax applies only when the seller sets a rate, buying AND selling ──────────────────────
+// MUTATION-CHECKED 2026-10-08 (tax nullable): see CHANGELOG "Mutation check, round 2".
+describe("a null tax rate is 'not set', so no tax is set aside (owner, 2026-10-08)", () => {
+  const noTax = {
+    ...FULL_PROFILE,
+    pricingSettings: { ...FULL_PROFILE.pricingSettings, taxRate: null },
+    effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, taxRate: null },
+  };
+
+  it("parses a profile whose stored and effective tax rate are null", () => {
+    const p = ProfileResponseSchema.parse(noTax);
+    expect(p.pricingSettings.taxRate).toBeNull();
+    expect(p.effectivePricingSettings.taxRate).toBeNull();
+  });
+
+  it("keeps 0 and null apart: 0 is a chosen 'no provision', null is never set", () => {
+    const zero = ProfileResponseSchema.parse({ ...noTax, pricingSettings: { ...noTax.pricingSettings, taxRate: 0 }, effectivePricingSettings: { ...noTax.effectivePricingSettings, taxRate: 0 } });
+    expect(zero.pricingSettings.taxRate).toBe(0);
+    expect(zero.pricingSettings.taxRate).not.toBeNull();
+  });
+
+  it("still accepts the number the server sends until the migration runs (0.2)", () => {
+    expect(ProfileResponseSchema.parse(FULL_PROFILE).pricingSettings.taxRate).toBe(0.2);
+  });
+
+  it("lets PATCH clear a chosen rate back to 'not set' with an explicit null", () => {
+    expect(ProfilePatchSchema.parse({ pricingSettings: { taxRate: null } }).pricingSettings?.taxRate).toBeNull();
+    expect(ProfilePatchSchema.parse({ pricingSettings: { taxRate: 0.2 } }).pricingSettings?.taxRate).toBe(0.2);
+    expect(ProfilePatchSchema.parse({ pricingSettings: {} }).pricingSettings?.taxRate).toBeUndefined();
+  });
+
+  it("round-trips a null tax rate through JSON without becoming 0", () => {
+    const parsed = ProfileResponseSchema.parse(noTax);
+    expect(ProfileResponseSchema.parse(JSON.parse(JSON.stringify(parsed))).pricingSettings.taxRate).toBeNull();
+  });
+});

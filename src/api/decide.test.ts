@@ -16,9 +16,11 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  DecideRequestSchema, DecideBatchResponseSchema, DecisionSchema, DecisionEconomicsSchema,
-  MaxBuyUnavailableReasonSchema, QuickScanResponseSchema,
+  DecideRequestSchema, DecideResponseSchema, DecideBatchRequestSchema, DecideBatchResponseSchema,
+  DecisionSchema, DecisionEconomicsSchema, QuickScanRequestSchema, QuickScanResponseSchema,
 } from "./decide.js";
+import { MaxBuyUnavailableReasonSchema } from "./common.js";
+import { BUYING_BUSINESS, BUYING_FEE_UNSET, BUYING_PRIVATE, SELLING_KNOWN } from "../test-support/breakdown-fixtures.js";
 import { PricingSettingsSchema } from "./recommend.js";
 
 describe("targetMarginPct is a percentage, not a rate", () => {
@@ -87,6 +89,16 @@ const MARGIN_UNSET = { ...BASE_DECISION, maxBuyGbp: null, maxBuyUnavailableReaso
 const FEE_UNSET = {
   ...BASE_DECISION, economics: UNSET_ECONOMICS, maxBuyGbp: null,
   maxBuyUnavailableReason: "seller_type_not_set", minAcceptGbp: null, offerPctAtMax: null,
+};
+
+// The breakdown that tells the same story as MARGIN_UNSET: business fee known, margin not chosen.
+const MARGIN_UNSET_BREAKDOWN = {
+  ...BUYING_BUSINESS,
+  lines: BUYING_BUSINESS.lines.map((l) =>
+    l.key === "target_margin" || l.key === "max_buy" ? { ...l, amountGbp: null, unknownReason: "margin_not_set" } : l),
+  totals: { youReceiveGbp: null, maxBuyGbp: null },
+  compare: null,
+  notSet: ["targetMargin"],
 };
 
 const issues = (r: { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } }) =>
@@ -217,13 +229,17 @@ describe("Decision: the fee position and the figures built on it move together (
   });
 
   it("reaches the decision wherever it is nested: QuickScan and the batch result", () => {
-    const quick = QuickScanResponseSchema.safeParse({ identified: true, candidates: [], decision: FEE_UNSET });
+    const quick = QuickScanResponseSchema.safeParse({ identified: true, candidates: [], decision: FEE_UNSET, breakdown: BUYING_FEE_UNSET });
     expect(quick.success, JSON.stringify(issues(quick))).toBe(true);
-    const bad = QuickScanResponseSchema.safeParse({ identified: true, candidates: [], decision: { ...FEE_UNSET, maxBuyUnavailableReason: null } });
+    const bad = QuickScanResponseSchema.safeParse({
+      identified: true, candidates: [], decision: { ...FEE_UNSET, maxBuyUnavailableReason: null }, breakdown: BUYING_FEE_UNSET,
+    });
     expect(bad.success).toBe(false);
-    const batch = DecideBatchResponseSchema.safeParse({ results: [{ id: "a", decision: MARGIN_UNSET }] });
-    expect(batch.success).toBe(true);
-    const badBatch = DecideBatchResponseSchema.safeParse({ results: [{ id: "a", decision: { ...MARGIN_UNSET, maxBuyUnavailableReason: null } }] });
+    const batch = DecideBatchResponseSchema.safeParse({ results: [{ id: "a", decision: MARGIN_UNSET, breakdown: MARGIN_UNSET_BREAKDOWN }] });
+    expect(batch.success, JSON.stringify(issues(batch))).toBe(true);
+    const badBatch = DecideBatchResponseSchema.safeParse({
+      results: [{ id: "a", decision: { ...MARGIN_UNSET, maxBuyUnavailableReason: null }, breakdown: MARGIN_UNSET_BREAKDOWN }],
+    });
     expect(badBatch.success).toBe(false);
   });
 
@@ -235,5 +251,153 @@ describe("Decision: the fee position and the figures built on it move together (
     }
     expect(DecisionSchema.parse(FEE_UNSET).economics.feeGbp).toBeNull();
     expect(DecisionSchema.parse(FEE_UNSET).maxBuyUnavailableReason).toBe("seller_type_not_set");
+  });
+});
+
+// ── v0.2.0: the breakdown BESIDE the decision (attached to /api/decide, /api/quick-scan, batch) ────
+//
+// One calculation, two renderings. The headline figure and the line-by-line answer must agree, or a
+// seller sees "£66" on one screen and "£66.49" or "Not set" on the next.
+
+describe("DecideResponse: the breakdown beside the decision (v0.2.0)", () => {
+  const PRICE = { source: "poketrace-ebay", confidence: "medium", currencyNote: null };
+  const known = { decision: BASE_DECISION, price: PRICE, breakdown: BUYING_BUSINESS };
+
+  it("accepts a decision with its breakdown: £66.49 on the decision, SHOWN £66 on the lines", () => {
+    const r = DecideResponseSchema.safeParse(known);
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+  });
+
+  it("REQUIRES the breakdown on /api/decide: a most-to-pay without its lines is a screen computing money", () => {
+    expect(DecideResponseSchema.safeParse({ decision: BASE_DECISION, price: PRICE }).success).toBe(false);
+  });
+
+  it("accepts a decision whose most-to-pay is ALREADY a whole pound (floor of a floored figure)", () => {
+    expect(DecideResponseSchema.safeParse({ ...known, decision: { ...BASE_DECISION, maxBuyGbp: 66 } }).success).toBe(true);
+  });
+
+  it("REJECTS a breakdown total that is not the decision's most-to-pay rounded DOWN", () => {
+    // rounded UP (67), rounded to nearest-pence (66.49 -> not an integer is caught elsewhere), or
+    // simply a different figure: the headline and the lines would disagree.
+    const up = { ...BUYING_BUSINESS, totals: { youReceiveGbp: null, maxBuyGbp: 67 },
+      lines: BUYING_BUSINESS.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 67 } : l)) };
+    const r = DecideResponseSchema.safeParse({ ...known, breakdown: up });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /rounded down to the pound/.test(i.message))).toBe(true);
+  });
+
+  it("accepts the owner's private-seller example: engine £84.77 on the decision, SHOWN £84 (round DOWN, not nearest)", () => {
+    const privateDecision = { ...BASE_DECISION, economics: { ...KNOWN_ECONOMICS, feeGbp: 0, expectedNetGbp: 132.37 }, maxBuyGbp: 84.77, offerPctAtMax: 62.3 };
+    const r = DecideResponseSchema.safeParse({ decision: privateDecision, price: PRICE, breakdown: BUYING_PRIVATE });
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+    // 84.77 rounds to 85 to the nearest pound: a breakdown saying 85 would overstate what to pay
+    const nearest = { ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85 },
+      lines: BUYING_PRIVATE.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 85 } : l)) };
+    expect(DecideResponseSchema.safeParse({ decision: privateDecision, price: PRICE, breakdown: nearest }).success).toBe(false);
+  });
+
+  it("REJECTS a decision with a most-to-pay beside a breakdown whose most-to-pay is null for want of a margin", () => {
+    // Isolated: fee known on both sides, so ONLY the null-vs-number rule can object.
+    const r = DecideResponseSchema.safeParse({ decision: BASE_DECISION, price: PRICE, breakdown: MARGIN_UNSET_BREAKDOWN });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /decision.maxBuyGbp is a number but the breakdown's most-to-pay is null/.test(i.message))).toBe(true);
+  });
+
+  it("REJECTS a fee basis that contradicts the economics block when no fee line is there to disagree", () => {
+    const noFeeLine = { ...BUYING_FEE_UNSET, lines: BUYING_FEE_UNSET.lines.filter((l) => l.key !== "ebay_fee"),
+      feePosition: { sellerType: null, vatRegistered: null, channel: "direct", feeBasis: "seller_override" }, notSet: [] };
+    const r = DecideResponseSchema.safeParse({ decision: FEE_UNSET, price: PRICE, breakdown: noFeeLine });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /feeBasis must be "not_set"/.test(i.message))).toBe(true);
+  });
+
+  it("REJECTS a SELLING breakdown beside a decision even when every figure in it agrees", () => {
+    // Margin unset => no most-to-pay on either side; the fee matches; only the MODE is wrong.
+    const sellingBeside = { decision: MARGIN_UNSET, price: PRICE, breakdown: SELLING_KNOWN };
+    const r = DecideResponseSchema.safeParse(sellingBeside);
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /prices a PURCHASE/.test(i.message))).toBe(true);
+  });
+
+  it("REJECTS a number on one side and a null on the other", () => {
+    expect(DecideResponseSchema.safeParse({ ...known, breakdown: BUYING_FEE_UNSET }).success).toBe(false);
+    expect(DecideResponseSchema.safeParse({ decision: FEE_UNSET, price: PRICE, breakdown: BUYING_BUSINESS }).success).toBe(false);
+  });
+
+  it("REJECTS a max_buy line whose reason is not the decision's: one reason, reported once", () => {
+    const wrong = { ...BUYING_FEE_UNSET, lines: BUYING_FEE_UNSET.lines.map((l) => (l.key === "max_buy" ? { ...l, unknownReason: "margin_not_set" } : l)) };
+    const r = DecideResponseSchema.safeParse({ decision: FEE_UNSET, price: PRICE, breakdown: wrong });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /one reason, reported once/.test(i.message))).toBe(true);
+  });
+
+  it("accepts the unset-seller-type decision with its null breakdown", () => {
+    const r = DecideResponseSchema.safeParse({ decision: FEE_UNSET, price: PRICE, breakdown: BUYING_FEE_UNSET });
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+  });
+
+  it("REJECTS a fee that differs between the economics block and the fee line", () => {
+    const off = { ...BUYING_BUSINESS, lines: BUYING_BUSINESS.lines.map((l) => (l.key === "ebay_fee" ? { ...l, amountGbp: -22.36 } : l)) };
+    expect(DecideResponseSchema.safeParse({ ...known, breakdown: off }).success).toBe(false);
+  });
+
+  it("REJECTS a SELLING breakdown beside a decision", () => {
+    expect(DecideResponseSchema.safeParse({ ...known, breakdown: { ...BUYING_BUSINESS, mode: "selling" } }).success).toBe(false);
+  });
+
+  it("REJECTS a fee-basis that contradicts the economics block", () => {
+    const r = DecideResponseSchema.safeParse({
+      ...known, breakdown: { ...BUYING_BUSINESS, feePosition: { ...BUYING_BUSINESS.feePosition, feeBasis: "not_set" }, notSet: ["sellerType"] },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe("QuickScan and the decide batch carry the breakdown, null exactly when the decision is (v0.2.0)", () => {
+  it("accepts an unidentified card: no decision, no breakdown", () => {
+    const r = QuickScanResponseSchema.safeParse({ identified: false, candidates: [], decision: null, breakdown: null });
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+  });
+
+  it("REJECTS a decision with no breakdown, and a breakdown with no decision", () => {
+    expect(QuickScanResponseSchema.safeParse({ identified: true, candidates: [], decision: BASE_DECISION, breakdown: null }).success).toBe(false);
+    expect(QuickScanResponseSchema.safeParse({ identified: false, candidates: [], decision: null, breakdown: BUYING_BUSINESS }).success).toBe(false);
+  });
+
+  it("makes the key REQUIRED on quick-scan: it cannot be omitted instead of nulled", () => {
+    expect(QuickScanResponseSchema.safeParse({ identified: false, candidates: [], decision: null }).success).toBe(false);
+  });
+
+  it("a card with no market value is a null decision with a null breakdown in a batch; the others are unaffected", () => {
+    const r = DecideBatchResponseSchema.safeParse({
+      results: [
+        { id: "a", decision: BASE_DECISION, breakdown: BUYING_BUSINESS },
+        { id: "b", decision: null, decisionUnavailable: "no_market_value", breakdown: null },
+      ],
+    });
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+    expect(DecideBatchResponseSchema.safeParse({ results: [{ id: "b", decision: null, breakdown: BUYING_PRIVATE }] }).success).toBe(false);
+  });
+
+  it("a batch breakdown must match ITS card's decision", () => {
+    const r = DecideBatchResponseSchema.safeParse({ results: [{ id: "a", decision: BASE_DECISION, breakdown: BUYING_FEE_UNSET }] });
+    expect(r.success).toBe(false);
+    expect(issues(r)[0].path.slice(0, 3)).toEqual(["results", 0, "breakdown"]);
+  });
+});
+
+describe("the buying breakdown's editable inputs are seller INTENT only (ADR 0028)", () => {
+  it("accepts their price, a postage mode and a packing key on decide, the batch and quick scan", () => {
+    expect(DecideRequestSchema.safeParse({ marketValueGbp: 136, theirPriceGbp: 120, postageMode: "buyer_pays", packingKey: "toploader" }).success).toBe(true);
+    expect(QuickScanRequestSchema.safeParse({ name: "Charizard", theirPriceGbp: 120, postageMode: "seller_pays" }).success).toBe(true);
+    expect(DecideBatchRequestSchema.safeParse({
+      cards: [{ id: "a", marketValueGbp: 136, costBasisGbp: null, theirPriceGbp: 120 }, { id: "b", marketValueGbp: 5, costBasisGbp: null, theirPriceGbp: null }],
+      postageMode: "seller_pays",
+    }).success).toBe(true);
+  });
+
+  it("REJECTS a negative asking price and a postage figure in place of a postage mode", () => {
+    expect(DecideRequestSchema.safeParse({ marketValueGbp: 136, theirPriceGbp: -1 }).success).toBe(false);
+    expect(DecideRequestSchema.safeParse({ marketValueGbp: 136, postageMode: 3.29 }).success).toBe(false);
   });
 });

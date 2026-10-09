@@ -43,7 +43,17 @@ export declare const StoredPricingSettingsSchema: z.ZodObject<{
     ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
     packagingCost: z.ZodNumber;
     shippingCost: z.ZodNumber;
-    taxRate: z.ZodNumber;
+    /**
+     * v0.2.0 (BREAKING): NULL = the seller has not set a tax rate, and then NO tax is set aside —
+     * buying or selling (owner, 2026-10-08: "tax applies only when the seller sets a rate"). It was
+     * a number with the DB default 0.20, so a stored default was read as a choice and every resale
+     * copy carried a 20% provision the seller never asked for. 0 is a real, chosen "no provision";
+     * null is "never set". Contracts only MODEL null: the database default 0.20 becomes null in a
+     * separate migration that needs Ben's go (and until it runs the server keeps sending 0.2).
+     * PATCH `taxRate: null` clears a chosen rate back to "not set". A tax line appears in a
+     * breakdown only when this is non-null.
+     */
+    taxRate: z.ZodNullable<z.ZodNumber>;
     minProfitPct: z.ZodNumber;
     minSaleValue: z.ZodNumber;
     postageCost: z.ZodNumber;
@@ -52,7 +62,7 @@ export declare const StoredPricingSettingsSchema: z.ZodObject<{
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -61,7 +71,7 @@ export declare const StoredPricingSettingsSchema: z.ZodObject<{
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -75,24 +85,25 @@ export type StoredPricingSettings = z.infer<typeof StoredPricingSettingsSchema>;
  * to derive from, and answering with the private-seller fee (0) is the assumption this release
  * removes. So `ebayFeeRate`/`ebayFeeFixed` are null — together — exactly when `feeNotSetReason` is
  * set. A separate schema, not a loosened `PricingSettingsSchema`: that one is also a REQUEST body,
- * where the client asserts a fee and null would mean nothing.
+ * where the client asserts a fee and null would mean nothing. (The same holds for `taxRate`, which
+ * is nullable here for the same reason: "no rate set" is an answer only the server can give.)
  */
 export declare const EffectivePricingSettingsSchema: z.ZodEffects<z.ZodObject<{
     packagingCost: z.ZodNumber;
     shippingCost: z.ZodNumber;
-    taxRate: z.ZodNumber;
     minProfitPct: z.ZodNumber;
     minSaleValue: z.ZodNumber;
     postageCost: z.ZodNumber;
 } & {
     ebayFeeRate: z.ZodNullable<z.ZodNumber>;
     ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
+    taxRate: z.ZodNullable<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
     ebayFeeRate: number | null;
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -101,7 +112,7 @@ export declare const EffectivePricingSettingsSchema: z.ZodEffects<z.ZodObject<{
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -110,7 +121,7 @@ export declare const EffectivePricingSettingsSchema: z.ZodEffects<z.ZodObject<{
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -119,7 +130,7 @@ export declare const EffectivePricingSettingsSchema: z.ZodEffects<z.ZodObject<{
     ebayFeeFixed: number | null;
     packagingCost: number;
     shippingCost: number;
-    taxRate: number;
+    taxRate: number | null;
     minProfitPct: number;
     minSaleValue: number;
     postageCost: number;
@@ -158,9 +169,10 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
      */
     buyingTargetMarginPct: z.ZodNullable<z.ZodEffects<z.ZodNumber, number, number>>;
     buyingTargetMarginSetAt: z.ZodNullable<z.ZodString>;
-    /** The tax set-aside applied to buying, as a FRACTION. Null = no provision (not set); 0 = the
-     *  seller chose "none". Separate from `pricingSettings.taxRate`, which is `not null default 0.20`
-     *  and is therefore a default, not a choice (#224 §5). Selling-side tax is unchanged. */
+    /** The tax set-aside applied to BUYING, as a FRACTION. Null = no provision (not set); 0 = the
+     *  seller chose "none". Kept separate from `pricingSettings.taxRate` (which is now ALSO null =
+     *  not set, v0.2.0) because #224 §5 stores them apart; whether the two should merge into one
+     *  rate is a question for Ben (docs/V0.2.0-ADOPTION.md). */
     buyingTaxRate: z.ZodNullable<z.ZodNumber>;
     buyingTaxRateSetAt: z.ZodNullable<z.ZodString>;
     dispatchAddress: z.ZodObject<{
@@ -189,7 +201,17 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
-        taxRate: z.ZodNumber;
+        /**
+         * v0.2.0 (BREAKING): NULL = the seller has not set a tax rate, and then NO tax is set aside —
+         * buying or selling (owner, 2026-10-08: "tax applies only when the seller sets a rate"). It was
+         * a number with the DB default 0.20, so a stored default was read as a choice and every resale
+         * copy carried a 20% provision the seller never asked for. 0 is a real, chosen "no provision";
+         * null is "never set". Contracts only MODEL null: the database default 0.20 becomes null in a
+         * separate migration that needs Ben's go (and until it runs the server keeps sending 0.2).
+         * PATCH `taxRate: null` clears a chosen rate back to "not set". A tax line appears in a
+         * breakdown only when this is non-null.
+         */
+        taxRate: z.ZodNullable<z.ZodNumber>;
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;
@@ -198,7 +220,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -207,7 +229,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -219,19 +241,19 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
     effectivePricingSettings: z.ZodEffects<z.ZodObject<{
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
-        taxRate: z.ZodNumber;
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;
     } & {
         ebayFeeRate: z.ZodNullable<z.ZodNumber>;
         ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
+        taxRate: z.ZodNullable<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         ebayFeeRate: number | null;
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -240,7 +262,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -249,7 +271,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -258,7 +280,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -271,7 +293,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -299,7 +321,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -311,7 +333,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -339,7 +361,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -351,7 +373,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -379,7 +401,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -391,7 +413,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -419,7 +441,7 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -449,7 +471,7 @@ export declare const StoredPricingSettingsPatchSchema: z.ZodObject<{
     ebayFeeFixed: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     packagingCost: z.ZodOptional<z.ZodNumber>;
     shippingCost: z.ZodOptional<z.ZodNumber>;
-    taxRate: z.ZodOptional<z.ZodNumber>;
+    taxRate: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     minProfitPct: z.ZodOptional<z.ZodNumber>;
     minSaleValue: z.ZodOptional<z.ZodNumber>;
     postageCost: z.ZodOptional<z.ZodNumber>;
@@ -458,7 +480,7 @@ export declare const StoredPricingSettingsPatchSchema: z.ZodObject<{
     ebayFeeFixed?: number | null | undefined;
     packagingCost?: number | undefined;
     shippingCost?: number | undefined;
-    taxRate?: number | undefined;
+    taxRate?: number | null | undefined;
     minProfitPct?: number | undefined;
     minSaleValue?: number | undefined;
     postageCost?: number | undefined;
@@ -467,7 +489,7 @@ export declare const StoredPricingSettingsPatchSchema: z.ZodObject<{
     ebayFeeFixed?: number | null | undefined;
     packagingCost?: number | undefined;
     shippingCost?: number | undefined;
-    taxRate?: number | undefined;
+    taxRate?: number | null | undefined;
     minProfitPct?: number | undefined;
     minSaleValue?: number | undefined;
     postageCost?: number | undefined;
@@ -506,7 +528,7 @@ export declare const ProfilePatchSchema: z.ZodObject<{
         ebayFeeFixed: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         packagingCost: z.ZodOptional<z.ZodNumber>;
         shippingCost: z.ZodOptional<z.ZodNumber>;
-        taxRate: z.ZodOptional<z.ZodNumber>;
+        taxRate: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
         minProfitPct: z.ZodOptional<z.ZodNumber>;
         minSaleValue: z.ZodOptional<z.ZodNumber>;
         postageCost: z.ZodOptional<z.ZodNumber>;
@@ -515,7 +537,7 @@ export declare const ProfilePatchSchema: z.ZodObject<{
         ebayFeeFixed?: number | null | undefined;
         packagingCost?: number | undefined;
         shippingCost?: number | undefined;
-        taxRate?: number | undefined;
+        taxRate?: number | null | undefined;
         minProfitPct?: number | undefined;
         minSaleValue?: number | undefined;
         postageCost?: number | undefined;
@@ -524,7 +546,7 @@ export declare const ProfilePatchSchema: z.ZodObject<{
         ebayFeeFixed?: number | null | undefined;
         packagingCost?: number | undefined;
         shippingCost?: number | undefined;
-        taxRate?: number | undefined;
+        taxRate?: number | null | undefined;
         minProfitPct?: number | undefined;
         minSaleValue?: number | undefined;
         postageCost?: number | undefined;
@@ -535,7 +557,7 @@ export declare const ProfilePatchSchema: z.ZodObject<{
         ebayFeeFixed?: number | null | undefined;
         packagingCost?: number | undefined;
         shippingCost?: number | undefined;
-        taxRate?: number | undefined;
+        taxRate?: number | null | undefined;
         minProfitPct?: number | undefined;
         minSaleValue?: number | undefined;
         postageCost?: number | undefined;
@@ -557,7 +579,7 @@ export declare const ProfilePatchSchema: z.ZodObject<{
         ebayFeeFixed?: number | null | undefined;
         packagingCost?: number | undefined;
         shippingCost?: number | undefined;
-        taxRate?: number | undefined;
+        taxRate?: number | null | undefined;
         minProfitPct?: number | undefined;
         minSaleValue?: number | undefined;
         postageCost?: number | undefined;
@@ -611,9 +633,10 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
      */
     buyingTargetMarginPct: z.ZodNullable<z.ZodEffects<z.ZodNumber, number, number>>;
     buyingTargetMarginSetAt: z.ZodNullable<z.ZodString>;
-    /** The tax set-aside applied to buying, as a FRACTION. Null = no provision (not set); 0 = the
-     *  seller chose "none". Separate from `pricingSettings.taxRate`, which is `not null default 0.20`
-     *  and is therefore a default, not a choice (#224 §5). Selling-side tax is unchanged. */
+    /** The tax set-aside applied to BUYING, as a FRACTION. Null = no provision (not set); 0 = the
+     *  seller chose "none". Kept separate from `pricingSettings.taxRate` (which is now ALSO null =
+     *  not set, v0.2.0) because #224 §5 stores them apart; whether the two should merge into one
+     *  rate is a question for Ben (docs/V0.2.0-ADOPTION.md). */
     buyingTaxRate: z.ZodNullable<z.ZodNumber>;
     buyingTaxRateSetAt: z.ZodNullable<z.ZodString>;
     dispatchAddress: z.ZodObject<{
@@ -642,7 +665,17 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
-        taxRate: z.ZodNumber;
+        /**
+         * v0.2.0 (BREAKING): NULL = the seller has not set a tax rate, and then NO tax is set aside —
+         * buying or selling (owner, 2026-10-08: "tax applies only when the seller sets a rate"). It was
+         * a number with the DB default 0.20, so a stored default was read as a choice and every resale
+         * copy carried a 20% provision the seller never asked for. 0 is a real, chosen "no provision";
+         * null is "never set". Contracts only MODEL null: the database default 0.20 becomes null in a
+         * separate migration that needs Ben's go (and until it runs the server keeps sending 0.2).
+         * PATCH `taxRate: null` clears a chosen rate back to "not set". A tax line appears in a
+         * breakdown only when this is non-null.
+         */
+        taxRate: z.ZodNullable<z.ZodNumber>;
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;
@@ -651,7 +684,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -660,7 +693,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -672,19 +705,19 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
     effectivePricingSettings: z.ZodEffects<z.ZodObject<{
         packagingCost: z.ZodNumber;
         shippingCost: z.ZodNumber;
-        taxRate: z.ZodNumber;
         minProfitPct: z.ZodNumber;
         minSaleValue: z.ZodNumber;
         postageCost: z.ZodNumber;
     } & {
         ebayFeeRate: z.ZodNullable<z.ZodNumber>;
         ebayFeeFixed: z.ZodNullable<z.ZodNumber>;
+        taxRate: z.ZodNullable<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
         ebayFeeRate: number | null;
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -693,7 +726,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -702,7 +735,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -711,7 +744,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -724,7 +757,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -752,7 +785,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -764,7 +797,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -792,7 +825,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -804,7 +837,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -832,7 +865,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -844,7 +877,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;
@@ -872,7 +905,7 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
         ebayFeeFixed: number | null;
         packagingCost: number;
         shippingCost: number;
-        taxRate: number;
+        taxRate: number | null;
         minProfitPct: number;
         minSaleValue: number;
         postageCost: number;

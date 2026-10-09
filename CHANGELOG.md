@@ -48,14 +48,14 @@ Added to `Profile` (all required keys, nullable): `sellerTypeConfirmedAt`, `sugg
 and the shared `PricedBreakdown` family (`src/api/priced-breakdown.ts`: `PricedBreakdown`,
 `PricedLine`, `PricedLineSource`, `PricedLineEditKey`, `PricedBreakdownMode`, `PricedTotals`,
 `PricedCompare`, `PricedChannel`, `FeeBasis`, `PricedFeePosition`, `PricedNotSet`, `PricedPrice`).
-`PricedBreakdown` is declared and generated but **not yet attached to any response** — see its file
-header for the endpoints that will carry it and why attaching is left out.
+`PricedBreakdown` was declared in the first cut of this release without being attached to a
+response; **round 2 below attaches it** (and adds `unknownReason`, `estimate` and `included` to
+`PricedLine`).
 
 **Not changed:** `RouteEconomics` (`/api/recommend`, retiring) was already nullable and gets no
 reason; `PricingSettings` stays a request body with a non-null fee; `DecideRequest.targetMarginPct`
 keeps its name and its "% of what they pay" doc comment (#224 Decision 2, whether the field changes
-meaning, is NOT in Ben's round-2 ruling); `postage_rules` (#229) and the SKU shape (#227) are not
-here; `Decision.economics.postageGbp`/`packagingGbp` stay numbers (neither depends on seller type).
+meaning, is NOT in Ben's round-2 ruling); `postage_rules` (#229) is not here (the SKU shape is: round 2); `Decision.economics.postageGbp`/`packagingGbp` stay numbers (neither depends on seller type).
 
 ### The invariants (a SERVER-side guard — read this before relying on the generated types)
 
@@ -129,6 +129,102 @@ the card lookup falls to "No recommendation available" (`CurioCaptureApp.swift:1
 Per-platform checklists with file and line citations: **`docs/V0.2.0-ADOPTION.md`**. A client still
 on v0.1.45 also inherits the source-breaking v0.1.46–v0.1.49 changes in one jump (renames, the
 eighteen-arm error union, the tier rename); those are in the entries below.
+
+### Round 2 (same release, 2026-10-08): the single contract iOS, Android and web adopt
+
+Round 1 (above) is the nullable most-to-pay and fee position. Round 2 extends the SAME untagged
+v0.2.0 so that one tag carries every shape the three lanes were about to adopt separately. Still
+untagged, still one BREAKING release. Authority: the native build spec ("Money, prices and the
+seller's figures", "Where to start"), `domain-model.md` (UNMATCHED, HELD, SKU "when the copy is
+created", BulkRecord), the JTBD-GAP handoffs, and pokemon-tool plans/PRs #218 #222 #224 #227 #228
+#229 #230 #233 #235 #243 #246. Owner corrections applied (coordinator, same day): SKU is `SKU-` +
+8 hex, given on add, never editable; HELD is a status with `held_at`; tax applies only when the
+seller sets a rate, buying and selling; the time lines are `packing_time` and `listing_time`;
+lot share uses the LOW END of the asking range. **Every breaking change, per platform, is in
+`docs/V0.2.0-ADOPTION.md` "Round 2: what else breaks".**
+
+**1. `PricedBreakdown` attached to real responses.**
+- `PricingBreakdownResponse.breakdown` (required, `mode: "selling"`); request gains optional
+  `physicalCardId`, `format`, `postageMode`, `packingKey` (seller intent only, ADR 0028).
+- `DecideResponse.breakdown` (required); `QuickScanResponse.breakdown` and `DecideBatchResult.breakdown`
+  (required key, `null` exactly when `decision` is null). Requests gain `theirPriceGbp`,
+  `postageMode`, `packingKey`.
+- NEW `ListingPreviewRequest` / `ListingPreviewResponse` (`src/api/listing-preview.ts`): per copy,
+  `card` (with SKU), `listable`, `refusalReason`, a selling `breakdown`, `belowFloor`; plus group
+  and batch totals the server sums, so no screen sums a column. Route path undecided (below).
+- `PricedLine` gains `unknownReason` (required; the six-value `MaxBuyUnavailableReason`
+  vocabulary), `estimate` and `included` (both required). **An unknown figure is null WITH a
+  reason; a known one never has one; "Unknown is never £0"** (guarded). `max_buy` is a whole pound,
+  rounded down by the server. Sign: value lines positive, deductions negative.
+  `packing_time` is in `lines`, negative, taken off, with `minutes`; **`listing_time` is NOT in
+  `lines`: it is in the new required `PricedBreakdown.beside` array** (positive magnitude,
+  `minutes`, `included: false`, never in the arithmetic; empty without an hourly rate), mirroring
+  pokemon-tool #244; `your_time` is retired. The `ebay_fee` line carries `perOrderBand`
+  (`low | high | null`) and `feeBasisVerified` (false until eBay's page confirms the £10 band is
+  tested on item + buyer postage), as #244's `feeBreakdown`. A mode's total line (`you_receive` /
+  `max_buy`) is always present.
+- Cross-checks (server-side guards): the breakdown beside a decision agrees with it (floor of
+  `decision.maxBuyGbp` = the breakdown's total; reasons and fee agree), the flat figures in
+  `PricingBreakdownResponse` agree with its breakdown, and a preview's totals are exactly the sum of
+  its rows in whole pence.
+
+**2. One closed refusal vocabulary** (`src/api/listing-refusal.ts`). `ListingRefusalReason`
+(`mine`, `set_aside`, `unmatched`, `condition_not_confirmed`, `no_price`, `no_sku`,
+`game_not_available`, `already_live`) and `ListingRefusalCode` (`card_not_listable` 409,
+`game_not_available` 422, `sku_required` 422, `sku_unavailable` 503, `card_read_failed` 503,
+`card_not_found` 404; table `LISTING_REFUSAL_HTTP_STATUS`). Carried by `ListingRefusal`
+(`{error, code, reason}`), six new `EbayPublishError` arms (`failure` union), `ChannelListingResponse`
+(`code`, `reason`, beside its envelope) and `ListingPreviewItem.refusalReason`. **This models the
+plan/spec's `card_not_listable` (409) + reason, NOT pokemon-tool #243's flat `card_mine` /
+`card_set_aside` / 422 `condition_not_confirmed`: a Ben decision, mapping in the adoption doc.**
+`held` is deliberately not a reason (a held copy may be listed on purpose).
+
+**3. Game availability** (`src/api/game-availability.ts`): `GamesResponse` (`{games: [{game,
+displayName, availability}]}`, `availability` = `available | coming`; this follows #228/#246, not
+the brief's `id/name/enabled` shorthand), `GameRefusal` (the 422 `game_coming` / `game_not_available`
+body) and `IdentifyAmbiguousResponse.unavailableGame`.
+
+**4. SKU at creation, never editable.** New `PhysicalCard` (`src/api/physical-card.ts`) with a
+non-null, non-empty, OPAQUE `sku`. `CaptureCommitResponse` gains required `sku` and `status`;
+`EbayPublishSuccess` gains required `sku`; **`EbayPublishRequest.sku` is REMOVED** and
+`sku-immutable.test.ts` fails the build if any request/patch/input schema ever carries a `sku`. A
+BulkRecord has no SKU (only its lot listing does, on that listing's response); no BulkRecord/lot
+wire type exists yet, and when one does its cost share uses the LOW END of the asking range.
+
+**5. Status enum.** New closed `PhysicalCardStatus` (the sixteen the web repo writes, plus
+`UNMATCHED` and `HELD`); `PhysicalCard.heldAt` (`held_at`, non-null when HELD). Seller-visible
+labels ("Not identified", "Held by you") are docs only.
+
+**6. Tax only when set.** `StoredPricingSettings.taxRate` and `EffectivePricingSettings.taxRate` are
+`number | null` (null = not set, no tax set aside, buying or selling; PATCH `null` clears). The DB
+default 0.20 stays until a separate migration (needs Ben's go); contracts only model null.
+
+**Generator/internal.** `MaxBuyUnavailableReason` and `PriceKind` moved to `common.ts` (no
+generated-name change; breaks a TS deep import of `decide.js`/`pricing-breakdown.js` for them).
+`PricedBreakdown` is registered by name before any emit (it came out as `Breakdown` once nested).
+`src/test-support/` holds shared fixtures and is excluded from the build.
+
+**Verification (round 2).** `npm run build` (141/141 schemas emitted, Swift and Kotlin),
+`npm run check` (no drift), `tsc --noEmit`, `npx vitest run` (31 files, 448 tests), `swift build`
+and `swift test` (35), `./gradlew test --offline` (42; new `BreakdownAndRefusalTest`, updated
+`DecideRoundTripTest`/`GoldenVectorTest`). Four new golden vectors (unknown refusal reason, unknown
+status inside a preview, unknown availability, unknown line reason).
+
+**Mutation check, round 2 (2026-10-08).** 80 mutations applied by hand, each disabling one rule or
+loosening one field; each ran against the owning test file and **every one went red**; all green
+against current (list: every `superRefine` rule in priced-breakdown, pricing-breakdown, decide,
+listing-preview, listing-refusal, game-availability, physical-card, channel-listing; `sku` back in
+`EbayPublishRequest`, optional on the success/commit responses, shape-validated, nullable; the
+refusal enums gaining `held`/`card_mine`; 409 to 422; taxRate non-null; and so on). Method note: the
+first pass left 13 survivors, and the #244 alignment (`beside`, minutes, fee basis) left 4 more of
+the same kind. Eleven exposed tests passing for the wrong reason (another rule
+rejected the same fixture), so each got an isolated test (an unknown-key line in the wrong container,
+a buying breakdown that otherwise agrees,
+a decision of 84.77 shown 84 to separate floor from round-to-nearest, 0.29 and 1.13 to separate
+rounding from truncation, ...). Three were dead code (a fractional-total rule already implied by the
+line rule and equality, a null/known fee mismatch already caught by the fee-basis and reason rules,
+and a listing_time-in-lines key rule already implied by "lines are all included") and were deleted. On Swift and Kotlin, four schema mutations (line reason, refusal reason,
+`heldAt` and stored `taxRate` made non-null) each failed both platforms' new tests.
 
 ### Generator change (internal, but it is why `DecisionEconomics` is not called `Economics2`)
 

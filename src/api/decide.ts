@@ -14,9 +14,10 @@
 import { z } from "zod";
 import {
   ConditionSchema, ConfidenceSchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, GameIdSchema,
-  LiquiditySchema,
+  LiquiditySchema, MaxBuyUnavailableReasonSchema,
 } from "./common.js";
 import { EditionAmbiguitySchema } from "./card-value.js";
+import { PostageModeSchema, PricedBreakdownSchema, type PricedBreakdown } from "./priced-breakdown.js";
 import { GradeEVConfidenceSchema, PricingSettingsSchema, RecommendedRouteSchema } from "./recommend.js";
 
 /** Why a route was chosen. A CODE — the shared engine does not own English; each platform renders
@@ -193,52 +194,6 @@ export const DecisionAssumptionSchema = z.object({
 });
 export type DecisionAssumption = z.infer<typeof DecisionAssumptionSchema>;
 
-/**
- * WHY `Decision.maxBuyGbp` is null (v0.2.0). A null most-to-pay ALWAYS carries one of these; a number
- * never does (enforced on `DecisionSchema` below).
- *
- * "Most to pay" is the one number a seller acts on at a card-show table, and a wrong one costs them
- * money in the direction they cannot see. Before v0.2.0 the contract could only say "a number", so
- * every case below was answered with a figure — an asking price dressed as a valuation, a 25%
- * margin the seller never chose, a private-seller fee nobody had confirmed. Each value is a
- * distinct thing the SELLER (or the data) can fix, taken from the plans named beside it:
- *
- *  - `margin_not_set`       the seller has not chosen a buying margin. There is NO fallback to the
- *                           selling floor (`minProfitPct`) any more.            PLAN-MOST-TO-PAY #224 §2, §5
- *  - `seller_type_not_set`  fee position unknown: never answered "private or business?". Mirrors
- *                           `FeeNotSetReason`; most-to-pay is withheld because the formula subtracts
- *                           the fee.                                            PLAN-SELLER-TYPE-FIRST-ASK #230 §3
- *  - `vat_not_set`          business, VAT question unanswered. Mirrors `FeeNotSetReason`. #230 §2
- *  - `asking_price_only`    the only price is the listing's ASKING price (`basis === "ask_only"`).
- *                           A most-to-pay derived from someone else's ask is circular.   #224 §7
- *  - `no_price`             no usable market value at all. Reserved for a Decision that is returned
- *                           without one; today the routes answer this with `decisionUnavailable:
- *                           "no_market_value"` instead of a Decision, so this is a documented
- *                           reservation, NOT a state the server is known to emit.         #224 §7
- *  - `not_viable`           costs plus the margin cannot be covered at any price (margin >= 100% of
- *                           the sale, or the formula has no positive solution). Distinct from "£0":
- *                           £0 is a number the seller can pay, this is "do not buy at any price".  #224 §3, §7
- *
- * NOT in this list, on purpose: `game_not_available`. PLAN-POKEMON-ONLY-BETA-GATE answers a coming
- * game with `422 game_coming` / `game_not_available` — an HTTP refusal, not a Decision — so a
- * Decision never exists for it and the value would be dead.
- *
- * WHICH ONE when several apply is the server's call; the recommended precedence is the order the
- * seller would be asked: no_price, asking_price_only, seller_type_not_set, vat_not_set,
- * margin_not_set, not_viable. The full set lives in `PricedBreakdown.notSet`.
- *
- * Open to additions (ADR 0027): Swift decodes an unknown reason to `.unrecognised(raw)`, Kotlin to
- * `Unknown(raw)`. A client must treat an unrecognised reason as "no most-to-pay", never as a number.
- */
-export const MaxBuyUnavailableReasonSchema = z.enum([
-  "margin_not_set",
-  "seller_type_not_set",
-  "vat_not_set",
-  "asking_price_only",
-  "no_price",
-  "not_viable",
-]);
-export type MaxBuyUnavailableReason = z.infer<typeof MaxBuyUnavailableReasonSchema>;
 
 export const DecisionSchema = z.object({
   route: RecommendedRouteSchema,
@@ -342,6 +297,60 @@ export const DecisionSchema = z.object({
 });
 export type Decision = z.infer<typeof DecisionSchema>;
 
+/**
+ * The breakdown BESIDE a decision must tell the same story as the decision (v0.2.0). The two are
+ * built from one calculation, so any disagreement is a server bug — and a client rendering the
+ * lines while another screen renders `decision.maxBuyGbp` would show a seller two answers.
+ * Called from every response that carries both. A SERVER-SIDE GUARD (Swift/Kotlin cannot express it).
+ *
+ * `breakdown.totals.maxBuyGbp` is the DISPLAY figure, rounded DOWN to the pound by the server.
+ * `Decision.maxBuyGbp` may be the exact pence or already floored (this contract allows both; Ben to
+ * rule, docs/V0.2.0-ADOPTION.md "Decisions for Ben"): the relation that holds either way is
+ * floor(decision.maxBuyGbp) === breakdown total, so that is what is enforced.
+ */
+function checkBreakdownMatchesDecision(
+  decision: Decision,
+  breakdown: PricedBreakdown,
+  ctx: z.RefinementCtx,
+  path: (string | number)[],
+): void {
+  const issue = (sub: (string | number)[], message: string) =>
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: [...path, ...sub], message });
+  if (breakdown.mode !== "buying") {
+    issue(["mode"], 'a breakdown beside a Decision prices a PURCHASE: mode must be "buying"');
+  }
+  const mb = decision.maxBuyGbp;
+  const total = breakdown.totals.maxBuyGbp;
+  if ((mb === null) !== (total === null)) {
+    issue(["totals", "maxBuyGbp"], mb === null
+      ? "decision.maxBuyGbp is null but the breakdown has a most-to-pay: one fact, reported once"
+      : "decision.maxBuyGbp is a number but the breakdown's most-to-pay is null: one fact, reported once");
+  } else if (mb !== null && total !== null && Math.floor(mb + 1e-9) !== total) {
+    issue(["totals", "maxBuyGbp"], `the breakdown's most-to-pay (${total}) is not decision.maxBuyGbp (${mb}) rounded down to the pound`);
+  }
+  const maxBuyLine = breakdown.lines.find((l) => l.key === "max_buy");
+  if (mb === null && maxBuyLine && maxBuyLine.unknownReason !== decision.maxBuyUnavailableReason) {
+    issue(["lines"], `the max_buy line's unknownReason (${maxBuyLine.unknownReason ?? "null"}) is not decision.maxBuyUnavailableReason (${decision.maxBuyUnavailableReason ?? "null"}): one reason, reported once`);
+  }
+  const feeNull = decision.economics.feeGbp === null;
+  if (feeNull !== (breakdown.feePosition.feeBasis === "not_set")) {
+    issue(["feePosition", "feeBasis"], feeNull
+      ? 'economics.feeGbp is null, so the breakdown\'s feePosition.feeBasis must be "not_set"'
+      : 'economics.feeGbp is a number, so the breakdown\'s feePosition.feeBasis cannot be "not_set"');
+  }
+  const feeLine = breakdown.lines.find((l) => l.key === "ebay_fee");
+  if (feeLine) {
+    if ((feeLine.amountGbp === null) !== feeNull) {
+      issue(["lines"], "economics.feeGbp and the breakdown's ebay_fee line disagree about whether the fee is known");
+    } else if (feeNull && feeLine.unknownReason !== decision.economics.feeNotSetReason) {
+      issue(["lines"], `the ebay_fee line's unknownReason (${feeLine.unknownReason ?? "null"}) is not economics.feeNotSetReason (${decision.economics.feeNotSetReason ?? "null"}): one reason, reported once`);
+    } else if (feeLine.amountGbp !== null && decision.economics.feeGbp !== null
+        && Math.abs(-feeLine.amountGbp - decision.economics.feeGbp) > 0.005) {
+      issue(["lines"], `the ebay_fee line (${feeLine.amountGbp}) is not the negative of economics.feeGbp (${decision.economics.feeGbp})`);
+    }
+  }
+}
+
 // ── Provenance: a fact about the INPUT, deliberately BESIDE the decision ────────────────────
 //
 // `Decision` is not a superset of `RecommendResponse`. `priceSource`, `priceConfidence`,
@@ -440,6 +449,14 @@ export const DecideRequestSchema = z.object({
   /** Explicit settings override; omitted falls back to the account's saved profile. Prefer
    *  `targetMarginPct` above for the common case — see its note on what a client may assert. */
   pricingSettings: PricingSettingsSchema.optional(),
+  // ── v0.2.0: seller INTENT for the breakdown's editable lines (ADR 0028) ─────────────────────
+  /** What they are asking for the card. The server computes the over/under once
+   *  (`breakdown.compare`) so no screen subtracts two figures. */
+  theirPriceGbp: z.number().nonnegative().optional(),
+  /** Who bears postage on the resale, for this card. Absent = the seller's Dispatch rule. */
+  postageMode: PostageModeSchema.optional(),
+  /** A keyed packing choice (open string; the catalogue is the server's). */
+  packingKey: z.string().optional(),
 });
 export type DecideRequest = z.infer<typeof DecideRequestSchema>;
 
@@ -448,7 +465,12 @@ export const DecideResponseSchema = z.object({
   /** Where the market value came from. Beside the decision, never inside it — see above. */
   price: PriceProvenanceSchema,
   gradeEV: DecisionGradeEVSchema.optional(),
-});
+  /** v0.2.0. Every line of the most to pay, with its source: sale price, eBay fee, packing,
+   *  [packing time], postage, your margin, [tax set aside], most to pay. Beside the decision, as
+   *  `price` and `gradeEV` are — it is the line-by-line answer to the same calculation, and a
+   *  screen renders it instead of computing anything. Consistent with `decision` (guarded). */
+  breakdown: PricedBreakdownSchema,
+}).superRefine((r, ctx) => checkBreakdownMatchesDecision(r.decision, r.breakdown, ctx, ["breakdown"]));
 export type DecideResponse = z.infer<typeof DecideResponseSchema>;
 
 // ── POST /api/decide — BATCH ────────────────────────────────────────────────────────────────
@@ -473,12 +495,15 @@ export const DecideBatchCardSchema = z.object({
   /** Null = not counted, which is NOT the same as 0 = counted, none. See DecisionInput. */
   compatibleCount: z.number().int().nullable().optional(),
   collectionType: z.enum(["personal", "resale"]).optional(),
+  /** What they are asking for this card (v0.2.0); the server computes the over/under. */
+  theirPriceGbp: z.number().nonnegative().nullable().optional(),
 });
 export type DecideBatchCard = z.infer<typeof DecideBatchCardSchema>;
 
 export const DecideBatchRequestSchema = z.object({
   cards: z.array(DecideBatchCardSchema).min(1).max(200),
-  /** Applies to the whole batch — a seller preference, not a per-card fact. */
+  /** Applies to the whole batch — a seller preference, not a per-card fact. v0.2.0: so are
+   *  `postageMode` and `packingKey` below. */
   targetMarginPct: z.number()
     .min(0)
     .max(1000)
@@ -502,6 +527,8 @@ export const DecideBatchRequestSchema = z.object({
     })
     .optional(),
   pricingSettings: PricingSettingsSchema.optional(),
+  postageMode: PostageModeSchema.optional(),
+  packingKey: z.string().optional(),
 });
 export type DecideBatchRequest = z.infer<typeof DecideBatchRequestSchema>;
 
@@ -515,6 +542,18 @@ export const DecideBatchResultSchema = z.object({
   decision: DecisionSchema.nullable(),
   decisionUnavailable: DecisionUnavailableSchema.nullable().optional(),
   price: PriceProvenanceSchema.nullable().optional(),
+  /** v0.2.0. The lines behind this card's decision; null exactly when `decision` is null (a card
+   *  with no market value has nothing to itemise — not a breakdown of zeros). */
+  breakdown: PricedBreakdownSchema.nullable(),
+}).superRefine((r, ctx) => {
+  if ((r.decision === null) !== (r.breakdown === null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown"],
+      message: r.decision === null
+        ? "decision is null, so breakdown must be null: a card with no decision has no lines to itemise"
+        : "decision is present, so breakdown is required: the lines behind a most-to-pay travel with it" });
+  } else if (r.decision !== null && r.breakdown !== null) {
+    checkBreakdownMatchesDecision(r.decision, r.breakdown, ctx, ["breakdown"]);
+  }
 });
 export type DecideBatchResult = z.infer<typeof DecideBatchResultSchema>;
 
@@ -568,6 +607,11 @@ export const QuickScanRequestSchema = z.object({
                "the likely source of the confusion.)",
     })
     .optional(),
+  /** v0.2.0 — as on DecideRequest: what they are asking, who bears postage, a keyed packing
+   *  choice. Seller intent only. */
+  theirPriceGbp: z.number().nonnegative().optional(),
+  postageMode: PostageModeSchema.optional(),
+  packingKey: z.string().optional(),
 });
 export type QuickScanRequest = z.infer<typeof QuickScanRequestSchema>;
 
@@ -653,5 +697,16 @@ export const QuickScanResponseSchema = z.object({
    * structurally could not — a T1 parity gap on a safety disclosure.
    */
   editionAmbiguity: EditionAmbiguitySchema.nullable().default(null),
+  /** v0.2.0. The lines behind `decision`; null exactly when `decision` is null. */
+  breakdown: PricedBreakdownSchema.nullable(),
+}).superRefine((r, ctx) => {
+  if ((r.decision === null) !== (r.breakdown === null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown"],
+      message: r.decision === null
+        ? "decision is null, so breakdown must be null: an unidentified card has no lines to itemise"
+        : "decision is present, so breakdown is required: the lines behind a most-to-pay travel with it" });
+  } else if (r.decision !== null && r.breakdown !== null) {
+    checkBreakdownMatchesDecision(r.decision, r.breakdown, ctx, ["breakdown"]);
+  }
 });
 export type QuickScanResponse = z.infer<typeof QuickScanResponseSchema>;

@@ -90,3 +90,61 @@ export const FeeNotSetReasonSchema = z.enum([
   "vat_not_set",
 ]);
 export type FeeNotSetReason = z.infer<typeof FeeNotSetReasonSchema>;
+
+/**
+ * WHY a most-to-pay (or any priced figure that depends on the same inputs) is null (v0.2.0). A null
+ * most-to-pay ALWAYS carries one of these; a number never does (enforced on `DecisionSchema`, and on
+ * `PricedLine` — the same six reasons name why ANY line of a `PricedBreakdown` is null, so a client
+ * has one vocabulary for "no figure", not one per screen). Moved here from decide.ts so
+ * priced-breakdown.ts can use it without a circular import; the generated name is unchanged.
+ *
+ * "Most to pay" is the one number a seller acts on at a card-show table, and a wrong one costs them
+ * money in the direction they cannot see. Before v0.2.0 the contract could only say "a number", so
+ * every case below was answered with a figure — an asking price dressed as a valuation, a 25%
+ * margin the seller never chose, a private-seller fee nobody had confirmed. Each value is a
+ * distinct thing the SELLER (or the data) can fix, taken from the plans named beside it:
+ *
+ *  - `margin_not_set`       the seller has not chosen a buying margin. There is NO fallback to the
+ *                           selling floor (`minProfitPct`) any more.            PLAN-MOST-TO-PAY #224 §2, §5
+ *  - `seller_type_not_set`  fee position unknown: never answered "private or business?". Mirrors
+ *                           `FeeNotSetReason`; most-to-pay is withheld because the formula subtracts
+ *                           the fee.                                            PLAN-SELLER-TYPE-FIRST-ASK #230 §3
+ *  - `vat_not_set`          business, VAT question unanswered. Mirrors `FeeNotSetReason`. #230 §2
+ *  - `asking_price_only`    the only price is the listing's ASKING price (`basis === "ask_only"`).
+ *                           A most-to-pay derived from someone else's ask is circular.   #224 §7
+ *  - `no_price`             no usable market value at all. Reserved for a Decision that is returned
+ *                           without one; today the routes answer this with `decisionUnavailable:
+ *                           "no_market_value"` instead of a Decision, so this is a documented
+ *                           reservation, NOT a state the server is known to emit.         #224 §7
+ *  - `not_viable`           costs plus the margin cannot be covered at any price (margin >= 100% of
+ *                           the sale, or the formula has no positive solution). Distinct from "£0":
+ *                           £0 is a number the seller can pay, this is "do not buy at any price".  #224 §3, §7
+ *
+ * NOT in this list, on purpose: `game_not_available`. PLAN-POKEMON-ONLY-BETA-GATE answers a coming
+ * game with `422 game_coming` / `game_not_available` — an HTTP refusal, not a Decision — so a
+ * Decision never exists for it and the value would be dead.
+ *
+ * WHICH ONE when several apply is the server's call; the recommended precedence is the order the
+ * seller would be asked: no_price, asking_price_only, seller_type_not_set, vat_not_set,
+ * margin_not_set, not_viable. The full set lives in `PricedBreakdown.notSet`.
+ *
+ * Open to additions (ADR 0027): Swift decodes an unknown reason to `.unrecognised(raw)`, Kotlin to
+ * `Unknown(raw)`. A client must treat an unrecognised reason as "no most-to-pay", never as a number.
+ */
+export const MaxBuyUnavailableReasonSchema = z.enum([
+  "margin_not_set",
+  "seller_type_not_set",
+  "vat_not_set",
+  "asking_price_only",
+  "no_price",
+  "not_viable",
+]);
+export type MaxBuyUnavailableReason = z.infer<typeof MaxBuyUnavailableReasonSchema>;
+
+/** Where a market price came from, in the only two classes that matter to a seller. Hoisted from
+ *  the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an inline
+ *  copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`) are
+ *  unchanged. Lives here (not pricing-breakdown.ts) so priced-breakdown.ts and pricing-breakdown.ts
+ *  can import each other's neighbours without a cycle. */
+export const PriceKindSchema = z.enum(["realised", "asking"]);
+export type PriceKind = z.infer<typeof PriceKindSchema>;

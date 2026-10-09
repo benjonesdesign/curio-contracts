@@ -170,6 +170,419 @@
           "message": "something went wrong"
         }
       }
+    },
+    {
+      "name": "unknown_listing_refusal_reason",
+      "type": "EbayPublishErrorResponse",
+      "why": "A refusal reason added next year (say `quarantined`). The reason list is closed on the server and open on every client: a seller trying to publish must still see a refusal, not a decode error that loses the whole response, and the client must read an unrecognised reason as NOT listable.",
+      "payload": {
+        "error": "Not listable",
+        "code": "card_not_listable",
+        "failure": {
+          "code": "card_not_listable",
+          "message": "Not listable",
+          "reason": "quarantined"
+        }
+      }
+    },
+    {
+      "name": "unknown_physical_card_status_in_listing_preview",
+      "type": "ListingPreviewResponse",
+      "why": "A lifecycle status added after this build (the last two, UNMATCHED and HELD, were exactly this). It sits inside a list of copies, so a propagating throw would lose every OTHER copy in the review table as well as this one.",
+      "payload": {
+        "items": [
+          {
+            "card": {
+              "id": "11111111-2222-4333-8444-555555555555",
+              "sku": "SKU-11111111",
+              "status": "READY_TO_LIST",
+              "game": "pokemon",
+              "name": "Charizard ex",
+              "setName": "Obsidian Flames",
+              "cardNumber": "125/197",
+              "condition": "NM",
+              "conditionConfirmed": true,
+              "heldAt": null
+            },
+            "listable": true,
+            "refusalReason": null,
+            "breakdown": {
+              "mode": "selling",
+              "lines": [
+                {
+                  "key": "sale_price",
+                  "label": "Sale price",
+                  "amountGbp": 167.0,
+                  "unknownReason": null,
+                  "source": "request",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": null
+                },
+                {
+                  "key": "ebay_fee",
+                  "label": "eBay fee",
+                  "amountGbp": -18.28,
+                  "unknownReason": null,
+                  "source": "fee_model",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": "high",
+                  "feeBasisVerified": false,
+                  "note": "vat_reclaimed"
+                },
+                {
+                  "key": "postage",
+                  "label": "Postage",
+                  "amountGbp": 0.0,
+                  "unknownReason": null,
+                  "source": "ebay_policy",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": "buyer_pays"
+                },
+                {
+                  "key": "packing",
+                  "label": "Packing (estimate)",
+                  "amountGbp": -0.34,
+                  "unknownReason": null,
+                  "source": "default",
+                  "assumed": true,
+                  "estimate": true,
+                  "editable": true,
+                  "editKey": "packingKey",
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": "estimate"
+                },
+                {
+                  "key": "you_receive",
+                  "label": "You receive",
+                  "amountGbp": 148.38,
+                  "unknownReason": null,
+                  "source": "fee_model",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": null
+                }
+              ],
+              "beside": [],
+              "totals": {
+                "youReceiveGbp": 148.38,
+                "maxBuyGbp": null
+              },
+              "compare": null,
+              "feePosition": {
+                "sellerType": "business",
+                "vatRegistered": true,
+                "channel": "ebay",
+                "feeBasis": "derived"
+              },
+              "notSet": [],
+              "price": {
+                "gbp": 167.0,
+                "source": null,
+                "kind": null,
+                "asOf": null,
+                "cached": false
+              },
+              "computedAt": "2026-10-08T09:30:00.000Z"
+            },
+            "belowFloor": false,
+            "group": null
+          },
+          {
+            "card": {
+              "id": "other",
+              "sku": "SKU-OTHER000",
+              "status": "QUARANTINED",
+              "game": "pokemon",
+              "name": "Charizard ex",
+              "setName": "Obsidian Flames",
+              "cardNumber": "125/197",
+              "condition": "NM",
+              "conditionConfirmed": true,
+              "heldAt": null
+            },
+            "listable": true,
+            "refusalReason": null,
+            "breakdown": {
+              "mode": "selling",
+              "lines": [
+                {
+                  "key": "sale_price",
+                  "label": "Sale price",
+                  "amountGbp": 167.0,
+                  "unknownReason": null,
+                  "source": "request",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": null
+                },
+                {
+                  "key": "ebay_fee",
+                  "label": "eBay fee",
+                  "amountGbp": -18.28,
+                  "unknownReason": null,
+                  "source": "fee_model",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": "high",
+                  "feeBasisVerified": false,
+                  "note": "vat_reclaimed"
+                },
+                {
+                  "key": "postage",
+                  "label": "Postage",
+                  "amountGbp": 0.0,
+                  "unknownReason": null,
+                  "source": "ebay_policy",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": "buyer_pays"
+                },
+                {
+                  "key": "packing",
+                  "label": "Packing (estimate)",
+                  "amountGbp": -0.34,
+                  "unknownReason": null,
+                  "source": "default",
+                  "assumed": true,
+                  "estimate": true,
+                  "editable": true,
+                  "editKey": "packingKey",
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": "estimate"
+                },
+                {
+                  "key": "you_receive",
+                  "label": "You receive",
+                  "amountGbp": 148.38,
+                  "unknownReason": null,
+                  "source": "fee_model",
+                  "assumed": false,
+                  "estimate": false,
+                  "editable": false,
+                  "editKey": null,
+                  "included": true,
+                  "minutes": null,
+                  "perOrderBand": null,
+                  "feeBasisVerified": null,
+                  "note": null
+                }
+              ],
+              "beside": [],
+              "totals": {
+                "youReceiveGbp": 148.38,
+                "maxBuyGbp": null
+              },
+              "compare": null,
+              "feePosition": {
+                "sellerType": "business",
+                "vatRegistered": true,
+                "channel": "ebay",
+                "feeBasis": "derived"
+              },
+              "notSet": [],
+              "price": {
+                "gbp": 167.0,
+                "source": null,
+                "kind": null,
+                "asOf": null,
+                "cached": false
+              },
+              "computedAt": "2026-10-08T09:30:00.000Z"
+            },
+            "belowFloor": false,
+            "group": null
+          }
+        ],
+        "groups": [],
+        "totals": {
+          "count": 2,
+          "listableCount": 2,
+          "belowFloorCount": 0,
+          "youReceiveGbp": 296.76,
+          "unknownReason": null
+        },
+        "floorGbp": 1.5,
+        "computedAt": "2026-10-08T09:30:00.000Z"
+      }
+    },
+    {
+      "name": "unknown_game_availability_in_games_response",
+      "type": "GamesResponse",
+      "why": "A third availability state (say `beta`). The list drives which games a seller can choose, so a hard failure would blank the whole game list; a client must read an unrecognised availability as `coming`, never as available.",
+      "payload": {
+        "games": [
+          {
+            "game": "pokemon",
+            "displayName": "Pokémon",
+            "availability": "available"
+          },
+          {
+            "game": "mtg",
+            "displayName": "Magic: The Gathering",
+            "availability": "beta"
+          }
+        ]
+      }
+    },
+    {
+      "name": "unknown_unknown_reason_on_a_priced_line",
+      "type": "PricedBreakdown",
+      "why": "A new reason a figure is null (say `awaiting_review`), on one line of a breakdown. The other lines must still render, and the client must show NO figure for the line rather than a number or a zero.",
+      "payload": {
+        "mode": "selling",
+        "lines": [
+          {
+            "key": "sale_price",
+            "label": "Sale price",
+            "amountGbp": 167.0,
+            "unknownReason": null,
+            "source": "request",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          },
+          {
+            "key": "ebay_fee",
+            "label": "eBay fee",
+            "amountGbp": null,
+            "unknownReason": "awaiting_review",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          },
+          {
+            "key": "postage",
+            "label": "Postage",
+            "amountGbp": 0.0,
+            "unknownReason": null,
+            "source": "ebay_policy",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": "buyer_pays"
+          },
+          {
+            "key": "packing",
+            "label": "Packing (estimate)",
+            "amountGbp": -0.34,
+            "unknownReason": null,
+            "source": "default",
+            "assumed": true,
+            "estimate": true,
+            "editable": true,
+            "editKey": "packingKey",
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": "estimate"
+          },
+          {
+            "key": "you_receive",
+            "label": "You receive",
+            "amountGbp": null,
+            "unknownReason": "seller_type_not_set",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          }
+        ],
+        "beside": [],
+        "totals": {
+          "youReceiveGbp": null,
+          "maxBuyGbp": null
+        },
+        "compare": null,
+        "feePosition": {
+          "sellerType": null,
+          "vatRegistered": null,
+          "channel": "ebay",
+          "feeBasis": "not_set"
+        },
+        "notSet": [
+          "sellerType"
+        ],
+        "price": {
+          "gbp": 167.0,
+          "source": null,
+          "kind": null,
+          "asOf": null,
+          "cached": false
+        },
+        "computedAt": "2026-10-08T09:30:00.000Z"
+      }
     }
   ]
 }
