@@ -46,6 +46,22 @@ export declare const PutBackRequestSchema: z.ZodObject<{
     ids: string[];
 }>;
 export type PutBackRequest = z.infer<typeof PutBackRequestSchema>;
+/**
+ * "Stop holding" (the Held record's `E3g` More sheet; Ben, 2026-10-09): a HELD copy goes back to
+ * READY_TO_LIST, and is NOT listed. A server action, answered with the same per-copy
+ * `InventoryChangeResponse` as Mine / Put back: `changed` with `status: READY_TO_LIST` (and
+ * `heldAt` cleared on the copy); `unchanged` for a copy that is not held (Undo of an Undo is
+ * harmless); `refused` / `failed` with the usual reasons. Listing a held copy ON PURPOSE is a
+ * different action (it lists and moves to READY_TO_LIST on the way).
+ */
+export declare const StopHoldingRequestSchema: z.ZodObject<{
+    ids: z.ZodArray<z.ZodString, "many">;
+}, "strip", z.ZodTypeAny, {
+    ids: string[];
+}, {
+    ids: string[];
+}>;
+export type StopHoldingRequest = z.infer<typeof StopHoldingRequestSchema>;
 export declare const InventoryChangeResultSchema: z.ZodEffects<z.ZodObject<{
     id: z.ZodString;
     outcome: z.ZodEnum<["changed", "unchanged", "refused", "failed"]>;
@@ -261,20 +277,24 @@ export declare const InventoryChangeResponseSchema: z.ZodEffects<z.ZodObject<{
     };
 }>;
 export type InventoryChangeResponse = z.infer<typeof InventoryChangeResponseSchema>;
-/** Copies still in inventory (not sold, not archived), a PARTITION: set aside wins over Mine. A
- *  different base from `totalCards`. HELD and UNMATCHED copies are in `stock` as copies, but in no
- *  value. */
+/** Copies still in inventory (not sold, not archived), a PARTITION in this order of precedence:
+ *  set aside > Mine > held > stock. So `stock` EXCLUDES held (a held copy is counted once, as held).
+ *  A different base from `totalCards`. HELD copies are in `estValue` (the held part is `heldValue`);
+ *  UNMATCHED copies are in `stock` as copies and add nothing to any value. */
 export declare const InventoryCountsSchema: z.ZodObject<{
     stock: z.ZodNumber;
+    held: z.ZodNumber;
     mine: z.ZodNumber;
     setAside: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     mine: number;
     stock: number;
+    held: number;
     setAside: number;
 }, {
     mine: number;
     stock: number;
+    held: number;
     setAside: number;
 }>;
 export type InventoryCounts = z.infer<typeof InventoryCountsSchema>;
@@ -321,29 +341,37 @@ export declare const CollectionValueSchema: z.ZodEffects<z.ZodObject<{
     sources: string[];
 }>;
 export type CollectionValue = z.infer<typeof CollectionValueSchema>;
-export declare const StatsResponseSchema: z.ZodObject<{
+export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     /** Copies per status. Keys are statuses (a client treats an unknown key as "other"). */
     statusCounts: z.ZodRecord<z.ZodString, z.ZodNumber>;
     /** Money spent on copies still held (not archived, not sold). Not a value; unchanged by Mine. */
     costBasis: z.ZodNumber;
-    /** STOCK value: the seller's price on READY_TO_LIST and LISTED stock. Mine (valued apart in
-     *  `collectionValue`), set-aside, HELD, UNMATCHED, sold and archived copies are not in it. */
+    /** STOCK value: the seller's price on READY_TO_LIST, LISTED and HELD stock. HELD copies COUNT
+     *  here (Ben, 2026-10-09); Mine (valued apart in `collectionValue`), set-aside, UNMATCHED (no
+     *  price), sold and archived copies are not in it. */
     estValue: z.ZodNumber;
+    /** The part of `estValue` that is HELD copies, apart: "£4,812 · £320 held". Included in
+     *  `estValue`, never added to it; never above it. NULL (not 0) when no held copy is priced: an
+     *  unknown is not £0. */
+    heldValue: z.ZodNullable<z.ZodNumber>;
     realisedGain: z.ZodNumber;
     agedListings: z.ZodNumber;
     /** All copies except ARCHIVED. */
     totalCards: z.ZodNumber;
     counts: z.ZodObject<{
         stock: z.ZodNumber;
+        held: z.ZodNumber;
         mine: z.ZodNumber;
         setAside: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         mine: number;
         stock: number;
+        held: number;
         setAside: number;
     }, {
         mine: number;
         stock: number;
+        held: number;
         setAside: number;
     }>;
     collectionValue: z.ZodEffects<z.ZodObject<{
@@ -386,12 +414,14 @@ export declare const StatsResponseSchema: z.ZodObject<{
     costBasis: number;
     statusCounts: Record<string, number>;
     estValue: number;
+    heldValue: number | null;
     realisedGain: number;
     agedListings: number;
     totalCards: number;
     counts: {
         mine: number;
         stock: number;
+        held: number;
         setAside: number;
     };
     collectionValue: {
@@ -406,12 +436,58 @@ export declare const StatsResponseSchema: z.ZodObject<{
     costBasis: number;
     statusCounts: Record<string, number>;
     estValue: number;
+    heldValue: number | null;
     realisedGain: number;
     agedListings: number;
     totalCards: number;
     counts: {
         mine: number;
         stock: number;
+        held: number;
+        setAside: number;
+    };
+    collectionValue: {
+        lowGbp: number | null;
+        count: number;
+        pricedCount: number;
+        notPricedCount: number;
+        highGbp: number | null;
+        sources: string[];
+    };
+}>, {
+    costBasis: number;
+    statusCounts: Record<string, number>;
+    estValue: number;
+    heldValue: number | null;
+    realisedGain: number;
+    agedListings: number;
+    totalCards: number;
+    counts: {
+        mine: number;
+        stock: number;
+        held: number;
+        setAside: number;
+    };
+    collectionValue: {
+        lowGbp: number | null;
+        count: number;
+        pricedCount: number;
+        notPricedCount: number;
+        highGbp: number | null;
+        sources: string[];
+    };
+}, {
+    costBasis: number;
+    statusCounts: Record<string, number>;
+    estValue: number;
+    heldValue: number | null;
+    realisedGain: number;
+    agedListings: number;
+    totalCards: number;
+    counts: {
+        mine: number;
+        stock: number;
+        held: number;
         setAside: number;
     };
     collectionValue: {

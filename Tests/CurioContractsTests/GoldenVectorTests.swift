@@ -144,6 +144,13 @@ final class GoldenVectorTests: XCTestCase {
                 let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
                 XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
 
+            case "Decision":
+                let decoded = try JSONDecoder().decode(Decision.self, from: payload)
+                let reencoded = try JSONEncoder().encode(decoded)
+                let before = stripNulls(try JSONSerialization.jsonObject(with: payload)) as? NSDictionary
+                let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
+                XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
+
             default:
                 XCTFail("vector \(v.name) names type \(v.type), which this runner does not handle — "
                       + "add it rather than letting it skip")

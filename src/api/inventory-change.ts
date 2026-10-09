@@ -8,6 +8,7 @@
 //   POST /api/inventory/mine       { ids, mine }      mine true = Mark Mine, false = Change to stock
 //   POST /api/inventory/set-aside  { ids, reason? }   status EXCEPTION; reason is a chip or omitted
 //   POST /api/inventory/put-back   { ids }            back to where it was
+//   POST /api/inventory/stop-holding { ids }          HELD back to READY_TO_LIST, no listing
 //   GET  /api/stats                                   StatsResponse
 //
 // ── PER-COPY RESULTS, NEVER ALL-OR-NOTHING ──────────────────────────────────────────────────
@@ -22,11 +23,12 @@
 // questions with different remedies and different wording ("End the listing first. It's live on
 // eBay."). Both are closed and forward-compatible.
 //
-// ── VALUE TOTALS (owner, 2026-10-09) ────────────────────────────────────────────────────────
-// A HELD copy and a Not-identified (UNMATCHED) copy are NOT counted in any value total: stock value
-// is the seller's price on READY_TO_LIST and LISTED stock only, Mine is valued APART (the market
-// range, `collectionValue`), and set-aside, sold, archived, held and unmatched copies are in no
-// value. They still count as copies (`counts`).
+// ── VALUE TOTALS (Ben, 2026-10-09; supersedes the earlier "held out of totals" note) ─────────
+// A HELD copy COUNTS in the stock value, and the held part is returned APART (`heldValue`) so a
+// screen can say "£4,812 · £320 held" without subtracting. A Not-identified (UNMATCHED) copy has no
+// price and adds nothing. Stock value is the seller's price on READY_TO_LIST, LISTED and HELD
+// stock; Mine is valued APART (the market range, `collectionValue`); set-aside, sold and archived
+// copies are in no value. Every copy still counts as a copy (`counts`).
 import { z } from "zod";
 import { PhysicalCardStatusSchema, SetAsideReasonSchema } from "./physical-card.js";
 
@@ -75,6 +77,19 @@ export const PutBackRequestSchema = z.object({
   ids: IdsSchema,
 });
 export type PutBackRequest = z.infer<typeof PutBackRequestSchema>;
+
+/**
+ * "Stop holding" (the Held record's `E3g` More sheet; Ben, 2026-10-09): a HELD copy goes back to
+ * READY_TO_LIST, and is NOT listed. A server action, answered with the same per-copy
+ * `InventoryChangeResponse` as Mine / Put back: `changed` with `status: READY_TO_LIST` (and
+ * `heldAt` cleared on the copy); `unchanged` for a copy that is not held (Undo of an Undo is
+ * harmless); `refused` / `failed` with the usual reasons. Listing a held copy ON PURPOSE is a
+ * different action (it lists and moves to READY_TO_LIST on the way).
+ */
+export const StopHoldingRequestSchema = z.object({
+  ids: IdsSchema,
+});
+export type StopHoldingRequest = z.infer<typeof StopHoldingRequestSchema>;
 
 export const InventoryChangeResultSchema = z.object({
   id: z.string(),
@@ -143,11 +158,13 @@ export type InventoryChangeResponse = z.infer<typeof InventoryChangeResponseSche
 
 // ── GET /api/stats ──────────────────────────────────────────────────────────────────────────
 
-/** Copies still in inventory (not sold, not archived), a PARTITION: set aside wins over Mine. A
- *  different base from `totalCards`. HELD and UNMATCHED copies are in `stock` as copies, but in no
- *  value. */
+/** Copies still in inventory (not sold, not archived), a PARTITION in this order of precedence:
+ *  set aside > Mine > held > stock. So `stock` EXCLUDES held (a held copy is counted once, as held).
+ *  A different base from `totalCards`. HELD copies are in `estValue` (the held part is `heldValue`);
+ *  UNMATCHED copies are in `stock` as copies and add nothing to any value. */
 export const InventoryCountsSchema = z.object({
   stock: z.number().int().nonnegative(),
+  held: z.number().int().nonnegative(),
   mine: z.number().int().nonnegative(),
   setAside: z.number().int().nonnegative(),
 });
@@ -189,14 +206,28 @@ export const StatsResponseSchema = z.object({
   statusCounts: z.record(z.string(), z.number().int().nonnegative()),
   /** Money spent on copies still held (not archived, not sold). Not a value; unchanged by Mine. */
   costBasis: z.number(),
-  /** STOCK value: the seller's price on READY_TO_LIST and LISTED stock. Mine (valued apart in
-   *  `collectionValue`), set-aside, HELD, UNMATCHED, sold and archived copies are not in it. */
+  /** STOCK value: the seller's price on READY_TO_LIST, LISTED and HELD stock. HELD copies COUNT
+   *  here (Ben, 2026-10-09); Mine (valued apart in `collectionValue`), set-aside, UNMATCHED (no
+   *  price), sold and archived copies are not in it. */
   estValue: z.number(),
+  /** The part of `estValue` that is HELD copies, apart: "£4,812 · £320 held". Included in
+   *  `estValue`, never added to it; never above it. NULL (not 0) when no held copy is priced: an
+   *  unknown is not £0. */
+  heldValue: z.number().nonnegative().nullable(),
   realisedGain: z.number(),
   agedListings: z.number().int().nonnegative(),
   /** All copies except ARCHIVED. */
   totalCards: z.number().int().nonnegative(),
   counts: InventoryCountsSchema,
   collectionValue: CollectionValueSchema,
+}).superRefine((s, ctx) => {
+  if (s.heldValue !== null && s.heldValue > s.estValue + 1e-9) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["heldValue"],
+      message: `heldValue (${s.heldValue}) is part of estValue (${s.estValue}) and cannot exceed it` });
+  }
+  if (s.heldValue !== null && s.counts.held === 0) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["heldValue"],
+      message: "heldValue is a figure but counts.held is 0: there is no held copy to have a value" });
+  }
 });
 export type StatsResponse = z.infer<typeof StatsResponseSchema>;

@@ -143,6 +143,14 @@ class GoldenVectorTest {
                         "vector $name did not round-trip unchanged",
                     )
                 }
+                "Decision" -> {
+                    val decoded = json.decodeFromJsonElement(Decision.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(Decision.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
                 else -> fail("vector $name names type $type, which this runner does not handle — add it rather than letting it skip")
             }
         }

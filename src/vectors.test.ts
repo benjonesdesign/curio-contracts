@@ -32,6 +32,7 @@ import { PricedBreakdownSchema } from "./api/priced-breakdown.js";
 import { PhysicalCardSchema } from "./api/physical-card.js";
 import { InventoryChangeResponseSchema } from "./api/inventory-change.js";
 import { GradedCreateResponseSchema } from "./api/inventory-graded.js";
+import { DecisionSchema } from "./api/decide.js";
 
 type Vector = {
   name: string;
@@ -60,6 +61,7 @@ const SCHEMAS: Record<string, { safeParse: (v: unknown) => { success: boolean } 
   PhysicalCard: PhysicalCardSchema,
   InventoryChangeResponse: InventoryChangeResponseSchema,
   GradedCreateResponse: GradedCreateResponseSchema,
+  Decision: DecisionSchema,
 };
 
 describe("golden vectors (decisions/0026)", () => {

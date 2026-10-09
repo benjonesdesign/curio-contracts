@@ -191,7 +191,7 @@ describe("PricingBreakdownResponse: the flat figures and the breakdown are ONE a
       ...SELLING_KNOWN, lines: SELLING_KNOWN.lines.filter((l) => l.key !== "ebay_fee"),
       feePosition: { sellerType: "business", vatRegistered: true, channel: "direct", feeBasis: "derived" },
     };
-    expect(PricingBreakdownResponseSchema.safeParse({ ...UNSET, breakdown: { ...noFeeLine, totals: { youReceiveGbp: null, maxBuyGbp: null },
+    expect(PricingBreakdownResponseSchema.safeParse({ ...UNSET, breakdown: { ...noFeeLine, totals: { youReceiveGbp: null, maxBuyGbp: null, askingPriceOnly: false },
       lines: noFeeLine.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: null, unknownReason: "seller_type_not_set" } : l)) } }).success).toBe(false);
   });
 
@@ -218,7 +218,7 @@ describe("PricingBreakdownResponse: the flat figures and the breakdown are ONE a
 
   it("REJECTS a receipt beside an unknown fee, and a 'not_set' fee basis beside a known fee", () => {
     const withReceipt = {
-      ...UNSET.breakdown, totals: { youReceiveGbp: 166.66, maxBuyGbp: null },
+      ...UNSET.breakdown, totals: { youReceiveGbp: 166.66, maxBuyGbp: null, askingPriceOnly: false },
       lines: UNSET.breakdown.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 166.66, unknownReason: null } : l)),
     };
     expect(PricingBreakdownResponseSchema.safeParse({ ...UNSET, breakdown: withReceipt }).success).toBe(false);

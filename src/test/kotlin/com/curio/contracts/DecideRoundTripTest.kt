@@ -24,7 +24,7 @@ class DecideRoundTripTest {
             "marketValueGbp": 40.0, "feeGbp": 6.79, "feeNotSetReason": null, "postageGbp": 1.55, "packagingGbp": 0.1,
             "costBasisGbp": null, "taxProvisionGbp": 6.31, "expectedNetGbp": 25.25
           },
-          "maxBuyGbp": 25.0, "maxBuyUnavailableReason": null, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
+          "maxBuyGbp": 25.0, "maxBuyUnavailableReason": null, "askingPriceOnly": false, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
           "degraded": false, "degradedReasons": []
         }
     """.trimIndent()
@@ -34,12 +34,11 @@ class DecideRoundTripTest {
         {"mode": "buying",
          "lines": [
            {"key": "sale_price", "label": "Sale price", "amountGbp": 40.0, "unknownReason": null, "source": "price_provider",
-            "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": "asking_basis"},
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": "asking_basis"},
            {"key": "max_buy", "label": "Most to pay", "amountGbp": 25.0, "unknownReason": null, "source": "fee_model",
-            "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null}
+            "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null}
          ],
-         "beside": [],
-         "totals": {"youReceiveGbp": null, "maxBuyGbp": 25.0},
+         "totals": {"youReceiveGbp": null, "maxBuyGbp": 25.0, "askingPriceOnly": false},
          "compare": null,
          "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"},
          "notSet": [],
@@ -166,7 +165,7 @@ class DecideRoundTripTest {
             "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null,
             "taxProvisionGbp": null, "expectedNetGbp": null
           },
-          "maxBuyGbp": null, "maxBuyUnavailableReason": "seller_type_not_set",
+          "maxBuyGbp": null, "maxBuyUnavailableReason": "seller_type_not_set", "askingPriceOnly": false, "askingPriceOnly": false,
           "minAcceptGbp": null, "offerPctAtMax": null,
           "degraded": false, "degradedReasons": []
         }

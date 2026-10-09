@@ -13,7 +13,7 @@ type Over = Record<string, unknown>;
 export const line = (over: Over = {}) => {
   const l: Record<string, unknown> = {
     key: "ebay_fee", label: "eBay fee", amountGbp: -18.28, unknownReason: null, source: "fee_model",
-    assumed: false, estimate: false, editable: false, editKey: null, included: true,
+    assumed: false, estimate: false, editable: false, editKey: null,
     minutes: null, perOrderBand: null, feeBasisVerified: null, service: null, postageBasis: null, note: "vat_reclaimed", ...over,
   };
   // The fee line defaults to a banded, UNVERIFIED fee (#244: feeBasisVerified is false until eBay's
@@ -27,12 +27,12 @@ export const line = (over: Over = {}) => {
 // (type helper so fixtures stay structurally typed without a second declaration)
 declare function lineShape(): {
   key: string; label: string; amountGbp: number | null; unknownReason: string | null; source: string;
-  assumed: boolean; estimate: boolean; editable: boolean; editKey: string | null; included: boolean;
+  assumed: boolean; estimate: boolean; editable: boolean; editKey: string | null;
   minutes: number | null; perOrderBand: string | null; feeBasisVerified: boolean | null; service: string | null; postageBasis: string | null; note: string | null;
 };
 
 const PRICE = { gbp: 136, source: "poketrace-ebay", kind: "asking", asOf: "2026-10-07T18:00:00.000Z", cached: false };
-const NO_TOTAL = { youReceiveGbp: null, maxBuyGbp: null };
+const NO_TOTAL = { youReceiveGbp: null, maxBuyGbp: null, askingPriceOnly: false };
 
 // ── Selling ("You receive") ─────────────────────────────────────────────────────────────────
 export const SELLING_KNOWN = {
@@ -45,8 +45,7 @@ export const SELLING_KNOWN = {
           editable: true, editKey: "packingKey", note: "estimate" }),
     line({ key: "you_receive", label: "You receive", amountGbp: 148.38, source: "fee_model", note: null }),
   ],
-  beside: [] as ReturnType<typeof line>[],
-  totals: { youReceiveGbp: 148.38, maxBuyGbp: null },
+  totals: { youReceiveGbp: 148.38, maxBuyGbp: null, askingPriceOnly: false },
   compare: null,
   feePosition: { sellerType: "business", vatRegistered: true, channel: "ebay", feeBasis: "derived" },
   notSet: [],
@@ -89,8 +88,7 @@ export const BUYING_PRIVATE = {
     { amountGbp: -47.6 },
     { amountGbp: 84 },
   ),
-  beside: [] as ReturnType<typeof line>[],
-  totals: { youReceiveGbp: null, maxBuyGbp: 84 },
+  totals: { youReceiveGbp: null, maxBuyGbp: 84, askingPriceOnly: false },
   compare: { theirPriceGbp: 120, overUnderGbp: -36 },
   feePosition: { sellerType: "private", vatRegistered: null, channel: "ebay", feeBasis: "derived" },
   notSet: [],
@@ -106,7 +104,7 @@ export const BUYING_BUSINESS = {
     { amountGbp: -47.6 },
     { amountGbp: 66 },
   ),
-  totals: { youReceiveGbp: null, maxBuyGbp: 66 },
+  totals: { youReceiveGbp: null, maxBuyGbp: 66, askingPriceOnly: false },
   feePosition: { sellerType: "business", vatRegistered: true, channel: "ebay", feeBasis: "derived" },
 };
 
@@ -160,13 +158,13 @@ export const CARD = {
  * rounded lines in whole pence; buying = that sum rounded DOWN to the pound (never negative). Use
  * it after adding or removing a line, so a test varies ONE thing and the arithmetic stays true.
  */
-export function rebalance<T extends { mode: string; lines: ReturnType<typeof line>[]; totals: { youReceiveGbp: number | null; maxBuyGbp: number | null } }>(b: T): T {
+export function rebalance<T extends { mode: string; lines: ReturnType<typeof line>[]; totals: { youReceiveGbp: number | null; maxBuyGbp: number | null; askingPriceOnly: boolean } }>(b: T): T {
   const own = b.mode === "selling" ? "you_receive" : "max_buy";
-  const pence = b.lines.filter((l) => l.key !== own && l.included).reduce((a, l) => a + Math.round((l.amountGbp as number) * 100), 0);
+  const pence = b.lines.filter((l) => l.key !== own).reduce((a, l) => a + Math.round((l.amountGbp as number) * 100), 0);
   const total = b.mode === "selling" ? pence / 100 : Math.max(0, Math.floor(pence / 100));
   return {
     ...b,
     lines: b.lines.map((l) => (l.key === own ? { ...l, amountGbp: total } : l)),
-    totals: b.mode === "selling" ? { youReceiveGbp: total, maxBuyGbp: null } : { youReceiveGbp: null, maxBuyGbp: total },
+    totals: b.mode === "selling" ? { youReceiveGbp: total, maxBuyGbp: null, askingPriceOnly: false } : { youReceiveGbp: null, maxBuyGbp: total, askingPriceOnly: (b.totals as { askingPriceOnly?: boolean }).askingPriceOnly ?? false },
   };
 }

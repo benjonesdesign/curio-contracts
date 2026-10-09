@@ -184,13 +184,12 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             key: z.ZodString;
             label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
             amountGbp: z.ZodNullable<z.ZodNumber>;
-            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
             source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
             assumed: z.ZodBoolean;
             estimate: z.ZodBoolean;
             editable: z.ZodBoolean;
             editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
-            included: z.ZodBoolean;
             minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
             postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
@@ -202,11 +201,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -219,11 +217,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -236,11 +233,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -253,97 +249,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }>, "many">;
-        beside: z.ZodArray<z.ZodEffects<z.ZodObject<{
-            key: z.ZodString;
-            label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-            amountGbp: z.ZodNullable<z.ZodNumber>;
-            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
-            source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
-            assumed: z.ZodBoolean;
-            estimate: z.ZodBoolean;
-            editable: z.ZodBoolean;
-            editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
-            included: z.ZodBoolean;
-            minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
-            postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
-            perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
-            feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
-            note: z.ZodNullable<z.ZodString>;
-        }, "strip", z.ZodTypeAny, {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }, {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }>, {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }, {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -355,12 +264,15 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: z.ZodObject<{
             youReceiveGbp: z.ZodNullable<z.ZodNumber>;
             maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+            askingPriceOnly: z.ZodBoolean;
         }, "strip", z.ZodTypeAny, {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         }, {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         }>;
         compare: z.ZodNullable<z.ZodObject<{
             theirPriceGbp: z.ZodNumber;
@@ -416,29 +328,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -450,6 +343,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -477,29 +371,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -511,6 +386,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -538,29 +414,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -572,6 +429,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -599,29 +457,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -633,6 +472,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -667,29 +507,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -701,6 +522,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -750,29 +572,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -784,6 +587,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -833,29 +637,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -867,6 +652,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -916,29 +702,10 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
             source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
             key: string;
             amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             assumed: boolean;
             editable: boolean;
             editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
-            note: string | null;
-            label?: string | null | undefined;
-            minutes?: number | null | undefined;
-            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-            postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-            perOrderBand?: "high" | "low" | null | undefined;
-            feeBasisVerified?: boolean | null | undefined;
-        }[];
-        beside: {
-            estimate: boolean;
-            source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-            key: string;
-            amountGbp: number | null;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-            assumed: boolean;
-            editable: boolean;
-            editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-            included: boolean;
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
@@ -950,6 +717,7 @@ export declare const ListingPreviewItemSchema: z.ZodEffects<z.ZodObject<{
         totals: {
             youReceiveGbp: number | null;
             maxBuyGbp: number | null;
+            askingPriceOnly: boolean;
         };
         compare: {
             theirPriceGbp: number;
@@ -1006,16 +774,16 @@ export declare const ListingPreviewTotalsSchema: z.ZodObject<{
     belowFloorCount: z.ZodNumber;
     youReceiveGbp: z.ZodNullable<z.ZodNumber>;
     /** WHY `youReceiveGbp` is null; null exactly when it is a number. */
-    unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+    unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
 }, "strip", z.ZodTypeAny, {
     count: number;
-    unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
     youReceiveGbp: number | null;
     listableCount: number;
     belowFloorCount: number;
 }, {
     count: number;
-    unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+    unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
     youReceiveGbp: number | null;
     listableCount: number;
     belowFloorCount: number;
@@ -1030,16 +798,16 @@ export declare const ListingPreviewGroupSchema: z.ZodObject<{
         belowFloorCount: z.ZodNumber;
         youReceiveGbp: z.ZodNullable<z.ZodNumber>;
         /** WHY `youReceiveGbp` is null; null exactly when it is a number. */
-        unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+        unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
     }, "strip", z.ZodTypeAny, {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
     }, {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -1048,7 +816,7 @@ export declare const ListingPreviewGroupSchema: z.ZodObject<{
     key: string;
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -1057,7 +825,7 @@ export declare const ListingPreviewGroupSchema: z.ZodObject<{
     key: string;
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -1158,13 +926,12 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 key: z.ZodString;
                 label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
                 amountGbp: z.ZodNullable<z.ZodNumber>;
-                unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+                unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
                 source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
                 assumed: z.ZodBoolean;
                 estimate: z.ZodBoolean;
                 editable: z.ZodBoolean;
                 editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
-                included: z.ZodBoolean;
                 minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
                 service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
                 postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
@@ -1176,11 +943,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1193,11 +959,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1210,11 +975,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1227,97 +991,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }>, "many">;
-            beside: z.ZodArray<z.ZodEffects<z.ZodObject<{
-                key: z.ZodString;
-                label: z.ZodOptional<z.ZodNullable<z.ZodString>>;
-                amountGbp: z.ZodNullable<z.ZodNumber>;
-                unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
-                source: z.ZodEnum<["seller_profile", "ebay_policy", "fee_model", "price_provider", "card_override", "request", "default"]>;
-                assumed: z.ZodBoolean;
-                estimate: z.ZodBoolean;
-                editable: z.ZodBoolean;
-                editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
-                included: z.ZodBoolean;
-                minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
-                service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
-                postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
-                perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
-                feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
-                note: z.ZodNullable<z.ZodString>;
-            }, "strip", z.ZodTypeAny, {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }, {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }>, {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }, {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1329,12 +1006,15 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: z.ZodObject<{
                 youReceiveGbp: z.ZodNullable<z.ZodNumber>;
                 maxBuyGbp: z.ZodNullable<z.ZodNumber>;
+                askingPriceOnly: z.ZodBoolean;
             }, "strip", z.ZodTypeAny, {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             }, {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             }>;
             compare: z.ZodNullable<z.ZodObject<{
                 theirPriceGbp: z.ZodNumber;
@@ -1390,29 +1070,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1424,6 +1085,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1451,29 +1113,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1485,6 +1128,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1512,29 +1156,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1546,6 +1171,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1573,29 +1199,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1607,6 +1214,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1641,29 +1249,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1675,6 +1264,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1724,29 +1314,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1758,6 +1329,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1807,29 +1379,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1841,6 +1394,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1890,29 +1444,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -1924,6 +1459,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -1976,16 +1512,16 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             belowFloorCount: z.ZodNumber;
             youReceiveGbp: z.ZodNullable<z.ZodNumber>;
             /** WHY `youReceiveGbp` is null; null exactly when it is a number. */
-            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+            unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
         }, "strip", z.ZodTypeAny, {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
         }, {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -1994,7 +1530,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -2003,7 +1539,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -2017,16 +1553,16 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         belowFloorCount: z.ZodNumber;
         youReceiveGbp: z.ZodNullable<z.ZodNumber>;
         /** WHY `youReceiveGbp` is null; null exactly when it is a number. */
-        unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]>>;
+        unknownReason: z.ZodNullable<z.ZodEnum<["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]>>;
     }, "strip", z.ZodTypeAny, {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
     }, {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -2047,29 +1583,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -2081,6 +1598,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -2125,7 +1643,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
     }[];
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -2135,7 +1653,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -2151,29 +1669,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -2185,6 +1684,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -2229,7 +1729,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
     }[];
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -2239,7 +1739,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -2255,29 +1755,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -2289,6 +1770,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -2333,7 +1815,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
     }[];
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -2343,7 +1825,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;
@@ -2359,29 +1841,10 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
                 source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
                 key: string;
                 amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
                 assumed: boolean;
                 editable: boolean;
                 editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
-                note: string | null;
-                label?: string | null | undefined;
-                minutes?: number | null | undefined;
-                service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
-                postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
-                perOrderBand?: "high" | "low" | null | undefined;
-                feeBasisVerified?: boolean | null | undefined;
-            }[];
-            beside: {
-                estimate: boolean;
-                source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
-                key: string;
-                amountGbp: number | null;
-                unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
-                assumed: boolean;
-                editable: boolean;
-                editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
-                included: boolean;
                 note: string | null;
                 label?: string | null | undefined;
                 minutes?: number | null | undefined;
@@ -2393,6 +1856,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
             totals: {
                 youReceiveGbp: number | null;
                 maxBuyGbp: number | null;
+                askingPriceOnly: boolean;
             };
             compare: {
                 theirPriceGbp: number;
@@ -2437,7 +1901,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
     }[];
     totals: {
         count: number;
-        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+        unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
         youReceiveGbp: number | null;
         listableCount: number;
         belowFloorCount: number;
@@ -2447,7 +1911,7 @@ export declare const ListingPreviewResponseSchema: z.ZodEffects<z.ZodObject<{
         key: string;
         totals: {
             count: number;
-            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
+            unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "no_price" | "not_viable" | null;
             youReceiveGbp: number | null;
             listableCount: number;
             belowFloorCount: number;

@@ -2318,7 +2318,6 @@ public object PriceKindSerializer : KSerializer<PriceKind> {
 public data class PricedBreakdown(
     val mode: PricedBreakdownMode,
     val lines: List<PricedLine>,
-    val beside: List<PricedLine>,
     val totals: PricedTotals,
     val compare: PricedCompare? = null,
     val feePosition: PricedFeePosition,
@@ -2372,7 +2371,6 @@ public data class PricedLine(
     val estimate: Boolean,
     val editable: Boolean,
     val editKey: PricedLineEditKey? = null,
-    val included: Boolean,
     val minutes: Double? = null,
     val service: PostageService? = null,
     val postageBasis: PostageBasis? = null,
@@ -2396,9 +2394,6 @@ public sealed interface MaxBuyUnavailableReason {
     public object VAT_NOT_SET : MaxBuyUnavailableReason {
         override val rawValue: String get() = "vat_not_set"
     }
-    public object ASKING_PRICE_ONLY : MaxBuyUnavailableReason {
-        override val rawValue: String get() = "asking_price_only"
-    }
     public object NO_PRICE : MaxBuyUnavailableReason {
         override val rawValue: String get() = "no_price"
     }
@@ -2414,7 +2409,6 @@ public sealed interface MaxBuyUnavailableReason {
             "margin_not_set" -> MARGIN_NOT_SET
             "seller_type_not_set" -> SELLER_TYPE_NOT_SET
             "vat_not_set" -> VAT_NOT_SET
-            "asking_price_only" -> ASKING_PRICE_ONLY
             "no_price" -> NO_PRICE
             "not_viable" -> NOT_VIABLE
             else -> Unknown(raw)
@@ -2637,6 +2631,7 @@ public object PerOrderBandSerializer : KSerializer<PerOrderBand> {
 public data class PricedTotals(
     val youReceiveGbp: Double? = null,
     val maxBuyGbp: Double? = null,
+    val askingPriceOnly: Boolean,
 )
 
 @Serializable
@@ -3161,6 +3156,77 @@ public data class PutBackRequest(
 )
 
 @Serializable
+public data class StopHoldingRequest(
+    val ids: List<String>,
+)
+
+@Serializable(with = InventoryStatusKeySerializer::class)
+public sealed interface InventoryStatusKey {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object READY : InventoryStatusKey {
+        override val rawValue: String get() = "ready"
+    }
+    public object LISTED : InventoryStatusKey {
+        override val rawValue: String get() = "listed"
+    }
+    public object HELD : InventoryStatusKey {
+        override val rawValue: String get() = "held"
+    }
+    public object NEEDS_YOU : InventoryStatusKey {
+        override val rawValue: String get() = "needs_you"
+    }
+    public object IDENTIFYING : InventoryStatusKey {
+        override val rawValue: String get() = "identifying"
+    }
+    public object NOT_IDENTIFIED : InventoryStatusKey {
+        override val rawValue: String get() = "not_identified"
+    }
+    public object MINE : InventoryStatusKey {
+        override val rawValue: String get() = "mine"
+    }
+    public object SET_ASIDE : InventoryStatusKey {
+        override val rawValue: String get() = "set_aside"
+    }
+    public object SOLD : InventoryStatusKey {
+        override val rawValue: String get() = "sold"
+    }
+    public object ARCHIVED : InventoryStatusKey {
+        override val rawValue: String get() = "archived"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : InventoryStatusKey
+
+    public companion object {
+        public fun from(raw: String): InventoryStatusKey = when (raw) {
+            "ready" -> READY
+            "listed" -> LISTED
+            "held" -> HELD
+            "needs_you" -> NEEDS_YOU
+            "identifying" -> IDENTIFYING
+            "not_identified" -> NOT_IDENTIFIED
+            "mine" -> MINE
+            "set_aside" -> SET_ASIDE
+            "sold" -> SOLD
+            "archived" -> ARCHIVED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object InventoryStatusKeySerializer : KSerializer<InventoryStatusKey> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("InventoryStatusKey", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): InventoryStatusKey = InventoryStatusKey.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: InventoryStatusKey) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class InventoryChangeResponse(
     val results: List<InventoryChangeResult>,
     val summary: InventoryChangeSummary,
@@ -3283,6 +3349,7 @@ public data class StatsResponse(
     val statusCounts: Map<String, Int>,
     val costBasis: Double,
     val estValue: Double,
+    val heldValue: Double? = null,
     val realisedGain: Double,
     val agedListings: Int,
     val totalCards: Int,
@@ -3293,6 +3360,7 @@ public data class StatsResponse(
 @Serializable
 public data class InventoryCounts(
     val stock: Int,
+    val held: Int,
     val mine: Int,
     val setAside: Int,
 )
@@ -3539,6 +3607,7 @@ public data class Decision(
     val economics: DecisionEconomics,
     val maxBuyGbp: Double? = null,
     val maxBuyUnavailableReason: MaxBuyUnavailableReason? = null,
+    val askingPriceOnly: Boolean,
     val minAcceptGbp: Double? = null,
     val offerPctAtMax: Double? = null,
     val degraded: Boolean,

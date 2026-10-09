@@ -20,7 +20,7 @@ final class NullableMostToPayTests: XCTestCase {
         "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null,
         "taxProvisionGbp": null, "expectedNetGbp": null
       },
-      "maxBuyGbp": null, "maxBuyUnavailableReason": "seller_type_not_set",
+      "maxBuyGbp": null, "maxBuyUnavailableReason": "seller_type_not_set", "askingPriceOnly": false, "askingPriceOnly": false,
       "minAcceptGbp": null, "offerPctAtMax": null,
       "degraded": false, "degradedReasons": []
     }
@@ -35,7 +35,7 @@ final class NullableMostToPayTests: XCTestCase {
         "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null,
         "taxProvisionGbp": 0.0, "expectedNetGbp": 114.09
       },
-      "maxBuyGbp": 66, "maxBuyUnavailableReason": null,
+      "maxBuyGbp": 66, "maxBuyUnavailableReason": null, "askingPriceOnly": false,
       "minAcceptGbp": 12.5, "offerPctAtMax": 48.9,
       "degraded": false, "degradedReasons": []
     }

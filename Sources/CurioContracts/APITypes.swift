@@ -2870,7 +2870,6 @@ public enum PriceKind: Codable, Sendable, Equatable, Hashable {
 public struct PricedBreakdown: Codable, Sendable {
     public let mode: PricedBreakdownMode
     public let lines: [PricedLine]
-    public let beside: [PricedLine]
     public let totals: PricedTotals
     public let compare: PricedCompare?
     public let feePosition: PricedFeePosition
@@ -2878,10 +2877,9 @@ public struct PricedBreakdown: Codable, Sendable {
     public let price: PricedPrice
     public let computedAt: String
 
-    public init(mode: PricedBreakdownMode, lines: [PricedLine], beside: [PricedLine], totals: PricedTotals, compare: PricedCompare?, feePosition: PricedFeePosition, notSet: [PricedNotSet], price: PricedPrice, computedAt: String) {
+    public init(mode: PricedBreakdownMode, lines: [PricedLine], totals: PricedTotals, compare: PricedCompare?, feePosition: PricedFeePosition, notSet: [PricedNotSet], price: PricedPrice, computedAt: String) {
         self.mode = mode
         self.lines = lines
-        self.beside = beside
         self.totals = totals
         self.compare = compare
         self.feePosition = feePosition
@@ -2934,7 +2932,6 @@ public struct PricedLine: Codable, Sendable {
     public let estimate: Bool
     public let editable: Bool
     public let editKey: PricedLineEditKey?
-    public let included: Bool
     public let minutes: Double?
     public let service: PostageService?
     public let postageBasis: PostageBasis?
@@ -2942,7 +2939,7 @@ public struct PricedLine: Codable, Sendable {
     public let feeBasisVerified: Bool?
     public let note: String?
 
-    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, included: Bool, minutes: Double?, service: PostageService?, postageBasis: PostageBasis?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
+    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, minutes: Double?, service: PostageService?, postageBasis: PostageBasis?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
         self.key = key
         self.label = label
         self.amountGbp = amountGbp
@@ -2952,7 +2949,6 @@ public struct PricedLine: Codable, Sendable {
         self.estimate = estimate
         self.editable = editable
         self.editKey = editKey
-        self.included = included
         self.minutes = minutes
         self.service = service
         self.postageBasis = postageBasis
@@ -2966,7 +2962,6 @@ public enum MaxBuyUnavailableReason: Codable, Sendable, Equatable, Hashable {
     case marginNotSet
     case sellerTypeNotSet
     case vatNotSet
-    case askingPriceOnly
     case noPrice
     case notViable
     /// A value this build does not know. Carries the wire value so it round-trips unchanged.
@@ -2978,7 +2973,6 @@ public enum MaxBuyUnavailableReason: Codable, Sendable, Equatable, Hashable {
         case .marginNotSet: return "margin_not_set"
         case .sellerTypeNotSet: return "seller_type_not_set"
         case .vatNotSet: return "vat_not_set"
-        case .askingPriceOnly: return "asking_price_only"
         case .noPrice: return "no_price"
         case .notViable: return "not_viable"
         case .unrecognised(let raw): return raw
@@ -2990,7 +2984,6 @@ public enum MaxBuyUnavailableReason: Codable, Sendable, Equatable, Hashable {
         case "margin_not_set": self = .marginNotSet
         case "seller_type_not_set": self = .sellerTypeNotSet
         case "vat_not_set": self = .vatNotSet
-        case "asking_price_only": self = .askingPriceOnly
         case "no_price": self = .noPrice
         case "not_viable": self = .notViable
         default: self = .unrecognised(rawValue)
@@ -3199,10 +3192,12 @@ public enum PerOrderBand: Codable, Sendable, Equatable, Hashable {
 public struct PricedTotals: Codable, Sendable {
     public let youReceiveGbp: Double?
     public let maxBuyGbp: Double?
+    public let askingPriceOnly: Bool
 
-    public init(youReceiveGbp: Double?, maxBuyGbp: Double?) {
+    public init(youReceiveGbp: Double?, maxBuyGbp: Double?, askingPriceOnly: Bool) {
         self.youReceiveGbp = youReceiveGbp
         self.maxBuyGbp = maxBuyGbp
+        self.askingPriceOnly = askingPriceOnly
     }
 }
 
@@ -3880,6 +3875,71 @@ public struct PutBackRequest: Codable, Sendable {
     }
 }
 
+public struct StopHoldingRequest: Codable, Sendable {
+    public let ids: [String]
+
+    public init(ids: [String]) {
+        self.ids = ids
+    }
+}
+
+public enum InventoryStatusKey: Codable, Sendable, Equatable, Hashable {
+    case ready
+    case listed
+    case held
+    case needsYou
+    case identifying
+    case notIdentified
+    case mine
+    case setAside
+    case sold
+    case archived
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ready: return "ready"
+        case .listed: return "listed"
+        case .held: return "held"
+        case .needsYou: return "needs_you"
+        case .identifying: return "identifying"
+        case .notIdentified: return "not_identified"
+        case .mine: return "mine"
+        case .setAside: return "set_aside"
+        case .sold: return "sold"
+        case .archived: return "archived"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ready": self = .ready
+        case "listed": self = .listed
+        case "held": self = .held
+        case "needs_you": self = .needsYou
+        case "identifying": self = .identifying
+        case "not_identified": self = .notIdentified
+        case "mine": self = .mine
+        case "set_aside": self = .setAside
+        case "sold": self = .sold
+        case "archived": self = .archived
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct InventoryChangeResponse: Codable, Sendable {
     public let results: [InventoryChangeResult]
     public let summary: InventoryChangeSummary
@@ -4014,16 +4074,18 @@ public struct StatsResponse: Codable, Sendable {
     public let statusCounts: [String: Int]
     public let costBasis: Double
     public let estValue: Double
+    public let heldValue: Double?
     public let realisedGain: Double
     public let agedListings: Int
     public let totalCards: Int
     public let counts: InventoryCounts
     public let collectionValue: CollectionValue
 
-    public init(statusCounts: [String: Int], costBasis: Double, estValue: Double, realisedGain: Double, agedListings: Int, totalCards: Int, counts: InventoryCounts, collectionValue: CollectionValue) {
+    public init(statusCounts: [String: Int], costBasis: Double, estValue: Double, heldValue: Double?, realisedGain: Double, agedListings: Int, totalCards: Int, counts: InventoryCounts, collectionValue: CollectionValue) {
         self.statusCounts = statusCounts
         self.costBasis = costBasis
         self.estValue = estValue
+        self.heldValue = heldValue
         self.realisedGain = realisedGain
         self.agedListings = agedListings
         self.totalCards = totalCards
@@ -4034,11 +4096,13 @@ public struct StatsResponse: Codable, Sendable {
 
 public struct InventoryCounts: Codable, Sendable {
     public let stock: Int
+    public let held: Int
     public let mine: Int
     public let setAside: Int
 
-    public init(stock: Int, mine: Int, setAside: Int) {
+    public init(stock: Int, held: Int, mine: Int, setAside: Int) {
         self.stock = stock
+        self.held = held
         self.mine = mine
         self.setAside = setAside
     }
@@ -4327,6 +4391,7 @@ public struct Decision: Codable, Sendable {
     public let economics: DecisionEconomics
     public let maxBuyGbp: Double?
     public let maxBuyUnavailableReason: MaxBuyUnavailableReason?
+    public let askingPriceOnly: Bool
     public let minAcceptGbp: Double?
     public let offerPctAtMax: Double?
     public let degraded: Bool
@@ -4342,6 +4407,7 @@ public struct Decision: Codable, Sendable {
         case economics
         case maxBuyGbp
         case maxBuyUnavailableReason
+        case askingPriceOnly
         case minAcceptGbp
         case offerPctAtMax
         case degraded
@@ -4349,7 +4415,7 @@ public struct Decision: Codable, Sendable {
         case assumptions
     }
 
-    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double?, maxBuyUnavailableReason: MaxBuyUnavailableReason?, minAcceptGbp: Double?, offerPctAtMax: Double?, degraded: Bool, degradedReasons: [DegradedReason], assumptions: [DecisionAssumption]) {
+    public init(route: RecommendedRoute, reason: RouteReason, alternatives: [DecisionAlternative], confidence: GameConfidence, liquidity: Liquidity, economics: DecisionEconomics, maxBuyGbp: Double?, maxBuyUnavailableReason: MaxBuyUnavailableReason?, askingPriceOnly: Bool, minAcceptGbp: Double?, offerPctAtMax: Double?, degraded: Bool, degradedReasons: [DegradedReason], assumptions: [DecisionAssumption]) {
         self.route = route
         self.reason = reason
         self.alternatives = alternatives
@@ -4358,6 +4424,7 @@ public struct Decision: Codable, Sendable {
         self.economics = economics
         self.maxBuyGbp = maxBuyGbp
         self.maxBuyUnavailableReason = maxBuyUnavailableReason
+        self.askingPriceOnly = askingPriceOnly
         self.minAcceptGbp = minAcceptGbp
         self.offerPctAtMax = offerPctAtMax
         self.degraded = degraded
@@ -4375,6 +4442,7 @@ public struct Decision: Codable, Sendable {
         self.economics = try c.decode(DecisionEconomics.self, forKey: .economics)
         self.maxBuyGbp = try c.decodeIfPresent(Double.self, forKey: .maxBuyGbp)
         self.maxBuyUnavailableReason = try c.decodeIfPresent(MaxBuyUnavailableReason.self, forKey: .maxBuyUnavailableReason)
+        self.askingPriceOnly = try c.decode(Bool.self, forKey: .askingPriceOnly)
         self.minAcceptGbp = try c.decodeIfPresent(Double.self, forKey: .minAcceptGbp)
         self.offerPctAtMax = try c.decodeIfPresent(Double.self, forKey: .offerPctAtMax)
         self.degraded = try c.decode(Bool.self, forKey: .degraded)

@@ -81,7 +81,7 @@ const UNSET_ECONOMICS = {
 const BASE_DECISION = {
   route: "list_single", reason: "sound_single_listing", alternatives: [], confidence: "high",
   liquidity: "high", economics: KNOWN_ECONOMICS,
-  maxBuyGbp: 66, maxBuyUnavailableReason: null, minAcceptGbp: 12.5, offerPctAtMax: 48.9,
+  maxBuyGbp: 66, maxBuyUnavailableReason: null, askingPriceOnly: false, minAcceptGbp: 12.5, offerPctAtMax: 48.9,
   degraded: false, degradedReasons: [], assumptions: [],
 };
 // Fee known, margin not chosen: the most common "Not set" a seller will see.
@@ -97,7 +97,7 @@ const MARGIN_UNSET_BREAKDOWN = {
   ...BUYING_BUSINESS,
   lines: BUYING_BUSINESS.lines.map((l) =>
     l.key === "target_margin" || l.key === "max_buy" ? { ...l, amountGbp: null, unknownReason: "margin_not_set" } : l),
-  totals: { youReceiveGbp: null, maxBuyGbp: null },
+  totals: { youReceiveGbp: null, maxBuyGbp: null, askingPriceOnly: false },
   compare: null,
   notSet: ["targetMargin"],
 };
@@ -283,7 +283,7 @@ describe("DecideResponse: the breakdown beside the decision (v0.2.0)", () => {
   });
 
   it("REJECTS a breakdown total that is not the decision's most-to-pay: one figure, reported once", () => {
-    const up = { ...BUYING_BUSINESS, totals: { youReceiveGbp: null, maxBuyGbp: 67 },
+    const up = { ...BUYING_BUSINESS, totals: { youReceiveGbp: null, maxBuyGbp: 67, askingPriceOnly: false },
       lines: BUYING_BUSINESS.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 67 } : l)) };
     // isolate the decision/breakdown equality: the breakdown alone is rejected by its own sum rule,
     // so also give it a line that makes 67 the true rounded-down sum
@@ -298,7 +298,7 @@ describe("DecideResponse: the breakdown beside the decision (v0.2.0)", () => {
     const r = DecideResponseSchema.safeParse({ decision: privateDecision, price: PRICE, breakdown: BUYING_PRIVATE });
     expect(r.success, JSON.stringify(issues(r))).toBe(true);
     // 85 is the nearest pound to £84.77: the breakdown's own rule refuses it (the lines sum to 84.77)
-    const nearest = { ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85 },
+    const nearest = { ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85, askingPriceOnly: false },
       lines: BUYING_PRIVATE.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 85 } : l)) };
     expect(PricedBreakdownSchema.safeParse(nearest).success).toBe(false);
   });
@@ -406,5 +406,36 @@ describe("the buying breakdown's editable inputs are seller INTENT only (ADR 002
   it("REJECTS a negative asking price and a postage figure in place of a postage mode", () => {
     expect(DecideRequestSchema.safeParse({ marketValueGbp: 136, theirPriceGbp: -1 }).success).toBe(false);
     expect(DecideRequestSchema.safeParse({ marketValueGbp: 136, postageMode: 3.29 }).success).toBe(false);
+  });
+});
+
+describe("Decision.askingPriceOnly: a ceiling is SHOWN and flagged, never withheld (Ben, 2026-10-09; rule 10)", () => {
+  it("accepts a figure with the flag, and in the breakdown beside it", () => {
+    const d = { ...BASE_DECISION, askingPriceOnly: true };
+    expect(DecisionSchema.safeParse(d).success).toBe(true);
+    const b = { ...BUYING_BUSINESS, totals: { ...BUYING_BUSINESS.totals, askingPriceOnly: true } };
+    const r = DecideResponseSchema.safeParse({ decision: d, price: { source: "x", confidence: null, currencyNote: null }, breakdown: b });
+    expect(r.success, JSON.stringify(issues(r))).toBe(true);
+  });
+
+  it("REJECTS the flag on a null figure: withheld means no_price, not a ceiling", () => {
+    const r = DecisionSchema.safeParse({ ...MARGIN_UNSET, askingPriceOnly: true });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => i.path[0] === "askingPriceOnly")).toBe(true);
+  });
+
+  it("REJECTS the decision and its breakdown disagreeing about the flag", () => {
+    const price = { source: "x", confidence: null, currencyNote: null };
+    const flagged = { ...BUYING_BUSINESS, totals: { ...BUYING_BUSINESS.totals, askingPriceOnly: true } };
+    const r = DecideResponseSchema.safeParse({ decision: BASE_DECISION, price, breakdown: flagged });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /one fact, reported once/.test(i.message))).toBe(true);
+    expect(DecideResponseSchema.safeParse({ decision: { ...BASE_DECISION, askingPriceOnly: true }, price, breakdown: BUYING_BUSINESS }).success).toBe(false);
+  });
+
+  it("REQUIRES the key, and no longer accepts asking_price_only as an unavailable reason", () => {
+    const { askingPriceOnly: _a, ...noFlag } = BASE_DECISION;
+    expect(DecisionSchema.safeParse(noFlag).success).toBe(false);
+    expect(DecisionSchema.safeParse({ ...MARGIN_UNSET, maxBuyUnavailableReason: "asking_price_only" }).success).toBe(false);
   });
 });

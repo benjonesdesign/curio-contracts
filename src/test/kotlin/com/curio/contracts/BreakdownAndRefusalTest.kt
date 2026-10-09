@@ -23,15 +23,13 @@ class BreakdownAndRefusalTest {
           "mode": "selling",
           "lines": [
             {"key": "sale_price", "label": "Sale price", "amountGbp": 167.0, "unknownReason": null, "source": "request",
-             "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
+             "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
             {"key": "ebay_fee", "label": "eBay fee", "amountGbp": null, "unknownReason": "seller_type_not_set", "source": "fee_model",
-             "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
+             "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
             {"key": "you_receive", "label": "You receive", "amountGbp": null, "unknownReason": "seller_type_not_set", "source": "fee_model",
-             "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null}
+             "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null}
           ],
-          "beside": [{"key": "listing_time", "label": "Listing time (estimate)", "amountGbp": 1.0, "unknownReason": null, "source": "seller_profile",
-             "assumed": false, "estimate": true, "editable": false, "editKey": null, "included": false, "minutes": 5, "note": "not_included"}],
-      "totals": {"youReceiveGbp": null, "maxBuyGbp": null},
+      "totals": {"youReceiveGbp": null, "maxBuyGbp": null, "askingPriceOnly": false},
           "compare": null,
           "feePosition": {"sellerType": null, "vatRegistered": null, "channel": "ebay", "feeBasis": "not_set"},
           "notSet": ["sellerType"],
@@ -41,24 +39,19 @@ class BreakdownAndRefusalTest {
     """.trimIndent()
 
     @Test
-    fun `an unknown figure is null with its reason never zero, and listing time sits beside the sum`() {
+    fun `an unknown figure is null with its reason never zero, and there is no listing time line`() {
         val b = json.decodeFromString<PricedBreakdown>(feeUnset)
         val fee = b.lines.first { it.key == "ebay_fee" }
         assertNull(fee.amountGbp)
         assertEquals(MaxBuyUnavailableReason.SELLER_TYPE_NOT_SET, fee.unknownReason)
         assertNull(b.totals.youReceiveGbp)
         assertEquals(listOf(PricedNotSet.SELLER_TYPE), b.notSet)
-        assertNull(b.lines.firstOrNull { it.key == "listing_time" }, "listing time is never in the arithmetic")
-        val listing = b.beside.first { it.key == "listing_time" }
-        assertEquals(false, listing.included)
-        assertTrue(listing.estimate)
-        assertEquals(1.0, listing.amountGbp, "a positive magnitude, not a deduction")
-        assertEquals(5.0, listing.minutes)
+        assertNull(b.lines.firstOrNull { it.key == "listing_time" }, "there is no listing time line anywhere")
     }
 
     @Test
     fun `the postage line carries a closed service code and an unknown one decodes`() {
-        val line = """{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "service": "tracked48_sp", "source": "seller_profile", "assumed": false, "estimate": false, "editable": true, "editKey": "postageMode", "included": true, "note": null},"""
+        val line = """{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "service": "tracked48_sp", "source": "seller_profile", "assumed": false, "estimate": false, "editable": true, "editKey": "postageMode", "note": null},"""
         val known = feeUnset.replaceFirst("{\"key\": \"sale_price\"", line + "\n{\"key\": \"sale_price\"")
         assertEquals(PostageService.TRACKED48_SP, json.decodeFromString<PricedBreakdown>(known).lines.first { it.key == "postage" }.service)
         val future = json.decodeFromString<PricedBreakdown>(known.replace("tracked48_sp", "parcelforce_48")).lines.first { it.key == "postage" }
@@ -160,22 +153,22 @@ class BreakdownAndRefusalTest {
     // ── Owner rulings, 2026-10-09 ──────────────────────────────────────────────────────────────
 
     @Test
-    fun `a negative you receive is kept negative and flagged below_cost`() {
+    fun `a negative you receive is kept negative and flagged pays_to_sell`() {
         val b = json.decodeFromString<PricedBreakdown>("""
             {"mode": "selling", "lines": [
-              {"key": "sale_price", "label": "Sale price", "amountGbp": 5.0, "unknownReason": null, "source": "request", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
-              {"key": "you_receive", "label": "You receive", "amountGbp": -13.62, "unknownReason": null, "source": "fee_model", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": "below_cost"}],
-             "beside": [], "totals": {"youReceiveGbp": -13.62, "maxBuyGbp": null}, "compare": null,
+              {"key": "sale_price", "label": "Sale price", "amountGbp": 5.0, "unknownReason": null, "source": "request", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
+              {"key": "you_receive", "label": "You receive", "amountGbp": -13.62, "unknownReason": null, "source": "fee_model", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": "pays_to_sell"}],
+             "totals": {"youReceiveGbp": -13.62, "maxBuyGbp": null, "askingPriceOnly": false}, "compare": null,
              "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"}, "notSet": [],
              "price": {"gbp": 5.0, "source": null, "kind": null, "asOf": null, "cached": false}, "computedAt": "2026-10-09T09:30:00.000Z"}
         """.trimIndent())
         assertEquals(-13.62, b.totals.youReceiveGbp)
-        assertEquals("below_cost", b.lines.first { it.key == "you_receive" }.note)
+        assertEquals("pays_to_sell", b.lines.first { it.key == "you_receive" }.note)
     }
 
     @Test
     fun `the postage line carries its basis and an unknown basis decodes`() {
-        val line = """{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "postageBasis": "ebay_policy", "source": "ebay_policy", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},"""
+        val line = """{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "postageBasis": "ebay_policy", "source": "ebay_policy", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},"""
         val j = feeUnset.replaceFirst("{\"key\": \"sale_price\"", line + "\n{\"key\": \"sale_price\"")
         assertEquals(PostageBasis.EBAY_POLICY, json.decodeFromString<PricedBreakdown>(j).lines.first { it.key == "postage" }.postageBasis)
         assertEquals(PostageBasis.Unknown("carrier_quote"),
@@ -205,11 +198,13 @@ class BreakdownAndRefusalTest {
         assertTrue(c.isMine)
         assertEquals(SetAsideReason.LOOKS_OFF, c.setAsideReason)
         val s = json.decodeFromString<StatsResponse>("""
-            {"statusCounts": {"READY_TO_LIST": 4, "HELD": 1}, "costBasis": 120.0, "estValue": 65.0, "realisedGain": 12.5, "agedListings": 0, "totalCards": 8,
-             "counts": {"stock": 5, "mine": 2, "setAside": 1},
+            {"statusCounts": {"READY_TO_LIST": 4, "HELD": 1}, "costBasis": 120.0, "estValue": 4812.0, "heldValue": 320.0, "realisedGain": 12.5, "agedListings": 0, "totalCards": 8,
+             "counts": {"stock": 4, "held": 1, "mine": 2, "setAside": 1},
              "collectionValue": {"count": 2, "pricedCount": 0, "notPricedCount": 2, "lowGbp": null, "highGbp": null, "sources": []}}
         """.trimIndent())
         assertEquals(2, s.counts.mine)
+        assertEquals(1, s.counts.held)
+        assertEquals(320.0, s.heldValue)
         assertNull(s.collectionValue.lowGbp)
     }
 
@@ -249,5 +244,39 @@ class BreakdownAndRefusalTest {
         val p = json.decodeFromString<ListingPreviewRequest>("""{"postageFor": "estimate", "items": [{"physicalCardId": "a", "cardsInParcel": 2}]}""")
         assertEquals(PostageFor.ESTIMATE, p.postageFor)
         assertEquals(2, p.items[0].cardsInParcel)
+    }
+
+    // ── Round 3 follow-ups (Ben, 2026-10-09) ────────────────────────────────────────────────────
+
+    private val ceilingDecision = """
+        {"route": "list_single", "reason": "sound_single_listing", "alternatives": [], "confidence": "high", "liquidity": "high",
+         "economics": {"marketValueGbp": 136, "feeGbp": 0, "feeNotSetReason": null, "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null, "taxProvisionGbp": 0, "expectedNetGbp": 132.37},
+         "maxBuyGbp": 84, "maxBuyUnavailableReason": null, "askingPriceOnly": true, "minAcceptGbp": 12.5, "offerPctAtMax": 61.8,
+         "degraded": false, "degradedReasons": []}
+    """.trimIndent()
+
+    @Test
+    fun `an asking price ceiling is a shown figure with a flag`() {
+        val d = json.decodeFromString<Decision>(ceilingDecision)
+        assertEquals(84.0, d.maxBuyGbp)
+        assertTrue(d.askingPriceOnly)
+        assertNull(d.maxBuyUnavailableReason)
+    }
+
+    @Test
+    fun `the retired asking_price_only reason decodes to Unknown and the figure stays null`() {
+        val d = json.decodeFromString<Decision>(
+            ceilingDecision.replace("\"maxBuyGbp\": 84,", "\"maxBuyGbp\": null,")
+                .replace("\"maxBuyUnavailableReason\": null, \"askingPriceOnly\": true", "\"maxBuyUnavailableReason\": \"asking_price_only\", \"askingPriceOnly\": false")
+                .replace("\"offerPctAtMax\": 61.8", "\"offerPctAtMax\": null"))
+        assertNull(d.maxBuyGbp)
+        assertEquals(MaxBuyUnavailableReason.Unknown("asking_price_only"), d.maxBuyUnavailableReason)
+    }
+
+    @Test
+    fun `stop holding takes ids and identifying is a status key`() {
+        assertEquals("""{"ids":["a","b"]}""", json.encodeToString(StopHoldingRequest.serializer(), StopHoldingRequest(ids = listOf("a", "b"))))
+        assertEquals(InventoryStatusKey.IDENTIFYING, json.decodeFromString<InventoryStatusKey>("\"identifying\""))
+        assertEquals(InventoryStatusKey.Unknown("snoozed"), json.decodeFromString<InventoryStatusKey>("\"snoozed\""))
     }
 }

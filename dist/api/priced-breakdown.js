@@ -68,10 +68,11 @@ export const PostageModeSchema = z.enum(["seller_pays", "buyer_pays"]);
  *                             [packing_time] · you_receive          (selling takes no tax line)
  *   Buying ("Most to pay"):   sale_price · ebay_fee · [fee_vat] · packing · [packing_time] ·
  *                             postage · target_margin · [tax_set_aside] · max_buy
- *   BESIDE (`PricedBreakdown.beside`, NOT in `lines`):  [listing_time]
+ *   There is NO listing-time line anywhere (Ben, 2026-10-09: "listing time is not counted
+ *   anywhere: no field, line, setting or calculation"; Seek lists a batch at once).
  *
- *   [ ] = present only when it applies: `packing_time` and `listing_time` only when the seller has
- *   set an hourly rate, `tax_set_aside` only when the seller has set a tax rate (null = not set =
+ *   [ ] = present only when it applies: `packing_time` only when the seller has set an hourly
+ *   rate, `tax_set_aside` only when the seller has set a tax rate (null = not set =
  *   no line, buying or selling), `fee_vat` only for a business seller whose VAT is split out of
  *   the fee. An absent line is ABSENT, not a null line: "only with a rate" means the row does not
  *   exist without one.
@@ -85,23 +86,25 @@ export const PostageModeSchema = z.enum(["seller_pays", "buyer_pays"]);
  *   is the SUM OF THE ROUNDED LINES: `you_receive` is exactly the sum of the other `lines`;
  *   `max_buy` is that sum rounded DOWN to the pound. Guarded in the breakdown below, because
  *   "no screen sums" is only safe if the server's own lines add up to its own total. A total is
- *   null (with its reason) as soon as an included line is unknown.
+ *   null (with its reason) as soon as a line is unknown.
  *   "YOU RECEIVE" CAN BE NEGATIVE (owner, 2026-10-09): the true negative is sent, never clamped to
- *   0, and the line then carries `note: "below_cost"` so a screen can say "Below cost" without
- *   computing anything. `max_buy` is never negative.
+ *   0, and the line then carries `note: "pays_to_sell"` so a screen can say "You'd pay to sell
+ *   this" (the copy key; the wording is @curio/copy's, never the contract's) without computing
+ *   anything. It reads that way because fees and postage exceed the sale price, NOT because of
+ *   what the seller paid for the card: the contract has no purchase cost here, so the draft's
+ *   `below_cost` was renamed. `max_buy` is never negative.
  *
- *   TIME (owner, 2026-10-08; mirrors pokemon-tool #244; `your_time` is retired and must not be used):
- *     - `packing_time` is in `lines`, TAKEN OFF the sum (`included: true`): a NEGATIVE amount with
- *       `minutes`. The minutes are the seller's own setting or, if unset, the RULED DEFAULT (a
- *       flat 4 minutes a parcel and 2 for each extra card in it, no letter/parcel split:
- *       `defaultPackingMinutes` below), and the line is flagged `estimate: true` exactly when the
- *       default was used.
- *     - `listing_time` is NOT in `lines`. It is in the separate `beside` array: a POSITIVE
- *       magnitude, `minutes`, `included: false`, never in the arithmetic. (Whether listing time
- *       should ever be taken off is Ben's open "For Ben" item; the contract fixes `included: false`.)
- *   Both exist only when the seller has set an hourly rate; without one the line is ABSENT.
- *   `included` is on EVERY line: true for everything in `lines`, false for everything in `beside`.
- *   A client never decides this from the key.
+ *   PACKING TIME (owner, 2026-10-09; `your_time` and `listing_time` are retired and must not be
+ *   used): `packing_time` is in `lines`, TAKEN OFF the sum: a NEGATIVE amount with `minutes`. It
+ *   exists ONLY when the seller has set an hourly rate; without one the line is ABSENT. The minutes
+ *   are the seller's own setting or, if unset, the RULED DEFAULT (4 minutes a parcel and 2 for each
+ *   extra card in the same parcel, no letter/parcel split: `defaultPackingMinutes` below), and the
+ *   line is flagged `estimate: true` exactly when the default was used.
+ *
+ *   A FIGURE FROM ASKING PRICES IS A CEILING, NOT A NULL (design rule 10, Ben 2026-10-09): when the
+ *   most to pay is worked from asking prices only, it is SHOWN, and `totals.askingPriceOnly` is
+ *   true so a screen says it is a ceiling. The null + reason is kept only when no figure can be
+ *   worked out at all (`no_price`).
  *
  *   FEE BASIS (mirrors #244's `feeBreakdown`): the `ebay_fee` line carries `perOrderBand`
  *   (`low | high`, null when the fee is not banded: a private seller or a seller override) and
@@ -111,14 +114,14 @@ export const PostageModeSchema = z.enum(["seller_pays", "buyer_pays"]);
  *
  * SIGN: value lines are positive (`sale_price`, `you_receive`, `max_buy`) and deductions are
  * negative or zero (`ebay_fee`, `fee_vat`, `postage`, `packing`, `packing_time`, `target_margin`,
- * `tax_set_aside`). `listing_time` (beside the sum) is a positive magnitude. Enforced below, because a client that formats and never derives will print
+ * `tax_set_aside`). Enforced below, because a client that formats and never derives will print
  * exactly the sign it is given.
  */
 const VALUE_KEYS = new Set(["sale_price", "max_buy"]); // never negative. (`you_receive` may be: see ROUNDING)
 const DEDUCTION_KEYS = new Set([
     "ebay_fee", "fee_vat", "postage", "packing", "packing_time", "target_margin", "tax_set_aside",
 ]);
-const MINUTES_KEYS = new Set(["packing_time", "listing_time"]);
+const MINUTES_KEYS = new Set(["packing_time"]);
 /** Which eBay per-order fee band applied (the fixed fee differs either side of £10). `low` is at or
  *  under £10, `high` above. Null (on the line) when the fee is not banded. */
 export const PerOrderBandSchema = z.enum(["low", "high"]);
@@ -164,13 +167,7 @@ export const PricedLineSchema = z.object({
     estimate: z.boolean(),
     editable: z.boolean(),
     editKey: PricedLineEditKeySchema.nullable(),
-    /** True when this line is PART OF THE SUM (taken off, or the total itself); false when it is shown
-     *  BESIDE the sum and never taken off (`listing_time`). Required, so a client never has to infer
-     *  from the key whether to subtract a line — it subtracts nothing at all (rule 1), but it does
-     *  render an excluded line apart, with "not included". */
-    included: z.boolean(),
-    /** Whole minutes behind a time line: REQUIRED on `packing_time` and `listing_time`, absent/null
-     *  elsewhere. */
+    /** Whole minutes behind `packing_time`: REQUIRED there, absent/null elsewhere. */
     minutes: z.number().nullable().optional(),
     /** `postage` only: which Dispatch service the postage is priced on (closed, forward-compatible;
      *  NO label in the contract, the words come from @curio/copy). Null when the buyer pays (the
@@ -199,12 +196,6 @@ export const PricedLineSchema = z.object({
     if (!unknown && l.unknownReason !== null) {
         issue("unknownReason", `line "${l.key}" has a figure but unknownReason is ${l.unknownReason}: a figure that exists has no reason to be missing`);
     }
-    if (l.key === "listing_time" && l.included) {
-        issue("included", "listing_time is shown BESIDE the sum and never taken off: included must be false");
-    }
-    if (l.key === "listing_time" && l.amountGbp !== null && l.amountGbp < 0) {
-        issue("amountGbp", "listing_time is a positive magnitude (it is not a deduction: it is never taken off)");
-    }
     if (MINUTES_KEYS.has(l.key) !== (l.minutes != null)) {
         issue("minutes", MINUTES_KEYS.has(l.key)
             ? `line "${l.key}" is a time line and must carry its minutes`
@@ -226,8 +217,8 @@ export const PricedLineSchema = z.object({
     if (l.amountGbp !== null && !isWholePence(l.amountGbp)) {
         issue("amountGbp", `line "${l.key}" must be rounded to the penny (got ${l.amountGbp}); totals are the sum of the rounded lines`);
     }
-    if (l.key === "you_receive" && l.amountGbp !== null && l.amountGbp < 0 && l.note !== "below_cost") {
-        issue("note", 'a negative you_receive is sent as the true negative with note "below_cost" (never clamped to 0)');
+    if (l.key === "you_receive" && l.amountGbp !== null && l.amountGbp < 0 && l.note !== "pays_to_sell") {
+        issue("note", 'a negative you_receive is sent as the true negative with note "pays_to_sell" (never clamped to 0)');
     }
     if (l.service != null) {
         if (l.key !== "postage")
@@ -250,9 +241,6 @@ export const PricedLineSchema = z.object({
     else if (l.perOrderBand != null || l.feeBasisVerified != null) {
         issue("feeBasisVerified", `line "${l.key}" is not the fee line: perOrderBand and feeBasisVerified belong to ebay_fee only`);
     }
-    if (l.key !== "listing_time" && !l.included && (VALUE_KEYS.has(l.key) || DEDUCTION_KEYS.has(l.key))) {
-        issue("included", `line "${l.key}" is part of the sum: included must be true (only listing_time sits beside it)`);
-    }
     if (l.amountGbp !== null) {
         if (VALUE_KEYS.has(l.key) && l.amountGbp < 0) {
             issue("amountGbp", `line "${l.key}" is a value line and must not be negative (value positive, deductions negative)`);
@@ -271,6 +259,14 @@ export const PricedBreakdownModeSchema = z.enum(["selling", "buying"]);
 export const PricedTotalsSchema = z.object({
     youReceiveGbp: z.number().nullable(),
     maxBuyGbp: z.number().nullable(),
+    /**
+     * v0.2.0 (Ben, 2026-10-09; design rule 10): the most to pay is worked from ASKING prices only, so
+     * it is a CEILING, not a forecast. The figure is still SHOWN; this flag says so. It replaces the
+     * draft's `asking_price_only` null reason, which withheld a figure that exists. True only on a
+     * buying breakdown with a figure (`maxBuyGbp` non-null); a null total says why through its reason
+     * (`no_price` when nothing can be worked out) and this is false.
+     */
+    askingPriceOnly: z.boolean(),
 });
 /** Buying only, and only when the client sent `theirPriceGbp`. Computed once on the server so a
  *  screen never subtracts two figures (and an offline screen shows the stored answer instead). */
@@ -305,10 +301,6 @@ export const PricedBreakdownSchema = z.object({
     mode: PricedBreakdownModeSchema,
     /** In display order. */
     lines: z.array(PricedLineSchema),
-    /** Lines SHOWN BESIDE the sum and never in its arithmetic: today only `listing_time`, present
-     *  only when the seller has an hourly rate (empty otherwise). Every one is `included: false`.
-     *  Required key, so a client always knows whether there is a "beside" section. */
-    beside: z.array(PricedLineSchema),
     totals: PricedTotalsSchema,
     compare: PricedCompareSchema.nullable(),
     feePosition: PricedFeePositionSchema,
@@ -333,25 +325,15 @@ export const PricedBreakdownSchema = z.object({
     if (b.notSet.includes("vatPosition") && b.feePosition.vatRegistered !== null) {
         issue(["feePosition", "vatRegistered"], "notSet names vatPosition, so feePosition.vatRegistered must be null (not a guess)");
     }
-    // Lines: unique keys, so "the" fee line / total line is unambiguous. `lines` is the arithmetic
-    // (all included) and `beside` is not (none included); listing_time is only ever beside.
+    // Lines: unique keys, so "the" fee line / total line is unambiguous.
     const seen = new Set();
     b.lines.forEach((l, i) => {
         if (seen.has(l.key))
             issue(["lines", i, "key"], `duplicate line key "${l.key}": a client finds a line by key`);
         seen.add(l.key);
-        if (!l.included)
-            issue(["lines", i, "included"], `line "${l.key}" is in the arithmetic: lines are all included (put a line shown beside the sum in \`beside\`)`);
-        // (listing_time in `lines` is refused by the two rules around it: it cannot be included, and
-        // `lines` are all included.)
-    });
-    const besideSeen = new Set();
-    b.beside.forEach((l, i) => {
-        if (l.included)
-            issue(["beside", i, "included"], `line "${l.key}" is beside the sum: beside lines are never included`);
-        if (besideSeen.has(l.key) || seen.has(l.key))
-            issue(["beside", i, "key"], `duplicate line key "${l.key}"`);
-        besideSeen.add(l.key);
+        if (l.key === "listing_time" || l.key === "your_time") {
+            issue(["lines", i, "key"], `"${l.key}" is retired: listing time is not counted anywhere (Ben, 2026-10-09)`);
+        }
     });
     const line = (key) => b.lines.find((l) => l.key === key);
     // Rule 4: an unset fee position nulls the fee line, with the reason that names the gap. Presence
@@ -377,6 +359,10 @@ export const PricedBreakdownSchema = z.object({
     if (otherTotal !== null) {
         issue(["totals"], `a ${b.mode} breakdown has no ${b.mode === "selling" ? "maxBuyGbp" : "youReceiveGbp"}: the other mode's total is null`);
     }
+    // (A selling breakdown has no most-to-pay, so the flag there is refused by this same rule.)
+    if (b.totals.askingPriceOnly && b.totals.maxBuyGbp === null) {
+        issue(["totals", "askingPriceOnly"], "askingPriceOnly flags a SHOWN figure, but maxBuyGbp is null: a ceiling that is withheld is just no_price (a selling breakdown has no most-to-pay at all)");
+    }
     if (b.mode === "selling" && b.notSet.includes("targetMargin")) {
         issue(["notSet"], "targetMargin is the BUYING margin; a selling breakdown cannot have it unset");
     }
@@ -395,10 +381,10 @@ export const PricedBreakdownSchema = z.object({
         issue(["totals"], `totals and the "${own}" line disagree (${ownTotal ?? "null"} vs ${totalLine.amountGbp ?? "null"}): one figure, reported once`);
     }
     // ── The total is the SUM OF THE ROUNDED LINES (owner, 2026-10-09) ──────────────────────────
-    // Every included line other than the total itself adds up, in whole pence, to the total
+    // Every line other than the total itself adds up, in whole pence, to the total
     // (selling), or to the total before it is rounded down to the pound (buying). One unknown
-    // included line makes the total null: an unknown is never summed as 0.
-    const addends = b.lines.filter((l) => l.key !== own && l.included);
+    // line makes the total null: an unknown is never summed as 0.
+    const addends = b.lines.filter((l) => l.key !== own);
     const unknownAddend = addends.find((l) => l.amountGbp === null);
     if (ownTotal !== null && unknownAddend) {
         issue(["totals"], `the "${unknownAddend.key}" line is unknown, so the total must be null: an unknown is not summed as £0`);

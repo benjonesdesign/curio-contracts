@@ -3,8 +3,9 @@
 import { describe, it, expect } from "vitest";
 import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, InventoryChangeResponseSchema,
-  InventoryChangeRefusalReasonSchema, StatsResponseSchema, CollectionValueSchema,
+  InventoryChangeRefusalReasonSchema, StatsResponseSchema, CollectionValueSchema, StopHoldingRequestSchema,
 } from "./inventory-change.js";
+import { InventoryStatusKeySchema, InventoryStatusFilterSchema, INVENTORY_SELECT_ALL_CAP } from "./inventory-list.js";
 import { SetAsideReasonSchema, PhysicalCardSchema } from "./physical-card.js";
 import { CARD } from "../test-support/breakdown-fixtures.js";
 
@@ -145,15 +146,40 @@ describe("GET /api/stats", () => {
   const collection = { count: 3, pricedCount: 2, notPricedCount: 1, lowGbp: 30, highGbp: 45.5, sources: ["cardtrader"] };
   const STATS = {
     statusCounts: { READY_TO_LIST: 4, LISTED: 1, EXCEPTION: 1, HELD: 1, UNMATCHED: 1 },
-    costBasis: 120, estValue: 65, realisedGain: 12.5, agedListings: 0, totalCards: 8,
-    counts: { stock: 5, mine: 2, setAside: 1 },
+    costBasis: 120, estValue: 4812, heldValue: 320, realisedGain: 12.5, agedListings: 0, totalCards: 9,
+    counts: { stock: 4, held: 1, mine: 2, setAside: 1 },
     collectionValue: collection,
   };
 
-  it("parses the stats with counts and the Mine collection valued apart", () => {
+  it("parses the stats: stock value INCLUDING held, the held part apart, counts a partition, Mine valued apart", () => {
     const s = StatsResponseSchema.parse(STATS);
-    expect(s.counts).toEqual({ stock: 5, mine: 2, setAside: 1 });
+    expect(s.estValue).toBe(4812);
+    expect(s.heldValue).toBe(320);   // "£4,812 · £320 held"
+    expect(s.counts).toEqual({ stock: 4, held: 1, mine: 2, setAside: 1 });
     expect(s.collectionValue.lowGbp).toBe(30);
+  });
+
+  it("heldValue is NULL (not 0) when no held copy is priced, and a figure needs a held copy", () => {
+    expect(StatsResponseSchema.safeParse({ ...STATS, heldValue: null, counts: { ...STATS.counts, held: 1 } }).success).toBe(true);
+    expect(StatsResponseSchema.safeParse({ ...STATS, heldValue: null, counts: { ...STATS.counts, held: 0 } }).success).toBe(true);
+    const r = StatsResponseSchema.safeParse({ ...STATS, counts: { ...STATS.counts, held: 0 } });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /no held copy/.test(i.message))).toBe(true);
+  });
+
+  it("REJECTS a held part larger than the whole: it is INCLUDED in estValue, never added to it", () => {
+    const r = StatsResponseSchema.safeParse({ ...STATS, estValue: 300, heldValue: 320 });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /cannot exceed it/.test(i.message))).toBe(true);
+    expect(StatsResponseSchema.safeParse({ ...STATS, estValue: 320, heldValue: 320 }).success).toBe(true);   // all held
+    expect(StatsResponseSchema.safeParse({ ...STATS, heldValue: -1 }).success).toBe(false);
+  });
+
+  it("requires heldValue and counts.held: an absent key would read as zero held", () => {
+    const { heldValue: _h, ...noHeld } = STATS;
+    expect(StatsResponseSchema.safeParse(noHeld).success).toBe(false);
+    const { held: _c, ...noCount } = STATS.counts;
+    expect(StatsResponseSchema.safeParse({ ...STATS, counts: noCount }).success).toBe(false);
   });
 
   it("an unpriced Mine collection is null, never 0", () => {
@@ -179,5 +205,38 @@ describe("GET /api/stats", () => {
     const { collectionValue: _v, ...noValue } = STATS;
     expect(StatsResponseSchema.safeParse(noCounts).success).toBe(false);
     expect(StatsResponseSchema.safeParse(noValue).success).toBe(false);
+  });
+});
+
+describe("Stop holding (Ben, 2026-10-09): HELD back to Ready, no listing", () => {
+  it("takes ids like Mine / Put back, 1..500, and answers with the same per-copy response", () => {
+    expect(StopHoldingRequestSchema.parse({ ids: ["a", "b"] }).ids).toHaveLength(2);
+    expect(StopHoldingRequestSchema.safeParse({ ids: [] }).success).toBe(false);
+    expect(StopHoldingRequestSchema.safeParse({ ids: Array.from({ length: 501 }, (_, i) => `c${i}`) }).success).toBe(false);
+    const r = InventoryChangeResponseSchema.parse({
+      results: [{ id: "a", outcome: "changed", status: "READY_TO_LIST" }, { id: "b", outcome: "unchanged" }],
+      summary: { changed: 1, unchanged: 1, refused: 0, failed: 0 },
+    });
+    expect(r.results[0].status).toBe("READY_TO_LIST");
+  });
+
+  it("carries no reason or other field: it is a plain ids request", () => {
+    const parsed = StopHoldingRequestSchema.parse({ ids: ["a"], reason: "looks_off", listNow: true } as never) as Record<string, unknown>;
+    expect(Object.keys(parsed)).toEqual(["ids"]);
+  });
+});
+
+describe("the inventory list status vocabulary (additive)", () => {
+  it("has identifying (an in-flight scan, NOT needs_you) and archived (a filter value, off by default)", () => {
+    expect([...InventoryStatusKeySchema.options]).toEqual([
+      "ready", "listed", "held", "needs_you", "identifying", "not_identified", "mine", "set_aside", "sold", "archived",
+    ]);
+    expect(InventoryStatusFilterSchema.safeParse("archived").success).toBe(true);
+    expect(InventoryStatusFilterSchema.safeParse("identifying").success).toBe(true);
+    expect(InventoryStatusFilterSchema.safeParse("in_progress").success).toBe(false);
+  });
+
+  it("holds the select-all cap at 200", () => {
+    expect(INVENTORY_SELECT_ALL_CAP).toBe(200);
   });
 });

@@ -81,53 +81,21 @@ describe("PricedBreakdown (v0.2.0): accepts the states a real response is in", (
     expect(BUYING_PRIVATE.lines.some((l) => l.key === "tax_set_aside")).toBe(false);
   });
 
-  const LISTING = (over: Record<string, unknown> = {}) =>
-    line({ key: "listing_time", label: "Listing time (estimate)", amountGbp: 1, minutes: 5, source: "seller_profile", estimate: true, included: false, note: "not_included", ...over });
-
-  it("carries LISTING time in `beside`, never in `lines`: a positive magnitude, minutes, included false", () => {
-    ok({ ...BUYING_PRIVATE, beside: [LISTING()] });
-    expect(BUYING_PRIVATE.beside).toEqual([]);   // no hourly rate: nothing beside
+  it("has NO listing time anywhere (Ben, 2026-10-09): not a line, not a key, not a field", () => {
+    for (const key of ["listing_time", "your_time"]) {
+      const withIt = { ...BUYING_PRIVATE, lines: [...BUYING_PRIVATE.lines, line({ key, amountGbp: -1, minutes: 5 })] };
+      const r = PricedBreakdownSchema.safeParse(withIt);
+      expect(r.success, key).toBe(false);
+      expect(issues(r).some((i) => /retired/.test(i.message)), key).toBe(true);
+    }
+    const parsed = PricedBreakdownSchema.parse({ ...BUYING_PRIVATE, beside: [line({ key: "listing_time", amountGbp: 1, minutes: 5 })] }) as Record<string, unknown>;
+    expect("beside" in parsed).toBe(false);   // an old server's key is stripped, never carried
+    expect("included" in (PricedBreakdownSchema.parse(BUYING_PRIVATE).lines[0] as Record<string, unknown>)).toBe(false);
   });
 
-  it("REJECTS listing time anywhere in the arithmetic, taken off, or beside but included", () => {
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, lines: [...BUYING_PRIVATE.lines, LISTING()] }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, lines: [...BUYING_PRIVATE.lines, LISTING({ included: true })] }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, beside: [LISTING({ included: true })] }).success).toBe(false);
-    expect(PricedLineSchema.safeParse(LISTING({ included: true })).success).toBe(false);
-  });
-
-  it("isolates the container rules with an UNKNOWN key (no key-specific rule can be what rejects it)", () => {
-    const extra = (over: Record<string, unknown>) => line({ key: "a_new_line", amountGbp: 1, ...over });
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, lines: [...BUYING_PRIVATE.lines, extra({ included: false })] }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, beside: [extra({ included: true })] }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, beside: [extra({ included: false })] }).success).toBe(true);
-  });
-
-  it("REJECTS a beside line repeating a key, in beside or in lines", () => {
-    const x = line({ key: "a_new_line", amountGbp: 1, included: false });
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, beside: [x, x] }).success).toBe(false);
-    const inLines = line({ key: "a_new_line", amountGbp: 1 });
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, lines: [...BUYING_PRIVATE.lines, inLines], beside: [x] }).success).toBe(false);
-  });
-
-  it("REJECTS a NEGATIVE listing time (it is a magnitude beside the sum, not a deduction) and one with no minutes", () => {
-    expect(PricedLineSchema.safeParse(LISTING({ amountGbp: -1 })).success).toBe(false);
-    expect(PricedLineSchema.safeParse(LISTING({ minutes: null })).success).toBe(false);
-    expect(PricedLineSchema.safeParse(LISTING({ minutes: 4.5 })).success).toBe(false);
-    expect(PricedLineSchema.safeParse(LISTING({ minutes: -1 })).success).toBe(false);
-  });
-
-  it("REQUIRES the `beside` key (empty without a rate) and refuses a sum line in it", () => {
-    const { beside: _b, ...noBeside } = BUYING_PRIVATE;
-    expect(PricedBreakdownSchema.safeParse(noBeside).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, beside: [line({ key: "packing", amountGbp: -0.34, included: false })] }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, lines: BUYING_PRIVATE.lines.map((l) => (l.key === "packing" ? { ...l, included: false } : l)) }).success).toBe(false);
-  });
-
-  it("packing time IS taken off (included true, NEGATIVE, with minutes); a sum line may not be marked excluded", () => {
+  it("packing time is NEGATIVE, taken off, and carries its minutes; with no hourly rate it is simply absent", () => {
     const pt = (over: Record<string, unknown> = {}) => line({ key: "packing_time", amountGbp: -1, minutes: 4, estimate: true, ...over });
     expect(PricedLineSchema.safeParse(pt()).success).toBe(true);
-    expect(PricedLineSchema.safeParse(pt({ included: false })).success).toBe(false);
     expect(PricedLineSchema.safeParse(pt({ amountGbp: 1 })).success).toBe(false);
     expect(PricedLineSchema.safeParse(pt({ minutes: null })).success).toBe(false);
   });
@@ -197,16 +165,6 @@ describe("PricedBreakdown (v0.2.0): accepts the states a real response is in", (
     expect(PricedLineSchema.safeParse(line({ key: "postage", amountGbp: -3.29, perOrderBand: "low" })).success).toBe(false);
   });
 
-  it("REQUIRES `included` on an UNKNOWN key too: a client never decides it from the key", () => {
-    const { included: _i, ...noIncluded } = line({ key: "a_new_line" });
-    expect(PricedLineSchema.safeParse(noIncluded).success).toBe(false);
-  });
-
-  it("REQUIRES `included` on every line", () => {
-    const { included: _i, ...noIncluded } = line();
-    expect(PricedLineSchema.safeParse(noIncluded).success).toBe(false);
-  });
-
   it("carries tax set aside ONLY as a line, a deduction, when the seller has set a rate", () => {
     ok(rebalance({
       ...BUYING_PRIVATE,
@@ -248,8 +206,8 @@ describe("PricedLine: an unknown figure is null WITH a reason, never 0; a known 
     expect(parsed.unknownReason).toBe("seller_type_not_set");
   });
 
-  it("accepts every reason in the shared six-value vocabulary, and REJECTS an unlisted one", () => {
-    for (const reason of ["margin_not_set", "seller_type_not_set", "vat_not_set", "asking_price_only", "no_price", "not_viable"]) {
+  it("accepts every reason in the shared five-value vocabulary, and REJECTS an unlisted one", () => {
+    for (const reason of ["margin_not_set", "seller_type_not_set", "vat_not_set", "no_price", "not_viable"]) {
       expect(PricedLineSchema.safeParse(line({ amountGbp: null, unknownReason: reason })).success, reason).toBe(true);
     }
     expect(PricedLineSchema.safeParse(line({ amountGbp: null, unknownReason: "private_assumed" })).success).toBe(false);
@@ -320,7 +278,7 @@ describe("PricedBreakdown: rules that keep the fee position and the totals hones
 
   it("REJECTS a total with the fee position unset: nothing assumes a private seller", () => {
     const r = PricedBreakdownSchema.safeParse({
-      ...SELLING_FEE_UNSET, totals: { youReceiveGbp: 166.66, maxBuyGbp: null },
+      ...SELLING_FEE_UNSET, totals: { youReceiveGbp: 166.66, maxBuyGbp: null, askingPriceOnly: false },
       lines: SELLING_FEE_UNSET.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 166.66, unknownReason: null } : l)),
     });
     expect(r.success).toBe(false);
@@ -329,7 +287,7 @@ describe("PricedBreakdown: rules that keep the fee position and the totals hones
 
   it("REJECTS a most-to-pay while the buying margin is unset: no fallback to the selling floor", () => {
     const r = PricedBreakdownSchema.safeParse({
-      ...BUYING_MARGIN_UNSET, totals: { youReceiveGbp: null, maxBuyGbp: 70 },
+      ...BUYING_MARGIN_UNSET, totals: { youReceiveGbp: null, maxBuyGbp: 70, askingPriceOnly: false },
       lines: BUYING_MARGIN_UNSET.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 70, unknownReason: null } : l)),
     });
     expect(r.success).toBe(false);
@@ -348,17 +306,17 @@ describe("PricedBreakdown: rules that keep the fee position and the totals hones
   });
 
   it("REJECTS totals that disagree with the total line: one figure, reported once", () => {
-    expect(PricedBreakdownSchema.safeParse({ ...SELLING_KNOWN, totals: { youReceiveGbp: 150, maxBuyGbp: null } }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85 } }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse({ ...SELLING_KNOWN, totals: { youReceiveGbp: 150, maxBuyGbp: null, askingPriceOnly: false } }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85, askingPriceOnly: false } }).success).toBe(false);
   });
 
   it("REJECTS the OTHER mode's total: a sale has no most-to-pay and a purchase has no receipt", () => {
-    expect(PricedBreakdownSchema.safeParse({ ...SELLING_KNOWN, totals: { youReceiveGbp: 148.38, maxBuyGbp: 84 } }).success).toBe(false);
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: 12, maxBuyGbp: 84 } }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse({ ...SELLING_KNOWN, totals: { youReceiveGbp: 148.38, maxBuyGbp: 84, askingPriceOnly: false } }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: 12, maxBuyGbp: 84, askingPriceOnly: false } }).success).toBe(false);
   });
 
   it("REJECTS a fractional most-to-pay total", () => {
-    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 84.77 } }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 84.77, askingPriceOnly: false } }).success).toBe(false);
   });
 
   it("REJECTS buying-only inputs in a selling breakdown (the buying margin, their price)", () => {
@@ -383,7 +341,7 @@ describe("PricedBreakdown: rules that keep the fee position and the totals hones
 describe("rounding: every line to the penny, and the total is the SUM OF THE ROUNDED LINES", () => {
   it("accepts a selling total that is exactly the sum of its lines, and REJECTS one that is a penny out", () => {
     ok(SELLING_KNOWN);
-    const out = (youReceiveGbp: number) => ({ ...SELLING_KNOWN, totals: { youReceiveGbp, maxBuyGbp: null },
+    const out = (youReceiveGbp: number) => ({ ...SELLING_KNOWN, totals: { youReceiveGbp, maxBuyGbp: null, askingPriceOnly: false },
       lines: SELLING_KNOWN.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: youReceiveGbp } : l)) });
     const r = PricedBreakdownSchema.safeParse(out(148.39));
     expect(r.success).toBe(false);
@@ -415,13 +373,13 @@ describe("rounding: every line to the penny, and the total is the SUM OF THE ROU
     const b = mk(10);
     expect(b.totals.youReceiveGbp).toBe(8.98);   // 10 - 1.02, the sum of the ROUNDED lines
     ok(b);
-    expect(PricedBreakdownSchema.safeParse({ ...b, totals: { youReceiveGbp: 8.99, maxBuyGbp: null },
+    expect(PricedBreakdownSchema.safeParse({ ...b, totals: { youReceiveGbp: 8.99, maxBuyGbp: null, askingPriceOnly: false },
       lines: b.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 8.99 } : l)) }).success).toBe(false);
   });
 
   it("buying: the total is the sum rounded DOWN to the pound (£84.77 -> £84), never to the nearest", () => {
     ok(BUYING_PRIVATE);
-    const to = (maxBuy: number) => ({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: maxBuy },
+    const to = (maxBuy: number) => ({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: maxBuy, askingPriceOnly: false },
       lines: BUYING_PRIVATE.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: maxBuy } : l)) });
     expect(PricedBreakdownSchema.safeParse(to(85)).success).toBe(false);
     expect(PricedBreakdownSchema.safeParse(to(83)).success).toBe(false);
@@ -435,12 +393,12 @@ describe("rounding: every line to the penny, and the total is the SUM OF THE ROU
     const underwater = rebalance({ ...BUYING_PRIVATE, lines: BUYING_PRIVATE.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: 10 } : l)) });
     expect(underwater.totals.maxBuyGbp).toBe(0);
     ok(underwater);
-    const negative = { ...underwater, totals: { youReceiveGbp: null, maxBuyGbp: -41 },
+    const negative = { ...underwater, totals: { youReceiveGbp: null, maxBuyGbp: -41, askingPriceOnly: false },
       lines: underwater.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: -41 } : l)) };
     expect(PricedBreakdownSchema.safeParse(negative).success).toBe(false);
   });
 
-  it("an unknown included line makes the total null: an unknown is never summed as £0", () => {
+  it("an unknown line makes the total null: an unknown is never summed as £0", () => {
     const unknownPostage = { ...SELLING_KNOWN, lines: SELLING_KNOWN.lines.map((l) => (l.key === "postage" ? { ...l, amountGbp: null, unknownReason: "no_price", note: null } : l)) };
     const r = PricedBreakdownSchema.safeParse(unknownPostage);
     expect(r.success).toBe(false);
@@ -458,15 +416,11 @@ describe("rounding: every line to the penny, and the total is the SUM OF THE ROU
     ok(tiny);
   });
 
-  it("does not sum a line shown BESIDE the sum", () => {
-    const b = { ...SELLING_KNOWN, beside: [line({ key: "listing_time", amountGbp: 9, minutes: 45, estimate: true, included: false, note: "not_included" })] };
-    ok(b);   // the total still foots without the £9 of listing time
-  });
 });
 
-function NO_TOTAL() { return { youReceiveGbp: null, maxBuyGbp: null }; }
+function NO_TOTAL() { return { youReceiveGbp: null, maxBuyGbp: null, askingPriceOnly: false }; }
 
-describe("you receive can be NEGATIVE: the true negative is sent, flagged below_cost", () => {
+describe("you receive can be NEGATIVE: the true negative is sent, flagged pays_to_sell", () => {
   const loss = rebalance({
     ...SELLING_KNOWN,
     lines: SELLING_KNOWN.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: 5 } : l)),
@@ -474,16 +428,16 @@ describe("you receive can be NEGATIVE: the true negative is sent, flagged below_
   // 5 - 18.28 - 0 - 0.34 = -13.62
   const withNote = (note: string | null) => ({ ...loss, lines: loss.lines.map((l) => (l.key === "you_receive" ? { ...l, note } : l)) });
 
-  it("accepts a negative total with note below_cost and does NOT clamp it to 0", () => {
+  it("accepts a negative total with note pays_to_sell and does NOT clamp it to 0", () => {
     expect(loss.totals.youReceiveGbp).toBe(-13.62);
-    ok(withNote("below_cost"));
-    expect(PricedBreakdownSchema.parse(withNote("below_cost")).totals.youReceiveGbp).toBe(-13.62);
+    ok(withNote("pays_to_sell"));
+    expect(PricedBreakdownSchema.parse(withNote("pays_to_sell")).totals.youReceiveGbp).toBe(-13.62);
   });
 
-  it("REJECTS a negative you_receive without the below_cost flag, and a clamped £0 where the lines say -£13.62", () => {
+  it("REJECTS a negative you_receive without the pays_to_sell flag, and a clamped £0 where the lines say -£13.62", () => {
     expect(PricedBreakdownSchema.safeParse(withNote(null)).success).toBe(false);
-    const clamped = { ...withNote("below_cost"), totals: { youReceiveGbp: 0, maxBuyGbp: null },
-      lines: withNote("below_cost").lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 0 } : l)) };
+    const clamped = { ...withNote("pays_to_sell"), totals: { youReceiveGbp: 0, maxBuyGbp: null, askingPriceOnly: false },
+      lines: withNote("pays_to_sell").lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 0 } : l)) };
     expect(PricedBreakdownSchema.safeParse(clamped).success).toBe(false);
   });
 
@@ -531,5 +485,35 @@ describe("packing time: the ruled default is 4 minutes a parcel and 2 for each e
     const pt = (estimate: boolean, minutes: number) => line({ key: "packing_time", amountGbp: -1, minutes, estimate, source: "seller_profile", note: estimate ? "estimate" : null });
     expect(PricedLineSchema.safeParse(pt(true, defaultPackingMinutes(1))).success).toBe(true);
     expect(PricedLineSchema.safeParse(pt(false, 7)).success).toBe(true);
+  });
+});
+
+describe("a figure from asking prices is a CEILING, shown and flagged, not a null (Ben, 2026-10-09; rule 10)", () => {
+  const ceiling = { ...BUYING_PRIVATE, totals: { ...BUYING_PRIVATE.totals, askingPriceOnly: true } };
+
+  it("accepts a most-to-pay that is SHOWN with askingPriceOnly true", () => {
+    ok(ceiling);
+    expect(PricedBreakdownSchema.parse(ceiling).totals.maxBuyGbp).toBe(84);
+    expect(PricedBreakdownSchema.parse(ceiling).totals.askingPriceOnly).toBe(true);
+  });
+
+  it("asking_price_only is no longer a reason a figure is null: it is not in the vocabulary", () => {
+    expect(PricedLineSchema.safeParse(line({ key: "max_buy", amountGbp: null, unknownReason: "asking_price_only", note: null })).success).toBe(false);
+    expect(PricedLineSchema.safeParse(line({ key: "max_buy", amountGbp: null, unknownReason: "no_price", note: null })).success).toBe(true);
+  });
+
+  it("REJECTS the flag on a figure that is withheld: a ceiling that is not shown is just no_price", () => {
+    const r = PricedBreakdownSchema.safeParse({ ...BUYING_FEE_UNSET, totals: { ...BUYING_FEE_UNSET.totals, askingPriceOnly: true } });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /flags a SHOWN figure/.test(i.message))).toBe(true);
+  });
+
+  it("REJECTS the flag on a selling breakdown, which has no most-to-pay", () => {
+    expect(PricedBreakdownSchema.safeParse({ ...SELLING_KNOWN, totals: { ...SELLING_KNOWN.totals, askingPriceOnly: true } }).success).toBe(false);
+  });
+
+  it("REQUIRES the flag on totals: an absent key is not 'false'", () => {
+    const { askingPriceOnly: _a, ...noFlag } = BUYING_PRIVATE.totals;
+    expect(PricedBreakdownSchema.safeParse({ ...BUYING_PRIVATE, totals: noFlag }).success).toBe(false);
   });
 });

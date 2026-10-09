@@ -23,17 +23,15 @@ final class BreakdownAndRefusalTests: XCTestCase {
       "mode": "selling",
       "lines": [
         {"key": "sale_price", "label": "Sale price", "amountGbp": 167.0, "unknownReason": null, "source": "request",
-         "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
+         "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
         {"key": "ebay_fee", "label": "eBay fee", "amountGbp": null, "unknownReason": "seller_type_not_set", "source": "fee_model",
-         "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
+         "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
         {"key": "packing", "label": "Packing (estimate)", "amountGbp": -0.34, "unknownReason": null, "source": "default",
-         "assumed": true, "estimate": true, "editable": true, "editKey": "packingKey", "included": true, "note": "estimate"},
+         "assumed": true, "estimate": true, "editable": true, "editKey": "packingKey", "note": "estimate"},
         {"key": "you_receive", "label": "You receive", "amountGbp": null, "unknownReason": "seller_type_not_set", "source": "fee_model",
-         "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null}
+         "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null}
       ],
-      "beside": [{"key": "listing_time", "label": "Listing time (estimate)", "amountGbp": 1.0, "unknownReason": null, "source": "seller_profile",
-         "assumed": false, "estimate": true, "editable": false, "editKey": null, "included": false, "minutes": 5, "note": "not_included"}],
-      "totals": {"youReceiveGbp": null, "maxBuyGbp": null},
+      "totals": {"youReceiveGbp": null, "maxBuyGbp": null, "askingPriceOnly": false},
       "compare": null,
       "feePosition": {"sellerType": null, "vatRegistered": null, "channel": "ebay", "feeBasis": "not_set"},
       "notSet": ["sellerType"],
@@ -53,28 +51,11 @@ final class BreakdownAndRefusalTests: XCTestCase {
         XCTAssertEqual(b.notSet, [.sellerType])
     }
 
-    func testEstimateAndIncludedAreSeparateFlags() throws {
+    func testEstimateAndAssumedAreSeparateFlagsAndThereIsNoListingTime() throws {
         let b = try decode(PricedBreakdown.self, feeUnset)
         let packing = try XCTUnwrap(b.lines.first { $0.key == "packing" })
-        XCTAssertTrue(packing.estimate); XCTAssertTrue(packing.assumed); XCTAssertTrue(packing.included)
-        XCTAssertNil(b.lines.first { $0.key == "listing_time" }, "listing time is never in the arithmetic")
-        let listing = try XCTUnwrap(b.beside.first { $0.key == "listing_time" })
-        XCTAssertFalse(listing.included, "listing time sits beside the sum and is never taken off")
-        XCTAssertTrue(listing.estimate)
-        XCTAssertEqual(listing.amountGbp, 1.0, "a positive magnitude, not a deduction")
-        XCTAssertEqual(listing.minutes, 5)
-    }
-
-    func testThePostageLineCarriesAClosedServiceCodeAndAnUnknownOneDecodes() throws {
-        let postage = #"{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "service": "tracked48_sp", "source": "seller_profile", "assumed": false, "estimate": false, "editable": true, "editKey": "postageMode", "included": true, "note": null},"#
-        let known = feeUnset.replacingOccurrences(of: #"{"key": "packing", "label": "Packing (estimate)""#, with: postage + #"{"key": "packing", "label": "Packing (estimate)""#)
-        let b = try decode(PricedBreakdown.self, known)
-        XCTAssertEqual(b.lines.first { $0.key == "postage" }?.service, .tracked48Sp)
-        let future = try decode(PricedBreakdown.self, known.replacingOccurrences(of: "tracked48_sp", with: "parcelforce_48"))
-        guard case .unrecognised(let raw)? = future.lines.first(where: { $0.key == "postage" })?.service else { return XCTFail("expected .unrecognised") }
-        XCTAssertEqual(raw, "parcelforce_48")
-        XCTAssertEqual(future.lines.first { $0.key == "postage" }?.amountGbp, -3.29, "the figure survives an unknown service")
-        XCTAssertNil(try decode(PricedBreakdown.self, feeUnset).lines.first { $0.key == "packing" }?.service, "no service when none applies")
+        XCTAssertTrue(packing.estimate); XCTAssertTrue(packing.assumed)
+        XCTAssertNil(b.lines.first { $0.key == "listing_time" }, "there is no listing time line anywhere")
     }
 
     func testTheFeeLineCarriesItsBandAndWhetherTheBasisIsVerified() throws {
@@ -248,20 +229,20 @@ final class BreakdownAndRefusalTests: XCTestCase {
     func testANegativeYouReceiveIsKeptNegativeAndFlaggedBelowCost() throws {
         let j = #"""
         {"mode": "selling", "lines": [
-          {"key": "sale_price", "label": "Sale price", "amountGbp": 5.0, "unknownReason": null, "source": "request", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
-          {"key": "you_receive", "label": "You receive", "amountGbp": -13.62, "unknownReason": null, "source": "fee_model", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": "below_cost"}],
-         "beside": [], "totals": {"youReceiveGbp": -13.62, "maxBuyGbp": null}, "compare": null,
+          {"key": "sale_price", "label": "Sale price", "amountGbp": 5.0, "unknownReason": null, "source": "request", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},
+          {"key": "you_receive", "label": "You receive", "amountGbp": -13.62, "unknownReason": null, "source": "fee_model", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": "pays_to_sell"}],
+         "totals": {"youReceiveGbp": -13.62, "maxBuyGbp": null, "askingPriceOnly": false}, "compare": null,
          "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"}, "notSet": [],
          "price": {"gbp": 5.0, "source": null, "kind": null, "asOf": null, "cached": false}, "computedAt": "2026-10-09T09:30:00.000Z"}
         """#
         let b = try decode(PricedBreakdown.self, j)
         XCTAssertEqual(b.totals.youReceiveGbp, -13.62, "the true negative, never clamped to 0")
-        XCTAssertEqual(b.lines.first { $0.key == "you_receive" }?.note, "below_cost")
+        XCTAssertEqual(b.lines.first { $0.key == "you_receive" }?.note, "pays_to_sell")
     }
 
     func testThePostageLineCarriesItsBasis() throws {
         let j = feeUnset.replacingOccurrences(of: #"{"key": "packing", "label": "Packing (estimate)""#,
-            with: #"{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "postageBasis": "ebay_policy", "source": "ebay_policy", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},{"key": "packing", "label": "Packing (estimate)""#)
+            with: #"{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "postageBasis": "ebay_policy", "source": "ebay_policy", "assumed": false, "estimate": false, "editable": false, "editKey": null, "note": null},{"key": "packing", "label": "Packing (estimate)""#)
         let b = try decode(PricedBreakdown.self, j)
         XCTAssertEqual(b.lines.first { $0.key == "postage" }?.postageBasis, .ebayPolicy)
         let future = try decode(PricedBreakdown.self, j.replacingOccurrences(of: "ebay_policy\", \"source", with: "carrier_quote\", \"source"))
@@ -320,11 +301,13 @@ final class BreakdownAndRefusalTests: XCTestCase {
 
     func testStatsCarryCountsAndTheMineCollectionValuedApart() throws {
         let s = try decode(StatsResponse.self, #"""
-        {"statusCounts": {"READY_TO_LIST": 4, "HELD": 1}, "costBasis": 120, "estValue": 65, "realisedGain": 12.5, "agedListings": 0, "totalCards": 8,
-         "counts": {"stock": 5, "mine": 2, "setAside": 1},
+        {"statusCounts": {"READY_TO_LIST": 4, "HELD": 1}, "costBasis": 120, "estValue": 4812, "heldValue": 320, "realisedGain": 12.5, "agedListings": 0, "totalCards": 8,
+         "counts": {"stock": 4, "held": 1, "mine": 2, "setAside": 1},
          "collectionValue": {"count": 2, "pricedCount": 0, "notPricedCount": 2, "lowGbp": null, "highGbp": null, "sources": []}}
         """#)
         XCTAssertEqual(s.counts.mine, 2)
+        XCTAssertEqual(s.counts.held, 1)
+        XCTAssertEqual(s.heldValue, 320, "the held part, included in estValue: £4,812 · £320 held")
         XCTAssertNil(s.collectionValue.lowGbp, "an unpriced collection is nil, never 0")
         XCTAssertEqual(s.statusCounts["HELD"], 1)
     }
@@ -363,5 +346,40 @@ final class BreakdownAndRefusalTests: XCTestCase {
         let p = try decode(ListingPreviewRequest.self, #"{"postageFor": "estimate", "items": [{"physicalCardId": "a", "cardsInParcel": 2}]}"#)
         XCTAssertEqual(p.postageFor, .estimate)
         XCTAssertEqual(p.items[0].cardsInParcel, 2)
+    }
+
+    // MARK: Round 3 follow-ups (Ben, 2026-10-09)
+
+    func testAnAskingPriceCeilingIsAShownFigureWithAFlag() throws {
+        let d = try decode(Decision.self, #"""
+        {"route": "list_single", "reason": "sound_single_listing", "alternatives": [], "confidence": "high", "liquidity": "high",
+         "economics": {"marketValueGbp": 136, "feeGbp": 0, "feeNotSetReason": null, "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null, "taxProvisionGbp": 0, "expectedNetGbp": 132.37},
+         "maxBuyGbp": 84, "maxBuyUnavailableReason": null, "askingPriceOnly": true, "minAcceptGbp": 12.5, "offerPctAtMax": 61.8,
+         "degraded": false, "degradedReasons": []}
+        """#)
+        XCTAssertEqual(d.maxBuyGbp, 84, "the figure is shown")
+        XCTAssertTrue(d.askingPriceOnly, "and flagged as a ceiling")
+        XCTAssertNil(d.maxBuyUnavailableReason)
+    }
+
+    func testTheRetiredAskingPriceOnlyReasonStillDecodesToTheFallback() throws {
+        let d = try decode(Decision.self, #"""
+        {"route": "list_single", "reason": "sound_single_listing", "alternatives": [], "confidence": "high", "liquidity": "high",
+         "economics": {"marketValueGbp": 136, "feeGbp": 0, "feeNotSetReason": null, "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null, "taxProvisionGbp": 0, "expectedNetGbp": 132.37},
+         "maxBuyGbp": null, "maxBuyUnavailableReason": "asking_price_only", "askingPriceOnly": false, "minAcceptGbp": 12.5, "offerPctAtMax": null,
+         "degraded": false, "degradedReasons": []}
+        """#)
+        XCTAssertNil(d.maxBuyGbp)
+        guard case .unrecognised(let raw)? = d.maxBuyUnavailableReason else { return XCTFail("expected .unrecognised") }
+        XCTAssertEqual(raw, "asking_price_only")
+    }
+
+    func testStopHoldingAndTheIdentifyingStatusKey() throws {
+        let enc = String(data: try JSONEncoder().encode(StopHoldingRequest(ids: ["a", "b"])), encoding: .utf8)!
+        XCTAssertTrue(enc.contains("\"ids\""))
+        let k = try decode(InventoryStatusKey.self, #""identifying""#)
+        XCTAssertEqual(k, .identifying)
+        guard case .unrecognised(let raw) = try decode(InventoryStatusKey.self, #""snoozed""#) else { return XCTFail("expected .unrecognised") }
+        XCTAssertEqual(raw, "snoozed")
     }
 }

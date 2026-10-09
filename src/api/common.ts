@@ -94,7 +94,7 @@ export type FeeNotSetReason = z.infer<typeof FeeNotSetReasonSchema>;
 /**
  * WHY a most-to-pay (or any priced figure that depends on the same inputs) is null (v0.2.0). A null
  * most-to-pay ALWAYS carries one of these; a number never does (enforced on `DecisionSchema`, and on
- * `PricedLine` — the same six reasons name why ANY line of a `PricedBreakdown` is null, so a client
+ * `PricedLine` — the same five reasons name why ANY line of a `PricedBreakdown` is null, so a client
  * has one vocabulary for "no figure", not one per screen). Moved here from decide.ts so
  * priced-breakdown.ts can use it without a circular import; the generated name is unchanged.
  *
@@ -110,8 +110,6 @@ export type FeeNotSetReason = z.infer<typeof FeeNotSetReasonSchema>;
  *                           `FeeNotSetReason`; most-to-pay is withheld because the formula subtracts
  *                           the fee.                                            PLAN-SELLER-TYPE-FIRST-ASK #230 §3
  *  - `vat_not_set`          business, VAT question unanswered. Mirrors `FeeNotSetReason`. #230 §2
- *  - `asking_price_only`    the only price is the listing's ASKING price (`basis === "ask_only"`).
- *                           A most-to-pay derived from someone else's ask is circular.   #224 §7
  *  - `no_price`             no usable market value at all. Reserved for a Decision that is returned
  *                           without one; today the routes answer this with `decisionUnavailable:
  *                           "no_market_value"` instead of a Decision, so this is a documented
@@ -120,12 +118,17 @@ export type FeeNotSetReason = z.infer<typeof FeeNotSetReasonSchema>;
  *                           the sale, or the formula has no positive solution). Distinct from "£0":
  *                           £0 is a number the seller can pay, this is "do not buy at any price".  #224 §3, §7
  *
- * NOT in this list, on purpose: `game_not_available`. PLAN-POKEMON-ONLY-BETA-GATE answers a coming
+ * NOT in this list, on purpose:
+ *  - `asking_price_only` (REMOVED 2026-10-09, Ben; design rule 10). A figure worked from asking
+ *    prices is a CEILING and is SHOWN with a flag (`Decision.askingPriceOnly`,
+ *    `PricedTotals.askingPriceOnly`), not withheld. The null + reason is only for "no figure can be
+ *    worked out at all", which is `no_price`.
+ *  - `game_not_available`. PLAN-POKEMON-ONLY-BETA-GATE answers a coming
  * game with `422 game_coming` / `game_not_available` — an HTTP refusal, not a Decision — so a
  * Decision never exists for it and the value would be dead.
  *
  * WHICH ONE when several apply is the server's call; the recommended precedence is the order the
- * seller would be asked: no_price, asking_price_only, seller_type_not_set, vat_not_set,
+ * seller would be asked: no_price, seller_type_not_set, vat_not_set,
  * margin_not_set, not_viable. The full set lives in `PricedBreakdown.notSet`.
  *
  * Open to additions (ADR 0027): Swift decodes an unknown reason to `.unrecognised(raw)`, Kotlin to
@@ -135,7 +138,6 @@ export const MaxBuyUnavailableReasonSchema = z.enum([
   "margin_not_set",
   "seller_type_not_set",
   "vat_not_set",
-  "asking_price_only",
   "no_price",
   "not_viable",
 ]);

@@ -277,6 +277,33 @@ the postage basis branches, the default packing minutes, every inventory-change 
 guards); the first pass left 2 survivors (a truncating sum and an unisolated basis/source branch),
 each fixed with an isolated test; all red at the end.
 
+### Round 4 (2026-10-09, late): Ben's round-3 rulings
+
+Plain commits on the same untagged v0.2.0 (LANE-REPORTS/DECISIONS.md "Rulings, round 3"; design
+answers 2026-10-09). The full "what clients must change" list is in `docs/V0.2.0-ADOPTION.md`
+"Round 4".
+
+- **`asking_price_only` is a flag on a shown figure, not a null reason.** `Decision.askingPriceOnly`
+  and `PricedTotals.askingPriceOnly` (new required booleans; false when the figure is null; the two
+  must agree). `MaxBuyUnavailableReason` loses `asking_price_only` (five values left); the null +
+  reason is only for "no figure at all" (`no_price`).
+- **Listing time is gone everywhere**: `listing_time` retired as a line key, `PricedBreakdown.beside`
+  and `PricedLine.included` removed (they existed only for it). Packing time stays, `estimate: true`
+  when the ruled default (4 minutes a parcel + 2 per extra card) is used.
+- **Negative receive**: still the true negative; the note code is now **`pays_to_sell`** (was
+  `below_cost`, which compared to a cost the contract never has); client label "You'd pay to sell
+  this".
+- **Value totals**: `StatsResponse.estValue` INCLUDES held copies; new `heldValue` (null, not 0, when
+  no held copy is priced; never above `estValue`); `counts` gains `held` (partition: set aside >
+  Mine > held > stock). Supersedes "held out of totals".
+- **Additive**: `InventoryStatusKey` (adds `identifying`; `archived` is a status filter value),
+  `InventoryStatusFilter`, `INVENTORY_SELECT_ALL_CAP = 200`, `StopHoldingRequest`
+  (`POST /api/inventory/stop-holding`, answered by `InventoryChangeResponse`).
+- Verification: `npm run build` (165/165), `npm run check`, vitest (33 files, 533), swift 48, gradle
+  green; 2 new golden vectors (`retired_asking_price_only_reason_on_a_decision`,
+  `unknown_graded_cert_check` re-homed); 25 more hand mutations, all red (one dead conditional
+  removed).
+
 ### Generator change (internal, but it is why `DecisionEconomics` is not called `Economics2`)
 
 `zod-to-swift.ts` / `zod-to-kotlin.ts` handled `ZodEffects` (a `.refine`/`.superRefine`) by unwrapping

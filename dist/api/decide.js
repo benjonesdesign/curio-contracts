@@ -211,6 +211,14 @@ export const DecisionSchema = z.object({
     /** WHY `maxBuyGbp` is null. Null exactly when `maxBuyGbp` is a number. Required key (never
      *  absent from the server's output) so a null most-to-pay cannot reach a client unexplained. */
     maxBuyUnavailableReason: MaxBuyUnavailableReasonSchema.nullable(),
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key; Ben, 2026-10-09; design rule 10). `maxBuyGbp` is worked from
+     * asking prices only, so it is a CEILING, not a forecast: the figure is SHOWN and says so. This
+     * replaces the draft's `asking_price_only` null reason, which withheld a figure that exists. True
+     * only with a figure; when `maxBuyGbp` is null (nothing can be worked out: `no_price`, or the
+     * seller has not set a margin / seller type) this is false.
+     */
+    askingPriceOnly: z.boolean(),
     /** DISPOSAL: the least they should ACCEPT to sell it. Consumed by Best Offer's auto-decline
      *  floor, the auction start price (a start price is a free reserve), and the
      *  "this shouldn't be an auction" test against the top realised comp.
@@ -259,6 +267,9 @@ export const DecisionSchema = z.object({
     if (!maxBuyNull && d.maxBuyUnavailableReason !== null) {
         issue("maxBuyUnavailableReason", "maxBuyUnavailableReason is set but maxBuyGbp is a number: a figure that exists has no reason to be missing");
     }
+    if (d.askingPriceOnly && maxBuyNull) {
+        issue("askingPriceOnly", "askingPriceOnly flags a SHOWN figure, but maxBuyGbp is null: a withheld figure has no ceiling to flag (use no_price)");
+    }
     if (maxBuyNull !== (d.offerPctAtMax === null)) {
         issue("offerPctAtMax", "offerPctAtMax is null exactly when maxBuyGbp is null: it is a percentage of that figure");
     }
@@ -303,6 +314,9 @@ function checkBreakdownMatchesDecision(decision, breakdown, ctx, path) {
     }
     else if (mb !== null && total !== null && mb !== total) {
         issue(["totals", "maxBuyGbp"], `the breakdown's most-to-pay (${total}) is not decision.maxBuyGbp (${mb}): one whole-pound figure, reported once`);
+    }
+    if (decision.askingPriceOnly !== breakdown.totals.askingPriceOnly) {
+        issue(["totals", "askingPriceOnly"], `decision.askingPriceOnly (${decision.askingPriceOnly}) and the breakdown's (${breakdown.totals.askingPriceOnly}) disagree: one fact, reported once`);
     }
     const maxBuyLine = breakdown.lines.find((l) => l.key === "max_buy");
     if (mb === null && maxBuyLine && maxBuyLine.unknownReason !== decision.maxBuyUnavailableReason) {

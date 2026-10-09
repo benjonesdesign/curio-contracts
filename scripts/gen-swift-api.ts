@@ -67,11 +67,12 @@ import {
   DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
 import { PhysicalCardSchema, PhysicalCardStatusSchema, SetAsideReasonSchema } from "../src/api/physical-card.js";
+import { InventoryStatusKeySchema } from "../src/api/inventory-list.js";
 import {
   GradedCreateRequestSchema, GradedCreateResponseSchema, SlabGraderSchema, SlabCollectionTypeSchema, CertCheckSchema,
 } from "../src/api/inventory-graded.js";
 import {
-  MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, InventoryChangeResponseSchema,
+  MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
 } from "../src/api/inventory-change.js";
@@ -190,6 +191,7 @@ registerName(PostageForSchema, "PostageFor");
 // all field names that recur across unrelated schemas).
 registerName(PhysicalCardStatusSchema, "PhysicalCardStatus");
 registerName(SetAsideReasonSchema, "SetAsideReason");
+registerName(InventoryStatusKeySchema, "InventoryStatusKey");
 registerName(SlabGraderSchema, "SlabGrader");
 registerName(SlabCollectionTypeSchema, "SlabCollectionType");
 registerName(CertCheckSchema, "CertCheck");
@@ -261,6 +263,10 @@ emitSwift(ListingPreviewResponseSchema, "ListingPreviewResponse");
 emitSwift(MineRequestSchema, "MineRequest");
 emitSwift(SetAsideRequestSchema, "SetAsideRequest");
 emitSwift(PutBackRequestSchema, "PutBackRequest");
+emitSwift(StopHoldingRequestSchema, "StopHoldingRequest");
+// A standalone enum with no referent inside the contract yet (the list rows arrive with the list
+// contract), so nothing pulls it in; emitted so a client can compile its status switch now.
+emitSwift(InventoryStatusKeySchema, "InventoryStatusKey");
 emitSwift(InventoryChangeResponseSchema, "InventoryChangeResponse");
 emitSwift(StatsResponseSchema, "StatsResponse");
 emitSwift(GradedCreateRequestSchema, "GradedCreateRequest");

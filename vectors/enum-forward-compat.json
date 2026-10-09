@@ -223,7 +223,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -241,7 +240,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": "high",
                   "feeBasisVerified": false,
@@ -259,7 +257,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -277,7 +274,6 @@
                   "estimate": true,
                   "editable": true,
                   "editKey": "packingKey",
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -295,7 +291,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -304,10 +299,10 @@
                   "note": null
                 }
               ],
-              "beside": [],
               "totals": {
                 "youReceiveGbp": 148.38,
-                "maxBuyGbp": null
+                "maxBuyGbp": null,
+                "askingPriceOnly": false
               },
               "compare": null,
               "feePosition": {
@@ -361,7 +356,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -379,7 +373,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": "high",
                   "feeBasisVerified": false,
@@ -397,7 +390,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -415,7 +407,6 @@
                   "estimate": true,
                   "editable": true,
                   "editKey": "packingKey",
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -433,7 +424,6 @@
                   "estimate": false,
                   "editable": false,
                   "editKey": null,
-                  "included": true,
                   "minutes": null,
                   "perOrderBand": null,
                   "feeBasisVerified": null,
@@ -442,10 +432,10 @@
                   "note": null
                 }
               ],
-              "beside": [],
               "totals": {
                 "youReceiveGbp": 148.38,
-                "maxBuyGbp": null
+                "maxBuyGbp": null,
+                "askingPriceOnly": false
               },
               "compare": null,
               "feePosition": {
@@ -516,7 +506,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -534,7 +523,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -552,7 +540,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -570,7 +557,6 @@
             "estimate": true,
             "editable": true,
             "editKey": "packingKey",
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -588,7 +574,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -597,133 +582,10 @@
             "note": null
           }
         ],
-        "beside": [],
         "totals": {
           "youReceiveGbp": null,
-          "maxBuyGbp": null
-        },
-        "compare": null,
-        "feePosition": {
-          "sellerType": null,
-          "vatRegistered": null,
-          "channel": "ebay",
-          "feeBasis": "not_set"
-        },
-        "notSet": [
-          "sellerType"
-        ],
-        "price": {
-          "gbp": 167.0,
-          "source": null,
-          "kind": null,
-          "asOf": null,
-          "cached": false
-        },
-        "computedAt": "2026-10-08T09:30:00.000Z"
-      }
-    },
-    {
-      "name": "unknown_postage_service_on_a_priced_line",
-      "type": "PricedBreakdown",
-      "why": "A fifth postage service added after this build (say a courier the seller adds in Dispatch). It sits on one line of a breakdown, so a propagating throw would lose the whole 'You receive' answer; a client must show the figure under the generic 'Postage', never invent a service name from the code and never fail.",
-      "payload": {
-        "mode": "selling",
-        "lines": [
-          {
-            "key": "sale_price",
-            "label": "Sale price",
-            "amountGbp": 167.0,
-            "unknownReason": null,
-            "source": "request",
-            "assumed": false,
-            "estimate": false,
-            "editable": false,
-            "editKey": null,
-            "included": true,
-            "minutes": null,
-            "perOrderBand": null,
-            "feeBasisVerified": null,
-            "service": null,
-            "postageBasis": null,
-            "note": null
-          },
-          {
-            "key": "ebay_fee",
-            "label": "eBay fee",
-            "amountGbp": null,
-            "unknownReason": "awaiting_review",
-            "source": "fee_model",
-            "assumed": false,
-            "estimate": false,
-            "editable": false,
-            "editKey": null,
-            "included": true,
-            "minutes": null,
-            "perOrderBand": null,
-            "feeBasisVerified": null,
-            "service": null,
-            "postageBasis": null,
-            "note": null
-          },
-          {
-            "key": "postage",
-            "label": "Postage",
-            "amountGbp": -3.29,
-            "unknownReason": null,
-            "source": "ebay_policy",
-            "assumed": false,
-            "estimate": false,
-            "editable": false,
-            "editKey": null,
-            "included": true,
-            "minutes": null,
-            "perOrderBand": null,
-            "feeBasisVerified": null,
-            "service": "parcelforce_48",
-            "postageBasis": null,
-            "note": "buyer_pays"
-          },
-          {
-            "key": "packing",
-            "label": "Packing (estimate)",
-            "amountGbp": -0.34,
-            "unknownReason": null,
-            "source": "default",
-            "assumed": true,
-            "estimate": true,
-            "editable": true,
-            "editKey": "packingKey",
-            "included": true,
-            "minutes": null,
-            "perOrderBand": null,
-            "feeBasisVerified": null,
-            "service": null,
-            "postageBasis": null,
-            "note": "estimate"
-          },
-          {
-            "key": "you_receive",
-            "label": "You receive",
-            "amountGbp": null,
-            "unknownReason": "seller_type_not_set",
-            "source": "fee_model",
-            "assumed": false,
-            "estimate": false,
-            "editable": false,
-            "editKey": null,
-            "included": true,
-            "minutes": null,
-            "perOrderBand": null,
-            "feeBasisVerified": null,
-            "service": null,
-            "postageBasis": null,
-            "note": null
-          }
-        ],
-        "beside": [],
-        "totals": {
-          "youReceiveGbp": null,
-          "maxBuyGbp": null
+          "maxBuyGbp": null,
+          "askingPriceOnly": false
         },
         "compare": null,
         "feePosition": {
@@ -762,7 +624,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -780,7 +641,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": "high",
             "feeBasisVerified": false,
@@ -798,7 +658,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -816,7 +675,6 @@
             "estimate": true,
             "editable": true,
             "editKey": "packingKey",
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -834,7 +692,6 @@
             "estimate": false,
             "editable": false,
             "editKey": null,
-            "included": true,
             "minutes": null,
             "perOrderBand": null,
             "feeBasisVerified": null,
@@ -843,10 +700,10 @@
             "note": null
           }
         ],
-        "beside": [],
         "totals": {
           "youReceiveGbp": 148.39,
-          "maxBuyGbp": null
+          "maxBuyGbp": null,
+          "askingPriceOnly": false
         },
         "compare": null,
         "feePosition": {
@@ -913,7 +770,7 @@
       }
     },
     {
-      "name": "unknown_cert_check_on_a_graded_create",
+      "name": "unknown_graded_cert_check",
       "type": "GradedCreateResponse",
       "why": "A cert-check outcome added after this build (say `pending_review`, when a second grader's API lands). It arrives on the response that carries the new copy's SKU, so a propagating throw would lose the SKU of a card that WAS created; a client must treat the slab as unverified and keep the SKU.",
       "payload": {
@@ -925,6 +782,154 @@
         "certVerified": false,
         "certCheck": "pending_review",
         "catalogueMatched": true
+      }
+    },
+    {
+      "name": "retired_asking_price_only_reason_on_a_decision",
+      "type": "Decision",
+      "why": "`asking_price_only` was a most-to-pay null reason in the v0.2.0 draft and was REMOVED when a figure from asking prices became a shown ceiling (Ben, 2026-10-09). A server still on the draft, or a stored decision, can send it; a client must decode it to the fallback and show NO figure rather than fail the whole Decision. TS refuses to emit it.",
+      "payload": {
+        "route": "list_single",
+        "reason": "sound_single_listing",
+        "alternatives": [],
+        "confidence": "high",
+        "liquidity": "high",
+        "economics": {
+          "marketValueGbp": 136.0,
+          "feeGbp": 0.0,
+          "feeNotSetReason": null,
+          "postageGbp": 3.29,
+          "packagingGbp": 0.34,
+          "costBasisGbp": null,
+          "taxProvisionGbp": 0.0,
+          "expectedNetGbp": 132.37
+        },
+        "maxBuyGbp": null,
+        "maxBuyUnavailableReason": "asking_price_only",
+        "askingPriceOnly": false,
+        "minAcceptGbp": 12.5,
+        "offerPctAtMax": null,
+        "degraded": false,
+        "degradedReasons": [],
+        "assumptions": []
+      }
+    },
+    {
+      "name": "unknown_postage_service_on_a_priced_line",
+      "type": "PricedBreakdown",
+      "why": "A fifth postage service added after this build (say a courier the seller adds in Dispatch). It sits on one line of a breakdown, so a propagating throw would lose the whole 'You receive' answer; a client must show the figure under the generic 'Postage', never invent a service name from the code and never fail.",
+      "payload": {
+        "mode": "selling",
+        "lines": [
+          {
+            "key": "sale_price",
+            "label": "Sale price",
+            "amountGbp": 167.0,
+            "unknownReason": null,
+            "source": "request",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "service": null,
+            "postageBasis": null,
+            "note": null
+          },
+          {
+            "key": "ebay_fee",
+            "label": "eBay fee",
+            "amountGbp": null,
+            "unknownReason": "seller_type_not_set",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "service": null,
+            "postageBasis": null,
+            "note": null
+          },
+          {
+            "key": "postage",
+            "label": "Postage",
+            "amountGbp": -3.29,
+            "unknownReason": null,
+            "source": "ebay_policy",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "service": "parcelforce_48",
+            "postageBasis": null,
+            "note": null
+          },
+          {
+            "key": "packing",
+            "label": "Packing (estimate)",
+            "amountGbp": -0.34,
+            "unknownReason": null,
+            "source": "default",
+            "assumed": true,
+            "estimate": true,
+            "editable": true,
+            "editKey": "packingKey",
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "service": null,
+            "postageBasis": null,
+            "note": "estimate"
+          },
+          {
+            "key": "you_receive",
+            "label": "You receive",
+            "amountGbp": null,
+            "unknownReason": "seller_type_not_set",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "service": null,
+            "postageBasis": null,
+            "note": null
+          }
+        ],
+        "totals": {
+          "youReceiveGbp": null,
+          "maxBuyGbp": null,
+          "askingPriceOnly": false
+        },
+        "compare": null,
+        "feePosition": {
+          "sellerType": null,
+          "vatRegistered": null,
+          "channel": "ebay",
+          "feeBasis": "not_set"
+        },
+        "notSet": [
+          "sellerType"
+        ],
+        "price": {
+          "gbp": 167.0,
+          "source": null,
+          "kind": null,
+          "asOf": null,
+          "cached": false
+        },
+        "computedAt": "2026-10-08T09:30:00.000Z"
       }
     }
   ]
