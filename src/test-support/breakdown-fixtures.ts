@@ -14,7 +14,7 @@ export const line = (over: Over = {}) => {
   const l: Record<string, unknown> = {
     key: "ebay_fee", label: "eBay fee", amountGbp: -18.28, unknownReason: null, source: "fee_model",
     assumed: false, estimate: false, editable: false, editKey: null, included: true,
-    minutes: null, perOrderBand: null, feeBasisVerified: null, note: "vat_reclaimed", ...over,
+    minutes: null, perOrderBand: null, feeBasisVerified: null, service: null, note: "vat_reclaimed", ...over,
   };
   // The fee line defaults to a banded, UNVERIFIED fee (#244: feeBasisVerified is false until eBay's
   // page confirms the £10 band basis); an unknown fee carries neither.
@@ -28,7 +28,7 @@ export const line = (over: Over = {}) => {
 declare function lineShape(): {
   key: string; label: string; amountGbp: number | null; unknownReason: string | null; source: string;
   assumed: boolean; estimate: boolean; editable: boolean; editKey: string | null; included: boolean;
-  minutes: number | null; perOrderBand: string | null; feeBasisVerified: boolean | null; note: string | null;
+  minutes: number | null; perOrderBand: string | null; feeBasisVerified: boolean | null; service: string | null; note: string | null;
 };
 
 const PRICE = { gbp: 136, source: "poketrace-ebay", kind: "asking", asOf: "2026-10-07T18:00:00.000Z", cached: false };
@@ -76,7 +76,7 @@ const buyingLines = (fee: Over, margin: Over, total: Over) => [
   line({ key: "ebay_fee", label: "eBay fee", ...fee }),
   line({ key: "packing", label: "Packing (estimate)", amountGbp: -0.34, source: "default", assumed: true, estimate: true,
          editable: true, editKey: "packingKey", note: "estimate" }),
-  line({ key: "postage", label: "Postage", amountGbp: -3.29, source: "seller_profile", editable: true, editKey: "postageMode", note: null }),
+  line({ key: "postage", label: "Postage", amountGbp: -3.29, source: "seller_profile", editable: true, editKey: "postageMode", service: "tracked48_sp", note: null }),
   line({ key: "target_margin", label: "Your margin", source: "seller_profile", editable: true, editKey: "targetMarginPct", note: null, ...margin }),
   line({ key: "max_buy", label: "Most to pay", source: "fee_model", note: null, ...total }),
 ];

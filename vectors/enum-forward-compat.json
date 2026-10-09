@@ -583,6 +583,120 @@
         },
         "computedAt": "2026-10-08T09:30:00.000Z"
       }
+    },
+    {
+      "name": "unknown_postage_service_on_a_priced_line",
+      "type": "PricedBreakdown",
+      "why": "A fifth postage service added after this build (say a courier the seller adds in Dispatch). It sits on one line of a breakdown, so a propagating throw would lose the whole 'You receive' answer; a client must show the figure under the generic 'Postage', never invent a service name from the code and never fail.",
+      "payload": {
+        "mode": "selling",
+        "lines": [
+          {
+            "key": "sale_price",
+            "label": "Sale price",
+            "amountGbp": 167.0,
+            "unknownReason": null,
+            "source": "request",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          },
+          {
+            "key": "ebay_fee",
+            "label": "eBay fee",
+            "amountGbp": null,
+            "unknownReason": "awaiting_review",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          },
+          {
+            "key": "postage",
+            "label": "Postage",
+            "amountGbp": -3.29,
+            "unknownReason": null,
+            "source": "ebay_policy",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": "buyer_pays",
+            "service": "parcelforce_48"
+          },
+          {
+            "key": "packing",
+            "label": "Packing (estimate)",
+            "amountGbp": -0.34,
+            "unknownReason": null,
+            "source": "default",
+            "assumed": true,
+            "estimate": true,
+            "editable": true,
+            "editKey": "packingKey",
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": "estimate"
+          },
+          {
+            "key": "you_receive",
+            "label": "You receive",
+            "amountGbp": null,
+            "unknownReason": "seller_type_not_set",
+            "source": "fee_model",
+            "assumed": false,
+            "estimate": false,
+            "editable": false,
+            "editKey": null,
+            "included": true,
+            "minutes": null,
+            "perOrderBand": null,
+            "feeBasisVerified": null,
+            "note": null
+          }
+        ],
+        "beside": [],
+        "totals": {
+          "youReceiveGbp": null,
+          "maxBuyGbp": null
+        },
+        "compare": null,
+        "feePosition": {
+          "sellerType": null,
+          "vatRegistered": null,
+          "channel": "ebay",
+          "feeBasis": "not_set"
+        },
+        "notSet": [
+          "sellerType"
+        ],
+        "price": {
+          "gbp": 167.0,
+          "source": null,
+          "kind": null,
+          "asOf": null,
+          "cached": false
+        },
+        "computedAt": "2026-10-08T09:30:00.000Z"
+      }
     }
   ]
 }

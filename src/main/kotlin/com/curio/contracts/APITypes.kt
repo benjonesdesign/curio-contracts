@@ -2334,6 +2334,7 @@ public data class PricedLine(
     val editKey: PricedLineEditKey? = null,
     val included: Boolean,
     val minutes: Double? = null,
+    val service: PostageService? = null,
     val perOrderBand: PerOrderBand? = null,
     val feeBasisVerified: Boolean? = null,
     val note: String? = null,
@@ -2477,6 +2478,48 @@ public object PricedLineEditKeySerializer : KSerializer<PricedLineEditKey> {
         PrimitiveSerialDescriptor("PricedLineEditKey", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): PricedLineEditKey = PricedLineEditKey.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: PricedLineEditKey) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = PostageServiceSerializer::class)
+public sealed interface PostageService {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object RM48_LL : PostageService {
+        override val rawValue: String get() = "rm48_ll"
+    }
+    public object RM24_LL : PostageService {
+        override val rawValue: String get() = "rm24_ll"
+    }
+    public object TRACKED48_SP : PostageService {
+        override val rawValue: String get() = "tracked48_sp"
+    }
+    public object SPECIAL_DELIVERY : PostageService {
+        override val rawValue: String get() = "special_delivery"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : PostageService
+
+    public companion object {
+        public fun from(raw: String): PostageService = when (raw) {
+            "rm48_ll" -> RM48_LL
+            "rm24_ll" -> RM24_LL
+            "tracked48_sp" -> TRACKED48_SP
+            "special_delivery" -> SPECIAL_DELIVERY
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object PostageServiceSerializer : KSerializer<PostageService> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("PostageService", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): PostageService = PostageService.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: PostageService) {
         encoder.encodeString(value.rawValue)
     }
 }

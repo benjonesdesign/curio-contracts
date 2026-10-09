@@ -65,6 +65,18 @@ final class BreakdownAndRefusalTests: XCTestCase {
         XCTAssertEqual(listing.minutes, 5)
     }
 
+    func testThePostageLineCarriesAClosedServiceCodeAndAnUnknownOneDecodes() throws {
+        let postage = #"{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "service": "tracked48_sp", "source": "seller_profile", "assumed": false, "estimate": false, "editable": true, "editKey": "postageMode", "included": true, "note": null},"#
+        let known = feeUnset.replacingOccurrences(of: #"{"key": "packing", "label": "Packing (estimate)""#, with: postage + #"{"key": "packing", "label": "Packing (estimate)""#)
+        let b = try decode(PricedBreakdown.self, known)
+        XCTAssertEqual(b.lines.first { $0.key == "postage" }?.service, .tracked48Sp)
+        let future = try decode(PricedBreakdown.self, known.replacingOccurrences(of: "tracked48_sp", with: "parcelforce_48"))
+        guard case .unrecognised(let raw)? = future.lines.first(where: { $0.key == "postage" })?.service else { return XCTFail("expected .unrecognised") }
+        XCTAssertEqual(raw, "parcelforce_48")
+        XCTAssertEqual(future.lines.first { $0.key == "postage" }?.amountGbp, -3.29, "the figure survives an unknown service")
+        XCTAssertNil(try decode(PricedBreakdown.self, feeUnset).lines.first { $0.key == "packing" }?.service, "no service when none applies")
+    }
+
     func testTheFeeLineCarriesItsBandAndWhetherTheBasisIsVerified() throws {
         let j = feeUnset.replacingOccurrences(
             of: #""amountGbp": null, "unknownReason": "seller_type_not_set", "source": "fee_model""#,

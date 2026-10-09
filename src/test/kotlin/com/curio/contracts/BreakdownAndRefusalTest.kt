@@ -57,6 +57,17 @@ class BreakdownAndRefusalTest {
     }
 
     @Test
+    fun `the postage line carries a closed service code and an unknown one decodes`() {
+        val line = """{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "service": "tracked48_sp", "source": "seller_profile", "assumed": false, "estimate": false, "editable": true, "editKey": "postageMode", "included": true, "note": null},"""
+        val known = feeUnset.replaceFirst("{\"key\": \"sale_price\"", line + "\n{\"key\": \"sale_price\"")
+        assertEquals(PostageService.TRACKED48_SP, json.decodeFromString<PricedBreakdown>(known).lines.first { it.key == "postage" }.service)
+        val future = json.decodeFromString<PricedBreakdown>(known.replace("tracked48_sp", "parcelforce_48")).lines.first { it.key == "postage" }
+        assertEquals(PostageService.Unknown("parcelforce_48"), future.service)
+        assertEquals(-3.29, future.amountGbp)
+        assertNull(json.decodeFromString<PricedBreakdown>(feeUnset).lines.first { it.key == "ebay_fee" }.service)
+    }
+
+    @Test
     fun `the fee line carries its band and whether the basis is verified`() {
         val j = feeUnset.replace("\"amountGbp\": null, \"unknownReason\": \"seller_type_not_set\", \"source\": \"fee_model\"",
             "\"amountGbp\": -18.28, \"unknownReason\": null, \"perOrderBand\": \"high\", \"feeBasisVerified\": false, \"source\": \"fee_model\"")

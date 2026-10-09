@@ -53,6 +53,11 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     /** Whole minutes behind a time line: REQUIRED on `packing_time` and `listing_time`, absent/null
      *  elsewhere. */
     minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    /** `postage` only: which Dispatch service the postage is priced on (closed, forward-compatible;
+     *  NO label in the contract, the words come from @curio/copy). Null when the buyer pays (the
+     *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
+     *  when the seller pays. Free postage is a threshold, not a service. */
+    service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
     /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
      *  seller, seller override) or unknown. */
     perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -75,6 +80,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     note: string | null;
     label?: string | null | undefined;
     minutes?: number | null | undefined;
+    service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
@@ -90,6 +96,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     note: string | null;
     label?: string | null | undefined;
     minutes?: number | null | undefined;
+    service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }>, {
@@ -105,6 +112,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     note: string | null;
     label?: string | null | undefined;
     minutes?: number | null | undefined;
+    service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
@@ -120,6 +128,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     note: string | null;
     label?: string | null | undefined;
     minutes?: number | null | undefined;
+    service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }>;
@@ -241,6 +250,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         /** Whole minutes behind a time line: REQUIRED on `packing_time` and `listing_time`, absent/null
          *  elsewhere. */
         minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        /** `postage` only: which Dispatch service the postage is priced on (closed, forward-compatible;
+         *  NO label in the contract, the words come from @curio/copy). Null when the buyer pays (the
+         *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
+         *  when the seller pays. Free postage is a threshold, not a service. */
+        service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
         /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
          *  seller, seller override) or unknown. */
         perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -263,6 +277,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
@@ -278,6 +293,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
@@ -293,6 +309,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
@@ -308,6 +325,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, "many">;
@@ -350,6 +368,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         /** Whole minutes behind a time line: REQUIRED on `packing_time` and `listing_time`, absent/null
          *  elsewhere. */
         minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+        /** `postage` only: which Dispatch service the postage is priced on (closed, forward-compatible;
+         *  NO label in the contract, the words come from @curio/copy). Null when the buyer pays (the
+         *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
+         *  when the seller pays. Free postage is a threshold, not a service. */
+        service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
         /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
          *  seller, seller override) or unknown. */
         perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -372,6 +395,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
@@ -387,6 +411,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
@@ -402,6 +427,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
@@ -417,6 +443,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, "many">;
@@ -495,6 +522,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -511,6 +539,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -552,6 +581,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -568,6 +598,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -609,6 +640,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -625,6 +657,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -666,6 +699,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -682,6 +716,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         note: string | null;
         label?: string | null | undefined;
         minutes?: number | null | undefined;
+        service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];

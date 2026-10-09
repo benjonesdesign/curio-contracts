@@ -8,6 +8,7 @@
 
 import { describe, it, expect } from "vitest";
 import { PricedBreakdownSchema, PricedLineSchema } from "./priced-breakdown.js";
+import { PostageServiceSchema } from "./common.js";
 import {
   line, SELLING_KNOWN, SELLING_FEE_UNSET, BUYING_PRIVATE, BUYING_BUSINESS, BUYING_MARGIN_UNSET, BUYING_FEE_UNSET,
 } from "../test-support/breakdown-fixtures.js";
@@ -152,6 +153,43 @@ describe("PricedBreakdown (v0.2.0): accepts the states a real response is in", (
     expect(PricedLineSchema.safeParse(line({ ...unknown })).success).toBe(true);
     expect(PricedLineSchema.safeParse(line({ ...unknown, feeBasisVerified: false })).success).toBe(false);
     expect(PricedLineSchema.safeParse(line({ ...unknown, perOrderBand: "low" })).success).toBe(false);
+  });
+
+  // ── the postage line's `service` (closed code, no label; H6 "SERVICES YOU OFFER") ──────────────
+  const postage = (over: Record<string, unknown> = {}) =>
+    line({ key: "postage", amountGbp: -3.29, source: "seller_profile", service: "tracked48_sp", note: null, ...over });
+
+  it("is exactly the four services H6 draws, as the keys #229 stores, and nothing invented", () => {
+    expect([...PostageServiceSchema.options]).toEqual(["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]);
+  });
+
+  it("accepts each service on a seller-paid postage line, and null service", () => {
+    for (const service of PostageServiceSchema.options) {
+      expect(PricedLineSchema.safeParse(postage({ service })).success, service).toBe(true);
+    }
+    expect(PricedLineSchema.safeParse(postage({ service: null })).success).toBe(true);
+    const { service: _s, ...absent } = postage();
+    expect(PricedLineSchema.safeParse(absent).success).toBe(true);
+  });
+
+  it("models free postage and buyer-pays as NO service: they are a threshold and a mode, not services", () => {
+    expect(PostageServiceSchema.safeParse("free").success).toBe(false);
+    expect(PostageServiceSchema.safeParse("buyer_pays").success).toBe(false);
+    expect(PricedLineSchema.safeParse(postage({ amountGbp: 0, service: null, note: "buyer_pays" })).success).toBe(true);
+    // the buyer pays, so the seller uses no service
+    expect(PricedLineSchema.safeParse(postage({ amountGbp: 0, note: "buyer_pays" })).success).toBe(false);
+    // free to the buyer above the threshold: the SELLER pays the service Dispatch would use
+    expect(PricedLineSchema.safeParse(postage({ note: "free_postage" })).success).toBe(true);
+  });
+
+  it("REJECTS a service on any line but postage, and on an unknown postage figure", () => {
+    expect(PricedLineSchema.safeParse(line({ key: "packing", amountGbp: -0.34, service: "rm48_ll" })).success).toBe(false);
+    expect(PricedLineSchema.safeParse(postage({ amountGbp: null, unknownReason: "no_price" })).success).toBe(false);
+  });
+
+  it("REJECTS a service outside the closed list, and carries no label", () => {
+    expect(PricedLineSchema.safeParse(postage({ service: "royal_mail_48" })).success).toBe(false);
+    expect(PricedLineSchema.safeParse(postage({ service: "Royal Mail 48 · large letter" })).success).toBe(false);
   });
 
   it("REJECTS fee-basis fields on any other line", () => {

@@ -2896,11 +2896,12 @@ public struct PricedLine: Codable, Sendable {
     public let editKey: PricedLineEditKey?
     public let included: Bool
     public let minutes: Double?
+    public let service: PostageService?
     public let perOrderBand: PerOrderBand?
     public let feeBasisVerified: Bool?
     public let note: String?
 
-    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, included: Bool, minutes: Double?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
+    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, included: Bool, minutes: Double?, service: PostageService?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
         self.key = key
         self.label = label
         self.amountGbp = amountGbp
@@ -2912,6 +2913,7 @@ public struct PricedLine: Codable, Sendable {
         self.editKey = editKey
         self.included = included
         self.minutes = minutes
+        self.service = service
         self.perOrderBand = perOrderBand
         self.feeBasisVerified = feeBasisVerified
         self.note = note
@@ -3033,6 +3035,45 @@ public enum PricedLineEditKey: Codable, Sendable, Equatable, Hashable {
         case "targetMarginPct": self = .targetMarginPct
         case "postageMode": self = .postageMode
         case "packingKey": self = .packingKey
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum PostageService: Codable, Sendable, Equatable, Hashable {
+    case rm48Ll
+    case rm24Ll
+    case tracked48Sp
+    case specialDelivery
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .rm48Ll: return "rm48_ll"
+        case .rm24Ll: return "rm24_ll"
+        case .tracked48Sp: return "tracked48_sp"
+        case .specialDelivery: return "special_delivery"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "rm48_ll": self = .rm48Ll
+        case "rm24_ll": self = .rm24Ll
+        case "tracked48_sp": self = .tracked48Sp
+        case "special_delivery": self = .specialDelivery
         default: self = .unrecognised(rawValue)
         }
     }

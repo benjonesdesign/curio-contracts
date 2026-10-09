@@ -158,6 +158,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
             included: z.ZodBoolean;
             minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
             perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
             feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
             note: z.ZodNullable<z.ZodString>;
@@ -174,6 +175,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }, {
@@ -189,6 +191,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }>, {
@@ -204,6 +207,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }, {
@@ -219,6 +223,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }>, "many">;
@@ -234,6 +239,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             editKey: z.ZodNullable<z.ZodEnum<["targetMarginPct", "postageMode", "packingKey"]>>;
             included: z.ZodBoolean;
             minutes: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+            service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
             perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
             feeBasisVerified: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
             note: z.ZodNullable<z.ZodString>;
@@ -250,6 +256,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }, {
@@ -265,6 +272,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }>, {
@@ -280,6 +288,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }, {
@@ -295,6 +304,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }>, "many">;
@@ -370,6 +380,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -386,6 +397,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -427,6 +439,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -443,6 +456,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -484,6 +498,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -500,6 +515,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -541,6 +557,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -557,6 +574,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -605,6 +623,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -621,6 +640,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -679,6 +699,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -695,6 +716,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -753,6 +775,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -769,6 +792,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -827,6 +851,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];
@@ -843,6 +868,7 @@ export declare const PricingBreakdownResponseSchema: z.ZodEffects<z.ZodObject<{
             note: string | null;
             label?: string | null | undefined;
             minutes?: number | null | undefined;
+            service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
             perOrderBand?: "high" | "low" | null | undefined;
             feeBasisVerified?: boolean | null | undefined;
         }[];

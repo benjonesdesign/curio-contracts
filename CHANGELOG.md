@@ -143,6 +143,17 @@ seller sets a rate, buying and selling; the time lines are `packing_time` and `l
 lot share uses the LOW END of the asking range. **Every breaking change, per platform, is in
 `docs/V0.2.0-ADOPTION.md` "Round 2: what else breaks".**
 
+**1a. Postage service code (added after round 2, product-owner ruling).** `PricedLine.service`
+(optional, nullable) on the `postage` line: the closed `PostageService` enum, declared once in
+`common.ts`: `rm48_ll`, `rm24_ll`, `tracked48_sp`, `special_delivery` (exactly the four services
+Dispatch H6 draws, as the keys #229 stores). Free postage is a threshold and buyer-pays is a mode,
+so neither is a service: when the buyer pays the line has `note: buyer_pays` and `service` null;
+above the free threshold the seller pays the service Dispatch would use and `service` names it.
+Forward-compatible (decisions/0027): Swift `.unrecognised(raw)`, Kotlin `Unknown(raw)`. NO labels in
+the contract: they come from @curio/copy (design/copy to supply); until then clients show generic
+"Postage". Guards: service only on `postage`, never with `buyer_pays`, never on an unknown figure.
+Isolated tests, one golden vector, Swift and Kotlin tests; 7 more mutations, all red.
+
 **1. `PricedBreakdown` attached to real responses.**
 - `PricingBreakdownResponse.breakdown` (required, `mode: "selling"`); request gains optional
   `physicalCardId`, `format`, `postageMode`, `packingKey` (seller intent only, ADR 0028).
@@ -205,8 +216,8 @@ generated-name change; breaks a TS deep import of `decide.js`/`pricing-breakdown
 `src/test-support/` holds shared fixtures and is excluded from the build.
 
 **Verification (round 2).** `npm run build` (141/141 schemas emitted, Swift and Kotlin),
-`npm run check` (no drift), `tsc --noEmit`, `npx vitest run` (31 files, 448 tests), `swift build`
-and `swift test` (35), `./gradlew test --offline` (42; new `BreakdownAndRefusalTest`, updated
+`npm run check` (no drift), `tsc --noEmit`, `npx vitest run` (31 files, 454 tests), `swift build`
+and `swift test` (36), `./gradlew test --offline` (43; new `BreakdownAndRefusalTest`, updated
 `DecideRoundTripTest`/`GoldenVectorTest`). Four new golden vectors (unknown refusal reason, unknown
 status inside a preview, unknown availability, unknown line reason).
 

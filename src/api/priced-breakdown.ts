@@ -38,7 +38,7 @@
 //     crash); `source`, `mode`, `editKey`, `feeBasis`, `channel` and `notSet` entries are small
 //     CLOSED enums, which every client decodes forward-compatibly (`unrecognised`/`Unknown`).
 import { z } from "zod";
-import { MaxBuyUnavailableReasonSchema, PriceKindSchema } from "./common.js";
+import { MaxBuyUnavailableReasonSchema, PostageServiceSchema, PriceKindSchema } from "./common.js";
 import { SellerTypeSchema } from "./profile.js";
 
 /** Where a line's figure came from. `dispatch_rules` and `profile_estimate`, which the postage
@@ -156,6 +156,11 @@ export const PricedLineSchema = z.object({
   /** Whole minutes behind a time line: REQUIRED on `packing_time` and `listing_time`, absent/null
    *  elsewhere. */
   minutes: z.number().nullable().optional(),
+  /** `postage` only: which Dispatch service the postage is priced on (closed, forward-compatible;
+   *  NO label in the contract, the words come from @curio/copy). Null when the buyer pays (the
+   *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
+   *  when the seller pays. Free postage is a threshold, not a service. */
+  service: PostageServiceSchema.nullable().optional(),
   /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
    *  seller, seller override) or unknown. */
   perOrderBand: PerOrderBandSchema.nullable().optional(),
@@ -188,6 +193,11 @@ export const PricedLineSchema = z.object({
   }
   if (l.minutes != null && (l.minutes < 0 || !Number.isInteger(l.minutes))) {
     issue("minutes", "minutes is a whole, non-negative number");
+  }
+  if (l.service != null) {
+    if (l.key !== "postage") issue("service", `line "${l.key}" is not the postage line: service belongs to postage only`);
+    else if (l.note === "buyer_pays") issue("service", "the buyer pays, so no service applies to the seller's postage: service must be null");
+    else if (l.amountGbp === null) issue("service", "an unknown postage figure has no service");
   }
   if (l.key === "ebay_fee") {
     if ((l.amountGbp !== null) !== (l.feeBasisVerified != null)) {

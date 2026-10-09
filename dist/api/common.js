@@ -125,6 +125,31 @@ export const MaxBuyUnavailableReasonSchema = z.enum([
     "no_price",
     "not_viable",
 ]);
+/**
+ * WHICH postage service a postage line is priced on (v0.2.0): the four services the seller's
+ * Dispatch settings (H6, "SERVICES YOU OFFER") draw, and nothing else. Keys are the ones
+ * PLAN-POSTAGE-FUNCTION (#229) stores in `postage_rules`; H6 shows each one's label.
+ *
+ *  - `rm48_ll`          Royal Mail 48 · large letter (the default service in the drawn settings)
+ *  - `rm24_ll`          Royal Mail 24 · large letter
+ *  - `tracked48_sp`     Tracked 48 · small parcel
+ *  - `special_delivery` Special Delivery
+ *
+ * ⚠️ NO LABELS HERE. The contract carries the code; the words ("Royal Mail 48 · large letter")
+ * come from @curio/copy, which design/copy must supply. Until it does a client shows the generic
+ * "Postage" and never invents a service name from the code.
+ *
+ * FREE POSTAGE AND "BUYER PAYS" ARE NOT SERVICES. Free postage is a threshold ("Free postage above
+ * £{x}"), not something a seller offers; above it the seller pays the service Dispatch would use
+ * at that price, so the line carries that service. At or below it the buyer pays and the seller's
+ * postage is £0 (#229), so there is NO service: `PricedLine.service` is null, with the note
+ * `buyer_pays`. A seller with no Dispatch rules at all also has no service (null).
+ *
+ * Forward-compatible (decisions/0027): Swift `.unrecognised(raw)`, Kotlin `Unknown(raw)`. A client
+ * that meets a service it does not know shows the generic "Postage" with the figure, never fails.
+ * Declared ONCE here and referenced by schemas; do not redeclare inline.
+ */
+export const PostageServiceSchema = z.enum(["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]);
 /** Where a market price came from, in the only two classes that matter to a seller. Hoisted from
  *  the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an inline
  *  copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`) are
