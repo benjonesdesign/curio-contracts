@@ -51,6 +51,22 @@ describe("PricingBreakdownRequestSchema", () => {
     expect(r.postageMode).toBe("buyer_pays");
   });
 
+  it("accepts postageFor (estimate | published) and cardsInParcel, both optional (#255)", () => {
+    const base = { price: 167, purchaseCost: 96, marketMedian: 150 };
+    expect(PricingBreakdownRequestSchema.parse({ ...base, postageFor: "published", cardsInParcel: 3 })).toMatchObject({ postageFor: "published", cardsInParcel: 3 });
+    expect(PricingBreakdownRequestSchema.parse({ ...base, postageFor: "estimate" }).cardsInParcel).toBeUndefined();
+    expect(PricingBreakdownRequestSchema.parse(base).postageFor).toBeUndefined();
+  });
+
+  it("REJECTS an unknown postageFor and a bad parcel size (0, fractional, over 500)", () => {
+    const base = { price: 167, purchaseCost: 96, marketMedian: 150 };
+    for (const bad of [{ postageFor: "live" }, { postageFor: "" }, { cardsInParcel: 0 }, { cardsInParcel: -1 }, { cardsInParcel: 1.5 }, { cardsInParcel: 501 }]) {
+      expect(PricingBreakdownRequestSchema.safeParse({ ...base, ...bad }).success, JSON.stringify(bad)).toBe(false);
+    }
+    expect(PricingBreakdownRequestSchema.safeParse({ ...base, cardsInParcel: 500 }).success).toBe(true);
+    expect(PricingBreakdownRequestSchema.safeParse({ ...base, cardsInParcel: 1 }).success).toBe(true);
+  });
+
   it("REJECTS a postage mode that is not a keyed choice: a client sends WHO pays, never a £ figure", () => {
     const base = { price: 167, purchaseCost: 96, marketMedian: 150 };
     expect(PricingBreakdownRequestSchema.safeParse({ ...base, postageMode: "free" }).success).toBe(false);

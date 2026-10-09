@@ -38,6 +38,22 @@ describe("ListingPreviewRequest", () => {
     expect(r.success, JSON.stringify(issues(r))).toBe(true);
   });
 
+  it("takes postageFor once for the batch and cardsInParcel per copy (#255), both optional", () => {
+    const r = ListingPreviewRequestSchema.parse({ postageFor: "published", items: [{ physicalCardId: "a", cardsInParcel: 3 }, { physicalCardId: "b" }] });
+    expect(r.postageFor).toBe("published");
+    expect(r.items[0].cardsInParcel).toBe(3);
+    expect(r.items[1].cardsInParcel).toBeUndefined();
+    expect(ListingPreviewRequestSchema.parse({ items: [{ physicalCardId: "a" }] }).postageFor).toBeUndefined();
+  });
+
+  it("REJECTS an unknown postageFor and a bad parcel size", () => {
+    const one = { physicalCardId: "a" };
+    expect(ListingPreviewRequestSchema.safeParse({ postageFor: "live", items: [one] }).success).toBe(false);
+    for (const cardsInParcel of [0, -2, 2.5, 501]) {
+      expect(ListingPreviewRequestSchema.safeParse({ items: [{ ...one, cardsInParcel }] }).success, String(cardsInParcel)).toBe(false);
+    }
+  });
+
   it("bounds the batch at 200, as the decide batch, and refuses an empty one", () => {
     const many = (n: number) => ({ items: Array.from({ length: n }, (_, i) => ({ physicalCardId: `c${i}` })) });
     expect(ListingPreviewRequestSchema.safeParse(many(200)).success).toBe(true);

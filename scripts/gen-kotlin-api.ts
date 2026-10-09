@@ -35,7 +35,7 @@ import {
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import {
-  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema, PostageServiceSchema, PostageBasisSchema,
+  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema, PostageServiceSchema, PostageBasisSchema, PostageForSchema,
 } from "../src/api/common.js";
 import {
   EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
@@ -186,6 +186,7 @@ registerName(PostageModeSchema, "PostageMode");
 registerName(PerOrderBandSchema, "PerOrderBand");
 registerName(PostageServiceSchema, "PostageService");
 registerName(PostageBasisSchema, "PostageBasis");
+registerName(PostageForSchema, "PostageFor");
 
 // v0.2.0: the copy, its status, and the ONE closed refusal vocabulary. Every enum named here so
 // the emitter never mints a digit-suffixed twin (`status`, `reason`, `code` and `availability` are

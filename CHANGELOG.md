@@ -264,6 +264,12 @@ Plain commits on the same untagged v0.2.0. Rulings: LANE-REPORTS/DECISIONS.md (F
 - Lockstep rule now defined: `ECONOMICS_V2_WIRED` stays OFF until web is deployed on v0.2.0, the iOS
   and Android builds are merged, and a minimum-version check exists before outside testers.
 
+- **Follow-up (pokemon-tool #255), additive:** optional request fields `postageFor` (`PostageFor`:
+  `estimate` | `published`; Dispatch rules vs the eBay policy, the request-side twin of
+  `postageBasis`) and `cardsInParcel` (integer 1-500; drives the 4 + 2-per-extra-card packing
+  default) on `PricingBreakdownRequest`, and on `ListingPreviewRequest` (`postageFor` per batch,
+  `cardsInParcel` per copy).
+
 Verification (round 3): `npm run build` (161/161 schemas), `npm run check` (no drift), `tsc`, vitest
 (33 files, 519 tests), `swift test` (45), `./gradlew test --offline` (50), 5 new golden vectors.
 **Mutation check, round 3.** 57 hand mutations (every rule above, the sum/rounding/negative logic,

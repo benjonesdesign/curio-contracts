@@ -22,7 +22,7 @@
 // at the price about to be published rather than reusing E9c's figure (the price can change in
 // between), so the confirmation can never differ from what the seller was shown.
 import { z } from "zod";
-import { MaxBuyUnavailableReasonSchema } from "./common.js";
+import { cardsInParcelField, MaxBuyUnavailableReasonSchema, PostageForSchema } from "./common.js";
 import { EbayListingFormatSchema } from "./ebay-publish.js";
 import { ListingRefusalReasonSchema } from "./listing-refusal.js";
 import { PhysicalCardSchema } from "./physical-card.js";
@@ -40,12 +40,17 @@ export const ListingPreviewItemRequestSchema = z.object({
   /** A caller-assigned group key — C10's groups ("List now", "Bundle", ...). Echoed on each item
    *  and used to compute `groups[].totals`, so the group captions come from the server. */
   group: z.string().optional(),
+  /** Cards in THIS copy's parcel, default 1: its packing time is 4 minutes + 2 per extra card. */
+  cardsInParcel: cardsInParcelField.optional(),
 });
 export type ListingPreviewItemRequest = z.infer<typeof ListingPreviewItemRequestSchema>;
 
 export const ListingPreviewRequestSchema = z.object({
   /** At most 200, as the decide batch (an account-wide rate limit applies). */
   items: z.array(ListingPreviewItemRequestSchema).min(1).max(200),
+  /** `estimate` (default): Dispatch rules for every copy; `published`: the eBay postage policy.
+   *  One answer for the whole batch, as the breakdown's `postageBasis` reports it per copy. */
+  postageFor: PostageForSchema.optional(),
 });
 export type ListingPreviewRequest = z.infer<typeof ListingPreviewRequestSchema>;
 

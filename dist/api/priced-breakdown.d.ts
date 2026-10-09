@@ -78,12 +78,12 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
      *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
     note: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
+    estimate: boolean;
     source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
     assumed: boolean;
-    estimate: boolean;
     editable: boolean;
     editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
     included: boolean;
@@ -95,12 +95,12 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
+    estimate: boolean;
     source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
     assumed: boolean;
-    estimate: boolean;
     editable: boolean;
     editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
     included: boolean;
@@ -112,12 +112,12 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }>, {
+    estimate: boolean;
     source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
     assumed: boolean;
-    estimate: boolean;
     editable: boolean;
     editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
     included: boolean;
@@ -129,12 +129,12 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
+    estimate: boolean;
     source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
     assumed: boolean;
-    estimate: boolean;
     editable: boolean;
     editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
     included: boolean;
@@ -283,12 +283,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
         note: z.ZodNullable<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -300,12 +300,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -317,12 +317,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -334,12 +334,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -409,12 +409,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
         note: z.ZodNullable<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -426,12 +426,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -443,12 +443,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -460,12 +460,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -540,12 +540,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     mode: "selling" | "buying";
     lines: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -558,12 +558,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -601,12 +601,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, {
     mode: "selling" | "buying";
     lines: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -619,12 +619,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -662,12 +662,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }>, {
     mode: "selling" | "buying";
     lines: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -680,12 +680,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -723,12 +723,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, {
     mode: "selling" | "buying";
     lines: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;
@@ -741,12 +741,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
+        estimate: boolean;
         source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
         assumed: boolean;
-        estimate: boolean;
         editable: boolean;
         editKey: "targetMarginPct" | "postageMode" | "packingKey" | null;
         included: boolean;

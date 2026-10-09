@@ -2086,6 +2086,8 @@ public data class PricingBreakdownRequest(
     val format: EbayListingFormat? = null,
     val postageMode: PostageMode? = null,
     val packingKey: String? = null,
+    val postageFor: PostageFor? = null,
+    val cardsInParcel: Int? = null,
 )
 
 @Serializable(with = CollectionType3Serializer::class)
@@ -2186,6 +2188,40 @@ public object PostageModeSerializer : KSerializer<PostageMode> {
         PrimitiveSerialDescriptor("PostageMode", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): PostageMode = PostageMode.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: PostageMode) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = PostageForSerializer::class)
+public sealed interface PostageFor {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object ESTIMATE : PostageFor {
+        override val rawValue: String get() = "estimate"
+    }
+    public object PUBLISHED : PostageFor {
+        override val rawValue: String get() = "published"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : PostageFor
+
+    public companion object {
+        public fun from(raw: String): PostageFor = when (raw) {
+            "estimate" -> ESTIMATE
+            "published" -> PUBLISHED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object PostageForSerializer : KSerializer<PostageFor> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("PostageFor", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): PostageFor = PostageFor.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: PostageFor) {
         encoder.encodeString(value.rawValue)
     }
 }
@@ -3059,6 +3095,7 @@ public object GameRefusalCodeSerializer : KSerializer<GameRefusalCode> {
 @Serializable
 public data class ListingPreviewRequest(
     val items: List<ListingPreviewItemRequest>,
+    val postageFor: PostageFor? = null,
 )
 
 @Serializable
@@ -3069,6 +3106,7 @@ public data class ListingPreviewItemRequest(
     val postageMode: PostageMode? = null,
     val packingKey: String? = null,
     val group: String? = null,
+    val cardsInParcel: Int? = null,
 )
 
 @Serializable

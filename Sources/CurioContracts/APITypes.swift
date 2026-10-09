@@ -2612,8 +2612,10 @@ public struct PricingBreakdownRequest: Codable, Sendable {
     public let format: EbayListingFormat?
     public let postageMode: PostageMode?
     public let packingKey: String?
+    public let postageFor: PostageFor?
+    public let cardsInParcel: Int?
 
-    public init(price: Double, purchaseCost: Double, marketMedian: Double, collectionType: CollectionType3?, priceSource: String?, settings: PricingSettings?, physicalCardId: String?, format: EbayListingFormat?, postageMode: PostageMode?, packingKey: String?) {
+    public init(price: Double, purchaseCost: Double, marketMedian: Double, collectionType: CollectionType3?, priceSource: String?, settings: PricingSettings?, physicalCardId: String?, format: EbayListingFormat?, postageMode: PostageMode?, packingKey: String?, postageFor: PostageFor?, cardsInParcel: Int?) {
         self.price = price
         self.purchaseCost = purchaseCost
         self.marketMedian = marketMedian
@@ -2624,6 +2626,8 @@ public struct PricingBreakdownRequest: Codable, Sendable {
         self.format = format
         self.postageMode = postageMode
         self.packingKey = packingKey
+        self.postageFor = postageFor
+        self.cardsInParcel = cardsInParcel
     }
 }
 
@@ -2712,6 +2716,39 @@ public enum PostageMode: Codable, Sendable, Equatable, Hashable {
         switch rawValue {
         case "seller_pays": self = .sellerPays
         case "buyer_pays": self = .buyerPays
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum PostageFor: Codable, Sendable, Equatable, Hashable {
+    case estimate
+    case published
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .estimate: return "estimate"
+        case .published: return "published"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "estimate": self = .estimate
+        case "published": self = .published
         default: self = .unrecognised(rawValue)
         }
     }
@@ -3727,9 +3764,11 @@ public enum GameRefusalCode: Codable, Sendable, Equatable, Hashable {
 
 public struct ListingPreviewRequest: Codable, Sendable {
     public let items: [ListingPreviewItemRequest]
+    public let postageFor: PostageFor?
 
-    public init(items: [ListingPreviewItemRequest]) {
+    public init(items: [ListingPreviewItemRequest], postageFor: PostageFor?) {
         self.items = items
+        self.postageFor = postageFor
     }
 }
 
@@ -3740,14 +3779,16 @@ public struct ListingPreviewItemRequest: Codable, Sendable {
     public let postageMode: PostageMode?
     public let packingKey: String?
     public let group: String?
+    public let cardsInParcel: Int?
 
-    public init(physicalCardId: String, priceGbp: Double?, format: EbayListingFormat?, postageMode: PostageMode?, packingKey: String?, group: String?) {
+    public init(physicalCardId: String, priceGbp: Double?, format: EbayListingFormat?, postageMode: PostageMode?, packingKey: String?, group: String?, cardsInParcel: Int?) {
         self.physicalCardId = physicalCardId
         self.priceGbp = priceGbp
         self.format = format
         self.postageMode = postageMode
         self.packingKey = packingKey
         self.group = group
+        self.cardsInParcel = cardsInParcel
     }
 }
 

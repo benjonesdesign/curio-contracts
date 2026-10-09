@@ -238,4 +238,16 @@ class BreakdownAndRefusalTest {
         val enc = json.encodeToString(GradedCreateRequest.serializer(), GradedCreateRequest(batchId = "11111111-2222-4333-8444-555555555555", name = "Charizard", grader = SlabGrader.PSA, grade = "10", certNumber = "1"))
         assertTrue("certVerified" !in enc && "\"sku\"" !in enc)
     }
+
+    @Test
+    fun `postageFor and cardsInParcel are optional request fields`() {
+        val r = json.decodeFromString<PricingBreakdownRequest>("""{"price": 167, "purchaseCost": 96, "marketMedian": 150, "postageFor": "published", "cardsInParcel": 3}""")
+        assertEquals(PostageFor.PUBLISHED, r.postageFor)
+        assertEquals(3, r.cardsInParcel)
+        val bare = json.decodeFromString<PricingBreakdownRequest>("""{"price": 167, "purchaseCost": 96, "marketMedian": 150}""")
+        assertNull(bare.postageFor); assertNull(bare.cardsInParcel)
+        val p = json.decodeFromString<ListingPreviewRequest>("""{"postageFor": "estimate", "items": [{"physicalCardId": "a", "cardsInParcel": 2}]}""")
+        assertEquals(PostageFor.ESTIMATE, p.postageFor)
+        assertEquals(2, p.items[0].cardsInParcel)
+    }
 }

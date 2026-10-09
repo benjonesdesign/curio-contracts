@@ -353,4 +353,15 @@ final class BreakdownAndRefusalTests: XCTestCase {
         XCTAssertFalse(enc.contains("certVerified"), "the request carries no verification flag")
         XCTAssertFalse(enc.contains("sku"), "and no sku")
     }
+
+    func testPostageForAndCardsInParcelAreOptionalRequestFields() throws {
+        let r = try decode(PricingBreakdownRequest.self, #"{"price": 167, "purchaseCost": 96, "marketMedian": 150, "postageFor": "published", "cardsInParcel": 3}"#)
+        XCTAssertEqual(r.postageFor, .published)
+        XCTAssertEqual(r.cardsInParcel, 3)
+        let bare = try decode(PricingBreakdownRequest.self, #"{"price": 167, "purchaseCost": 96, "marketMedian": 150}"#)
+        XCTAssertNil(bare.postageFor); XCTAssertNil(bare.cardsInParcel)
+        let p = try decode(ListingPreviewRequest.self, #"{"postageFor": "estimate", "items": [{"physicalCardId": "a", "cardsInParcel": 2}]}"#)
+        XCTAssertEqual(p.postageFor, .estimate)
+        XCTAssertEqual(p.items[0].cardsInParcel, 2)
+    }
 }

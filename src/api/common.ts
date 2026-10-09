@@ -177,6 +177,23 @@ export type PostageService = z.infer<typeof PostageServiceSchema>;
 export const PostageBasisSchema = z.enum(["ebay_policy", "dispatch_rules"]);
 export type PostageBasis = z.infer<typeof PostageBasisSchema>;
 
+/**
+ * What a postage figure is being asked FOR (a REQUEST field, v0.2.0; pokemon-tool #255). `estimate`
+ * (the default) prices on the seller's Dispatch rules; `published` prices on the eBay postage policy
+ * the listing actually uses. It is the request-side twin of the response's `PostageBasis`
+ * (`dispatch_rules` / `ebay_policy`): ask for `published`, get `ebay_policy` back (or the same answer
+ * as an estimate when no usable policy exists). Closed and forward-compatible (decisions/0027).
+ * Declared once here.
+ */
+export const PostageForSchema = z.enum(["estimate", "published"]);
+export type PostageFor = z.infer<typeof PostageForSchema>;
+
+/** Cards in the parcel (>= 1, <= 500): drives the packing-time default of 4 minutes + 2 per extra
+ *  card. Absent means 1. Seller INTENT, not a figure the world sets (ADR 0028). */
+// (Named without the `Schema` suffix on purpose: it is a bare number rule shared by two requests, not
+// a type to generate, and the coverage sweep counts every exported `*Schema` it cannot see emitted.)
+export const cardsInParcelField = z.number().int().min(1).max(500);
+
 /** Where a market price came from, in the only two classes that matter to a seller. Hoisted from
  *  the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an inline
  *  copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`) are

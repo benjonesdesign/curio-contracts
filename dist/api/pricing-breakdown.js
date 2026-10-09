@@ -7,7 +7,7 @@
 // seller is deciding a price) — this route is the only correct way for iOS to get live net-profit
 // feedback on Spec 06's price step.
 import { z } from "zod";
-import { FeeNotSetReasonSchema, PriceKindSchema } from "./common.js";
+import { cardsInParcelField, FeeNotSetReasonSchema, PostageForSchema, PriceKindSchema } from "./common.js";
 import { EbayListingFormatSchema } from "./ebay-publish.js";
 import { PostageModeSchema, PricedBreakdownSchema } from "./priced-breakdown.js";
 import { PricingSettingsSchema } from "./recommend.js";
@@ -45,6 +45,12 @@ export const PricingBreakdownRequestSchema = z.object({
     /** A keyed packing choice from the server-owned catalogue (open string: the catalogue is the
      *  server's, and a key a client has never seen must not fail the request). */
     packingKey: z.string().optional(),
+    /** `estimate` (default): the seller's Dispatch rules; `published`: the eBay postage policy the
+     *  listing uses. The response's postage line says which it used (`postageBasis`). */
+    postageFor: PostageForSchema.optional(),
+    /** Cards in the parcel, default 1: packing time is the ruled default of 4 minutes + 2 per extra
+     *  card (when an hourly rate is set and the seller has no minutes of their own). */
+    cardsInParcel: cardsInParcelField.optional(),
 });
 /**
  * v0.2.0 (BREAKING): every figure that CONTAINS the seller's eBay fee is nullable, together, with
