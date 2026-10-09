@@ -20,6 +20,7 @@ import {
   DecisionSchema, DecisionEconomicsSchema, QuickScanRequestSchema, QuickScanResponseSchema,
 } from "./decide.js";
 import { MaxBuyUnavailableReasonSchema } from "./common.js";
+import { PricedBreakdownSchema } from "./priced-breakdown.js";
 import { BUYING_BUSINESS, BUYING_FEE_UNSET, BUYING_PRIVATE, SELLING_KNOWN } from "../test-support/breakdown-fixtures.js";
 import { PricingSettingsSchema } from "./recommend.js";
 
@@ -80,7 +81,7 @@ const UNSET_ECONOMICS = {
 const BASE_DECISION = {
   route: "list_single", reason: "sound_single_listing", alternatives: [], confidence: "high",
   liquidity: "high", economics: KNOWN_ECONOMICS,
-  maxBuyGbp: 66.49, maxBuyUnavailableReason: null, minAcceptGbp: 12.5, offerPctAtMax: 48.9,
+  maxBuyGbp: 66, maxBuyUnavailableReason: null, minAcceptGbp: 12.5, offerPctAtMax: 48.9,
   degraded: false, degradedReasons: [], assumptions: [],
 };
 // Fee known, margin not chosen: the most common "Not set" a seller will see.
@@ -263,7 +264,7 @@ describe("DecideResponse: the breakdown beside the decision (v0.2.0)", () => {
   const PRICE = { source: "poketrace-ebay", confidence: "medium", currencyNote: null };
   const known = { decision: BASE_DECISION, price: PRICE, breakdown: BUYING_BUSINESS };
 
-  it("accepts a decision with its breakdown: £66.49 on the decision, SHOWN £66 on the lines", () => {
+  it("accepts a decision with its breakdown: the SAME whole-pound figure, £66, on both", () => {
     const r = DecideResponseSchema.safeParse(known);
     expect(r.success, JSON.stringify(issues(r))).toBe(true);
   });
@@ -272,28 +273,34 @@ describe("DecideResponse: the breakdown beside the decision (v0.2.0)", () => {
     expect(DecideResponseSchema.safeParse({ decision: BASE_DECISION, price: PRICE }).success).toBe(false);
   });
 
-  it("accepts a decision whose most-to-pay is ALREADY a whole pound (floor of a floored figure)", () => {
-    expect(DecideResponseSchema.safeParse({ ...known, decision: { ...BASE_DECISION, maxBuyGbp: 66 } }).success).toBe(true);
+  it("REJECTS pence on Decision.maxBuyGbp: it is whole pounds, rounded DOWN by the server (Ben, 2026-10-09)", () => {
+    const r = DecisionSchema.safeParse({ ...BASE_DECISION, maxBuyGbp: 66.49 });
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => i.path[0] === "maxBuyGbp" && /whole/.test(i.message))).toBe(true);
+    expect(DecisionSchema.safeParse({ ...BASE_DECISION, maxBuyGbp: 66.0 }).success).toBe(true);
+    expect(DecisionSchema.safeParse({ ...BASE_DECISION, maxBuyGbp: 0, offerPctAtMax: 0 }).success).toBe(true);   // £0 is a real answer
+    expect(DecisionSchema.safeParse({ ...BASE_DECISION, maxBuyGbp: -1 }).success).toBe(false);
   });
 
-  it("REJECTS a breakdown total that is not the decision's most-to-pay rounded DOWN", () => {
-    // rounded UP (67), rounded to nearest-pence (66.49 -> not an integer is caught elsewhere), or
-    // simply a different figure: the headline and the lines would disagree.
+  it("REJECTS a breakdown total that is not the decision's most-to-pay: one figure, reported once", () => {
     const up = { ...BUYING_BUSINESS, totals: { youReceiveGbp: null, maxBuyGbp: 67 },
       lines: BUYING_BUSINESS.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 67 } : l)) };
-    const r = DecideResponseSchema.safeParse({ ...known, breakdown: up });
+    // isolate the decision/breakdown equality: the breakdown alone is rejected by its own sum rule,
+    // so also give it a line that makes 67 the true rounded-down sum
+    const consistent67 = { ...up, lines: up.lines.map((l) => (l.key === "target_margin" ? { ...l, amountGbp: -46.6 } : l)) };
+    const r = DecideResponseSchema.safeParse({ ...known, breakdown: consistent67 });
     expect(r.success).toBe(false);
-    expect(issues(r).some((i) => /rounded down to the pound/.test(i.message))).toBe(true);
+    expect(issues(r).some((i) => /one whole-pound figure, reported once/.test(i.message))).toBe(true);
   });
 
-  it("accepts the owner's private-seller example: engine £84.77 on the decision, SHOWN £84 (round DOWN, not nearest)", () => {
-    const privateDecision = { ...BASE_DECISION, economics: { ...KNOWN_ECONOMICS, feeGbp: 0, expectedNetGbp: 132.37 }, maxBuyGbp: 84.77, offerPctAtMax: 62.3 };
+  it("accepts the owner's private-seller example: £84.77 of lines, rounded DOWN to £84 on both", () => {
+    const privateDecision = { ...BASE_DECISION, economics: { ...KNOWN_ECONOMICS, feeGbp: 0, expectedNetGbp: 132.37 }, maxBuyGbp: 84, offerPctAtMax: 61.8 };
     const r = DecideResponseSchema.safeParse({ decision: privateDecision, price: PRICE, breakdown: BUYING_PRIVATE });
     expect(r.success, JSON.stringify(issues(r))).toBe(true);
-    // 84.77 rounds to 85 to the nearest pound: a breakdown saying 85 would overstate what to pay
+    // 85 is the nearest pound to £84.77: the breakdown's own rule refuses it (the lines sum to 84.77)
     const nearest = { ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: 85 },
       lines: BUYING_PRIVATE.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: 85 } : l)) };
-    expect(DecideResponseSchema.safeParse({ decision: privateDecision, price: PRICE, breakdown: nearest }).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse(nearest).success).toBe(false);
   });
 
   it("REJECTS a decision with a most-to-pay beside a breakdown whose most-to-pay is null for want of a margin", () => {

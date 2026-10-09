@@ -181,7 +181,7 @@ final class BreakdownAndRefusalTests: XCTestCase {
     func testPhysicalCardHasANonNullSkuAndHeldCarriesHeldAt() throws {
         let c = try decode(PhysicalCard.self, #"""
         {"id": "a", "sku": "SKU-11111111", "status": "HELD", "game": "pokemon", "name": "Giratina V", "setName": null, "cardNumber": "186/196",
-         "condition": "NM", "conditionConfirmed": true, "heldAt": "2026-10-06T10:15:00.000Z"}
+         "condition": "NM", "conditionConfirmed": true, "heldAt": "2026-10-06T10:15:00.000Z", "isMine": false, "mineSetAt": null, "setAsideReason": null, "setAsideAt": null}
         """#)
         XCTAssertEqual(c.sku, "SKU-11111111")
         XCTAssertEqual(c.status, .hELD)
@@ -191,13 +191,13 @@ final class BreakdownAndRefusalTests: XCTestCase {
     func testUnmatchedDecodesAndAFutureStatusDoesNotLoseTheCopy() throws {
         let u = try decode(PhysicalCard.self, #"""
         {"id": "a", "sku": "SKU-11111111", "status": "UNMATCHED", "game": "pokemon", "name": "Charzard", "setName": null, "cardNumber": null,
-         "condition": null, "conditionConfirmed": false, "heldAt": null}
+         "condition": null, "conditionConfirmed": false, "heldAt": null, "isMine": false, "mineSetAt": null, "setAsideReason": null, "setAsideAt": null}
         """#)
         XCTAssertEqual(u.status, .uNMATCHED)
         XCTAssertNil(u.heldAt)
         let f = try decode(PhysicalCard.self, #"""
         {"id": "a", "sku": "SKU-11111111", "status": "QUARANTINED", "game": "pokemon", "name": null, "setName": null, "cardNumber": null,
-         "condition": null, "conditionConfirmed": false, "heldAt": null}
+         "condition": null, "conditionConfirmed": false, "heldAt": null, "isMine": false, "mineSetAt": null, "setAsideReason": null, "setAsideAt": null}
         """#)
         guard case .unrecognised(let raw) = f.status else { return XCTFail("expected .unrecognised") }
         XCTAssertEqual(raw, "QUARANTINED")
@@ -229,7 +229,7 @@ final class BreakdownAndRefusalTests: XCTestCase {
     func testListingPreviewDecodesWithRefusalsAndTotals() throws {
         let j = #"""
         {"items": [
-          {"card": {"id": "a", "sku": "SKU-AAAAAAAA", "status": "READY_TO_LIST", "game": "pokemon", "name": "A", "setName": null, "cardNumber": null, "condition": "NM", "conditionConfirmed": true, "heldAt": null},
+          {"card": {"id": "a", "sku": "SKU-AAAAAAAA", "status": "READY_TO_LIST", "game": "pokemon", "name": "A", "setName": null, "cardNumber": null, "condition": "NM", "conditionConfirmed": true, "heldAt": null, "isMine": false, "mineSetAt": null, "setAsideReason": null, "setAsideAt": null},
            "listable": false, "refusalReason": "mine", "breakdown": null, "belowFloor": null, "group": null}
         ],
          "groups": [],
@@ -241,5 +241,116 @@ final class BreakdownAndRefusalTests: XCTestCase {
         XCTAssertNil(p.items[0].breakdown)
         XCTAssertEqual(p.items[0].card.sku, "SKU-AAAAAAAA")
         XCTAssertEqual(p.totals.youReceiveGbp, 0)
+    }
+
+    // MARK: Owner rulings 2026-10-09
+
+    func testANegativeYouReceiveIsKeptNegativeAndFlaggedBelowCost() throws {
+        let j = #"""
+        {"mode": "selling", "lines": [
+          {"key": "sale_price", "label": "Sale price", "amountGbp": 5.0, "unknownReason": null, "source": "request", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},
+          {"key": "you_receive", "label": "You receive", "amountGbp": -13.62, "unknownReason": null, "source": "fee_model", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": "below_cost"}],
+         "beside": [], "totals": {"youReceiveGbp": -13.62, "maxBuyGbp": null}, "compare": null,
+         "feePosition": {"sellerType": "business", "vatRegistered": true, "channel": "ebay", "feeBasis": "derived"}, "notSet": [],
+         "price": {"gbp": 5.0, "source": null, "kind": null, "asOf": null, "cached": false}, "computedAt": "2026-10-09T09:30:00.000Z"}
+        """#
+        let b = try decode(PricedBreakdown.self, j)
+        XCTAssertEqual(b.totals.youReceiveGbp, -13.62, "the true negative, never clamped to 0")
+        XCTAssertEqual(b.lines.first { $0.key == "you_receive" }?.note, "below_cost")
+    }
+
+    func testThePostageLineCarriesItsBasis() throws {
+        let j = feeUnset.replacingOccurrences(of: #"{"key": "packing", "label": "Packing (estimate)""#,
+            with: #"{"key": "postage", "label": "Postage", "amountGbp": -3.29, "unknownReason": null, "postageBasis": "ebay_policy", "source": "ebay_policy", "assumed": false, "estimate": false, "editable": false, "editKey": null, "included": true, "note": null},{"key": "packing", "label": "Packing (estimate)""#)
+        let b = try decode(PricedBreakdown.self, j)
+        XCTAssertEqual(b.lines.first { $0.key == "postage" }?.postageBasis, .ebayPolicy)
+        let future = try decode(PricedBreakdown.self, j.replacingOccurrences(of: "ebay_policy\", \"source", with: "carrier_quote\", \"source"))
+        guard case .unrecognised(let raw)? = future.lines.first(where: { $0.key == "postage" })?.postageBasis else { return XCTFail("expected .unrecognised") }
+        XCTAssertEqual(raw, "carrier_quote")
+    }
+
+    func testThereIsOneTaxRateAndNoBuyingTaxRate() throws {
+        let p = try decode(ProfileResponse.self, #"""
+        {"sellerType": null, "sellerTypeConfirmedAt": null, "sellerTypeSource": "manual", "suggestedSellerType": null, "vatRegistered": null, "vatConfirmedAt": null,
+         "feeNotSetReason": "seller_type_not_set", "buyingTargetMarginPct": null, "buyingTargetMarginSetAt": null,
+         "dispatchAddress": {"line1": null, "city": null, "postcode": null, "country": "GB"}, "agedInventoryDays": 60,
+         "pricingSettings": {"ebayFeeRate": null, "ebayFeeFixed": null, "packagingCost": 0.34, "shippingCost": 0, "taxRate": null, "minProfitPct": 0.25, "minSaleValue": 1.5, "postageCost": 1.55},
+         "effectivePricingSettings": {"ebayFeeRate": null, "ebayFeeFixed": null, "packagingCost": 0.34, "shippingCost": 0, "taxRate": null, "minProfitPct": 0.25, "minSaleValue": 1.5, "postageCost": 1.55},
+         "isAdmin": false}
+        """#)
+        XCTAssertNil(p.pricingSettings.taxRate)
+        XCTAssertNil(p.effectivePricingSettings.taxRate, "null = no tax set aside, buying or selling")
+    }
+
+    // MARK: Mine, set aside, put back, stats
+
+    func testPerCopyChangeResultsDecodeAndAnUnknownRefusalReasonDoesNotLoseTheOthers() throws {
+        let r = try decode(InventoryChangeResponse.self, #"""
+        {"results": [{"id": "a", "outcome": "changed", "status": "EXCEPTION", "droppedChannel": "bundle"},
+                     {"id": "b", "outcome": "refused", "reason": "live_on_ebay", "error": "End the listing first."},
+                     {"id": "c", "outcome": "refused", "reason": "locked", "error": "Locked."},
+                     {"id": "d", "outcome": "changed", "previousReason": "other"}],
+         "summary": {"changed": 2, "unchanged": 0, "refused": 2, "failed": 0}}
+        """#)
+        XCTAssertEqual(r.results[0].droppedChannel, "bundle")
+        XCTAssertEqual(r.results[1].reason, .liveOnEbay)
+        guard case .unrecognised(let raw)? = r.results[2].reason else { return XCTFail("expected .unrecognised") }
+        XCTAssertEqual(raw, "locked")
+        XCTAssertEqual(r.results[3].previousReason, .other)
+        XCTAssertEqual(r.summary.refused, 2)
+    }
+
+    func testSetAsideRequestTakesAChipOrNothing() throws {
+        let enc = try JSONEncoder().encode(SetAsideRequest(ids: ["a"], reason: .looksOff))
+        XCTAssertTrue(String(data: enc, encoding: .utf8)!.contains("looks_off"))
+        let skipped = try decode(SetAsideRequest.self, #"{"ids": ["a"]}"#)
+        XCTAssertNil(skipped.reason)
+    }
+
+    func testAMineCopyCarriesIsMineAndASetAsideCopySaysSinceWhenAndWhy() throws {
+        let c = try decode(PhysicalCard.self, #"""
+        {"id": "a", "sku": "SKU-11111111", "status": "EXCEPTION", "game": "pokemon", "name": "X", "setName": null, "cardNumber": null,
+         "condition": "NM", "conditionConfirmed": true, "heldAt": null, "isMine": true, "mineSetAt": "2026-10-09T10:00:00.000Z",
+         "setAsideReason": "looks_off", "setAsideAt": "2026-10-09T11:00:00.000Z"}
+        """#)
+        XCTAssertTrue(c.isMine)
+        XCTAssertEqual(c.setAsideReason, .looksOff)
+        XCTAssertEqual(c.status, .eXCEPTION)
+    }
+
+    func testStatsCarryCountsAndTheMineCollectionValuedApart() throws {
+        let s = try decode(StatsResponse.self, #"""
+        {"statusCounts": {"READY_TO_LIST": 4, "HELD": 1}, "costBasis": 120, "estValue": 65, "realisedGain": 12.5, "agedListings": 0, "totalCards": 8,
+         "counts": {"stock": 5, "mine": 2, "setAside": 1},
+         "collectionValue": {"count": 2, "pricedCount": 0, "notPricedCount": 2, "lowGbp": null, "highGbp": null, "sources": []}}
+        """#)
+        XCTAssertEqual(s.counts.mine, 2)
+        XCTAssertNil(s.collectionValue.lowGbp, "an unpriced collection is nil, never 0")
+        XCTAssertEqual(s.statusCounts["HELD"], 1)
+    }
+
+    // MARK: Graded slab
+
+    func testASlabIsRefusedWithSlabUnverifiedAndAFutureReasonStillDecodes() throws {
+        let r = try decode(ListingRefusal.self, #"{"error": "Not verified", "code": "card_not_listable", "reason": "slab_unverified"}"#)
+        XCTAssertEqual(r.reason, .slabUnverified)
+        let arm = try decode(EbayPublishErrorResponse.self, #"{"error": "x", "failure": {"code": "card_not_listable", "message": "x", "reason": "slab_unverified"}}"#)
+        guard case .cardNotListable(let a) = arm.failure else { return XCTFail("expected cardNotListable") }
+        XCTAssertEqual(a.reason, .slabUnverified)
+    }
+
+    func testTheGradedCreateResponseCarriesTheSkuAndWhetherTheCertWasVerified() throws {
+        let g = try decode(GradedCreateResponse.self, #"""
+        {"physicalCardId": "aaaaaaaa-2222-4333-8444-555555555555", "legacyCardId": null, "sku": "SKU-AAAAAAAA", "status": "NEEDS_ID_REVIEW",
+         "created": false, "certVerified": false, "certCheck": "unsupported_grader", "catalogueMatched": false}
+        """#)
+        XCTAssertEqual(g.sku, "SKU-AAAAAAAA")
+        XCTAssertFalse(g.certVerified)
+        XCTAssertEqual(g.certCheck, .unsupportedGrader)
+        XCTAssertFalse(g.created, "a retry returns the same copy")
+        let enc = String(data: try JSONEncoder().encode(GradedCreateRequest(batchId: "11111111-2222-4333-8444-555555555555", game: nil, name: "Charizard", setName: nil, cardNumber: nil, language: nil, grader: .bGSBeckett, grade: "9.5", certNumber: "1", purchaseCost: nil, suggestedPrice: nil, collectionType: nil, photoPaths: nil, thumbPaths: nil, notes: nil)), encoding: .utf8)!
+        XCTAssertTrue(enc.contains("Beckett"))
+        XCTAssertFalse(enc.contains("certVerified"), "the request carries no verification flag")
+        XCTAssertFalse(enc.contains("sku"), "and no sku")
     }
 }

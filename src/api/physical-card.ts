@@ -62,6 +62,16 @@ export const PhysicalCardStatusSchema = z.enum([
 export type PhysicalCardStatus = z.infer<typeof PhysicalCardStatusSchema>;
 
 /**
+ * WHY a seller set a copy aside: a CHIP choice only, never free text (DECISIONS QC.7). Closed and
+ * forward-compatible (decisions/0027). Labels come from @curio/copy, not the contract:
+ *   looks_off ("Doesn't look genuine") · altered_or_damaged · unsupported_game ("Not a game Seek
+ *   lists") · other ("Something else"). Skipping the reason is allowed: it is null on the copy.
+ * From pokemon-tool #259/#260 (`physical_cards.set_aside_reason`, a CHECK on exactly these four).
+ */
+export const SetAsideReasonSchema = z.enum(["looks_off", "altered_or_damaged", "unsupported_game", "other"]);
+export type SetAsideReason = z.infer<typeof SetAsideReasonSchema>;
+
+/**
  * One owned copy, as the API returns it (v0.2.0).
  *
  * ── `sku` IS A NON-NULL STRING ON EVERY COPY ────────────────────────────────────────────────
@@ -106,7 +116,33 @@ export const PhysicalCardSchema = z.object({
   /** When the seller chose to hold it (`held_at`). Non-null whenever `status` is HELD; null for a
    *  copy that was never held (or was listed on purpose, which clears the hold). Required key. */
   heldAt: z.string().datetime().nullable(),
+  /**
+   * Mine (a keeper, never listed): `allocation_channel = keep`. NOT a status (a copy is Mine OR
+   * stock; Mine and set aside can both be true). The only way back is "Change to stock".
+   */
+  isMine: z.boolean(),
+  /** When it became Mine ("Set by you on {date}"). Stamped by the database, so a client cannot
+   *  back-date it; null when not Mine, and for a legacy Mine row from before the stamp existed. */
+  mineSetAt: z.string().datetime().nullable(),
+  /** The seller's chip, when the copy is set aside (status EXCEPTION). Null = skipped, or not set aside. */
+  setAsideReason: SetAsideReasonSchema.nullable(),
+  /** When it was set aside ("By you on {date}"). Non-null exactly while status is EXCEPTION. */
+  setAsideAt: z.string().datetime().nullable(),
 }).superRefine((c, ctx) => {
+  if ((c.status === "EXCEPTION") !== (c.setAsideAt !== null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["setAsideAt"],
+      message: c.status === "EXCEPTION"
+        ? "status is EXCEPTION (set aside), so setAsideAt is required: it says since when"
+        : "setAsideAt is set but the copy is not set aside (status is not EXCEPTION)" });
+  }
+  if (c.setAsideReason !== null && c.setAsideAt === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["setAsideReason"],
+      message: "setAsideReason is set but the copy is not set aside" });
+  }
+  if (c.mineSetAt !== null && !c.isMine) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["mineSetAt"],
+      message: "mineSetAt is set but the copy is not Mine" });
+  }
   if (c.status === "HELD" && c.heldAt === null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["heldAt"],
       message: "status is HELD, so heldAt is required: a held copy says since when" });

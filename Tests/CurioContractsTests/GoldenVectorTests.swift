@@ -123,6 +123,27 @@ final class GoldenVectorTests: XCTestCase {
                 let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
                 XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
 
+            case "PhysicalCard":
+                let decoded = try JSONDecoder().decode(PhysicalCard.self, from: payload)
+                let reencoded = try JSONEncoder().encode(decoded)
+                let before = stripNulls(try JSONSerialization.jsonObject(with: payload)) as? NSDictionary
+                let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
+                XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
+
+            case "InventoryChangeResponse":
+                let decoded = try JSONDecoder().decode(InventoryChangeResponse.self, from: payload)
+                let reencoded = try JSONEncoder().encode(decoded)
+                let before = stripNulls(try JSONSerialization.jsonObject(with: payload)) as? NSDictionary
+                let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
+                XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
+
+            case "GradedCreateResponse":
+                let decoded = try JSONDecoder().decode(GradedCreateResponse.self, from: payload)
+                let reencoded = try JSONEncoder().encode(decoded)
+                let before = stripNulls(try JSONSerialization.jsonObject(with: payload)) as? NSDictionary
+                let after  = stripNulls(try JSONSerialization.jsonObject(with: reencoded)) as? NSDictionary
+                XCTAssertEqual(before, after, "vector \(v.name) did not round-trip unchanged")
+
             default:
                 XCTFail("vector \(v.name) names type \(v.type), which this runner does not handle — "
                       + "add it rather than letting it skip")

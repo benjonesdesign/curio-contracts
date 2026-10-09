@@ -2,16 +2,16 @@
 
 import { describe, it, expect } from "vitest";
 import { ListingPreviewRequestSchema, ListingPreviewResponseSchema } from "./listing-preview.js";
-import { CARD, SELLING_KNOWN, SELLING_FEE_UNSET, BUYING_PRIVATE, line } from "../test-support/breakdown-fixtures.js";
+import { CARD, SELLING_KNOWN, SELLING_FEE_UNSET, BUYING_PRIVATE, line, rebalance } from "../test-support/breakdown-fixtures.js";
 
 const issues = (r: { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } }) =>
   r.success ? [] : r.error!.issues;
 
 /** A selling breakdown receiving `gbp` (the fixture's other lines are irrelevant to the preview). */
-const receiving = (gbp: number) => ({
+const receiving = (gbp: number) => rebalance({
   ...SELLING_KNOWN,
-  lines: SELLING_KNOWN.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: gbp } : l)),
-  totals: { youReceiveGbp: gbp, maxBuyGbp: null },
+  // vary the sale price so the lines still add up to exactly `gbp` (18.28 fee + 0.34 packing)
+  lines: SELLING_KNOWN.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: Math.round((gbp + 18.62) * 100) / 100 } : l)),
 });
 
 const item = (id: string, over: Record<string, unknown> = {}) => ({

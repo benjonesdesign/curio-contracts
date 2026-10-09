@@ -30,6 +30,13 @@ export const DispatchAddressSchema = z.object({
     country: z.string(),
 });
 /**
+ * THE tax rate, a FRACTION (0.20 = 20%), bounded 0 <= t < 1 (the most-to-pay formula divides by
+ * 1 - t). ONE rate, set once in Cost, for buying AND selling (Ben, 2026-10-09; the draft's separate
+ * `buyingTaxRate` is REMOVED). 0 is a real, chosen "no provision"; null is "never set" and means NO
+ * tax is set aside, anywhere.
+ */
+const TaxRateSchema = z.number().min(0).lt(1);
+/**
  * The seller's STORED pricing settings, as persisted.
  *
  * Differs from `PricingSettingsSchema` (the fully-resolved shape the engines consume) in exactly
@@ -58,7 +65,7 @@ export const StoredPricingSettingsSchema = z.object({
      * PATCH `taxRate: null` clears a chosen rate back to "not set". A tax line appears in a
      * breakdown only when this is non-null.
      */
-    taxRate: z.number().nullable(),
+    taxRate: TaxRateSchema.nullable(),
     minProfitPct: z.number(),
     minSaleValue: z.number(),
     postageCost: z.number(),
@@ -78,7 +85,7 @@ export const EffectivePricingSettingsSchema = PricingSettingsSchema.extend({
     ebayFeeRate: z.number().nullable(),
     ebayFeeFixed: z.number().nullable(),
     /** v0.2.0: null = no tax rate set, so no tax is set aside (see `StoredPricingSettings.taxRate`). */
-    taxRate: z.number().nullable(),
+    taxRate: TaxRateSchema.nullable(),
 }).superRefine((e, ctx) => {
     if ((e.ebayFeeRate === null) !== (e.ebayFeeFixed === null)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ebayFeeFixed"],
@@ -95,9 +102,6 @@ const BuyingMarginPctSchema = z.number().min(0).lt(100).refine((v) => v === 0 ||
     message: "buyingTargetMarginPct is a percentage (35 = 35%), not a rate. A value between 0 and 1 " +
         "looks like a rate sent by mistake.",
 });
-/** A buying tax set-aside as a FRACTION (0.20 = 20%), bounded 0 <= t < 1 (DB check, #224 §5). 0 is
- *  a real, chosen "no provision"; null is "never set". */
-const BuyingTaxRateSchema = z.number().min(0).lt(1);
 export const ProfileSchema = z.object({
     /**
      * v0.2.0 (BREAKING): NULL until the seller has answered "private or business?" (asked once, on
@@ -131,12 +135,6 @@ export const ProfileSchema = z.object({
      */
     buyingTargetMarginPct: BuyingMarginPctSchema.nullable(),
     buyingTargetMarginSetAt: z.string().datetime().nullable(),
-    /** The tax set-aside applied to BUYING, as a FRACTION. Null = no provision (not set); 0 = the
-     *  seller chose "none". Kept separate from `pricingSettings.taxRate` (which is now ALSO null =
-     *  not set, v0.2.0) because #224 §5 stores them apart; whether the two should merge into one
-     *  rate is a question for Ben (docs/V0.2.0-ADOPTION.md). */
-    buyingTaxRate: BuyingTaxRateSchema.nullable(),
-    buyingTaxRateSetAt: z.string().datetime().nullable(),
     dispatchAddress: DispatchAddressSchema,
     /** Days before unsold stock is flagged as aged on the dashboard. */
     agedInventoryDays: z.number().int(),
@@ -161,7 +159,6 @@ export const ProfileSchema = z.object({
     pair(p.sellerType, p.sellerTypeConfirmedAt, "sellerType", "sellerTypeConfirmedAt");
     pair(p.vatRegistered, p.vatConfirmedAt, "vatRegistered", "vatConfirmedAt");
     pair(p.buyingTargetMarginPct, p.buyingTargetMarginSetAt, "buyingTargetMarginPct", "buyingTargetMarginSetAt");
-    pair(p.buyingTaxRate, p.buyingTaxRateSetAt, "buyingTaxRate", "buyingTaxRateSetAt");
     // The effective fee is null exactly when the reason says it is.
     const effNull = p.effectivePricingSettings.ebayFeeRate === null;
     if (effNull !== (p.feeNotSetReason !== null)) {
@@ -197,8 +194,6 @@ export const ProfilePatchSchema = z.object({
     /** v0.2.0. Writing a margin sets `buyingTargetMarginSetAt`. Number only: PLAN-MOST-TO-PAY #224
      *  defines no way to clear a chosen margin back to "Not set". */
     buyingTargetMarginPct: BuyingMarginPctSchema.optional(),
-    /** v0.2.0. 0 is a legal, deliberate "no provision". */
-    buyingTaxRate: BuyingTaxRateSchema.optional(),
     dispatchAddress: DispatchAddressPatchSchema.optional(),
     agedInventoryDays: z.number().int().optional(),
     pricingSettings: StoredPricingSettingsPatchSchema.optional(),

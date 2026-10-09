@@ -20,8 +20,6 @@ const FULL_PROFILE = {
   feeNotSetReason: null,
   buyingTargetMarginPct: null,
   buyingTargetMarginSetAt: null,
-  buyingTaxRate: null,
-  buyingTaxRateSetAt: null,
   dispatchAddress: { line1: "1 Test St", city: "London", postcode: "N1 1AA", country: "GB" },
   agedInventoryDays: 60,
   pricingSettings: {
@@ -219,17 +217,30 @@ describe("Profile: the buying margin and tax are 'Not set' until chosen (v0.2.0,
     expect(ProfileResponseSchema.safeParse({ ...MARGIN_SET, buyingTargetMarginPct: 0.35 }).success).toBe(false);
   });
 
-  it("keeps tax 0 distinct from tax null: 0 is the seller choosing 'none'", () => {
-    const none = ProfileResponseSchema.parse({ ...FULL_PROFILE, buyingTaxRate: 0, buyingTaxRateSetAt: AT });
-    expect(none.buyingTaxRate).toBe(0);
-    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, buyingTaxRate: 1, buyingTaxRateSetAt: AT }).success).toBe(false);
-    expect(ProfileResponseSchema.safeParse({ ...FULL_PROFILE, buyingTaxRate: 0 }).success).toBe(false);
+  it("has ONE tax rate: the separate buying rate is gone from the profile and from PATCH (Ben, 2026-10-09)", () => {
+    const parsed = ProfileResponseSchema.parse({ ...FULL_PROFILE, buyingTaxRate: 0.2, buyingTaxRateSetAt: AT }) as Record<string, unknown>;
+    expect("buyingTaxRate" in parsed).toBe(false);
+    expect("buyingTaxRateSetAt" in parsed).toBe(false);
+    const patched = ProfilePatchSchema.parse({ buyingTaxRate: 0.2 } as never) as Record<string, unknown>;
+    expect("buyingTaxRate" in patched).toBe(false);
+  });
+
+  it("bounds the one rate to 0 <= t < 1 (the formula divides by 1 - t), and keeps 0 'none' apart from null 'not set'", () => {
+    const rate = (taxRate: number | null) => ({
+      ...FULL_PROFILE,
+      pricingSettings: { ...FULL_PROFILE.pricingSettings, taxRate },
+      effectivePricingSettings: { ...FULL_PROFILE.effectivePricingSettings, taxRate },
+    });
+    expect(ProfileResponseSchema.safeParse(rate(0)).success).toBe(true);
+    expect(ProfileResponseSchema.safeParse(rate(0.2)).success).toBe(true);
+    expect(ProfileResponseSchema.safeParse(rate(1)).success).toBe(false);
+    expect(ProfileResponseSchema.safeParse(rate(-0.1)).success).toBe(false);
+    expect(ProfilePatchSchema.safeParse({ pricingSettings: { taxRate: 1 } }).success).toBe(false);
   });
 
   it("PATCH accepts the new fields singly, and still cannot un-set the seller type", () => {
     expect(ProfilePatchSchema.parse({ vatRegistered: false }).vatRegistered).toBe(false);
     expect(ProfilePatchSchema.parse({ buyingTargetMarginPct: 35 }).buyingTargetMarginPct).toBe(35);
-    expect(ProfilePatchSchema.parse({ buyingTaxRate: 0 }).buyingTaxRate).toBe(0);
     expect(() => ProfilePatchSchema.parse({ sellerType: null })).toThrow();
     expect(() => ProfilePatchSchema.parse({ buyingTargetMarginPct: 0.35 })).toThrow();
     expect(() => ProfilePatchSchema.parse({ buyingTargetMarginPct: 100 })).toThrow();

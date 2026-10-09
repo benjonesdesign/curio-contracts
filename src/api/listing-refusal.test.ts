@@ -6,16 +6,23 @@ import {
 } from "./listing-refusal.js";
 
 describe("the one closed list of reasons a copy cannot be listed (v0.2.0)", () => {
-  it("is exactly the eight reasons the plans, the spec and the guards name", () => {
+  it("is exactly the nine reasons the plans, the spec, the guards and the slab ruling name", () => {
     // Pinned as a list on purpose: adding a reason is a lockstep release, and this is the test
     // that makes it a decision rather than an edit.
     expect([...ListingRefusalReasonSchema.options]).toEqual([
-      "mine", "set_aside", "unmatched", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live",
+      "mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live",
     ]);
   });
 
   it("does NOT include `held`: a held copy may be listed on purpose, so holding is a suggestion rule, not a refusal", () => {
     expect(ListingRefusalReasonSchema.safeParse("held").success).toBe(false);
+  });
+
+  it("has slab_unverified, and the flat graded_not_verified is NOT a reason or a code (it converts at the server switch)", () => {
+    expect(ListingRefusalReasonSchema.safeParse("slab_unverified").success).toBe(true);
+    expect(ListingRefusalReasonSchema.safeParse("graded_not_verified").success).toBe(false);
+    expect(ListingRefusalCodeSchema.safeParse("graded_not_verified").success).toBe(false);
+    expect(ListingRefusalSchema.safeParse({ error: "Not verified", code: "card_not_listable", reason: "slab_unverified" }).success).toBe(true);
   });
 
   it("does not include #243's separate flat codes as reasons or as codes", () => {

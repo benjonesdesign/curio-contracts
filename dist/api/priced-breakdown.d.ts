@@ -17,6 +17,12 @@ export type PostageMode = z.infer<typeof PostageModeSchema>;
  *  under £10, `high` above. Null (on the line) when the fee is not banded. */
 export declare const PerOrderBandSchema: z.ZodEnum<["low", "high"]>;
 export type PerOrderBand = z.infer<typeof PerOrderBandSchema>;
+/**
+ * The RULED default packing time (owner, 2026-10-09): a flat 4 minutes for the parcel, plus 2 for
+ * each extra card in it. No letter/parcel split. Used only when the seller has set an hourly rate
+ * and has not set their own minutes; the `packing_time` line is then `estimate: true`.
+ */
+export declare function defaultPackingMinutes(cardsInParcel: number): number;
 export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     /** Open string. See KNOWN LINE KEYS above. An unknown key still renders from `label`. */
     key: z.ZodString;
@@ -58,6 +64,10 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
      *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
      *  when the seller pays. Free postage is a threshold, not a service. */
     service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+    /** `postage` only: which rule the figure came from (closed): `ebay_policy` for a PUBLISHED
+     *  listing, `dispatch_rules` for an ESTIMATE (owner, 2026-10-09). With `ebay_policy` the line's
+     *  `source` is `ebay_policy` and `service` is null (the policy has no Dispatch service). */
+    postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
     /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
      *  seller, seller override) or unknown. */
     perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -68,7 +78,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
      *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
     note: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+    source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -81,10 +91,11 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     label?: string | null | undefined;
     minutes?: number | null | undefined;
     service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+    postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
-    source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+    source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -97,10 +108,11 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     label?: string | null | undefined;
     minutes?: number | null | undefined;
     service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+    postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }>, {
-    source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+    source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -113,10 +125,11 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     label?: string | null | undefined;
     minutes?: number | null | undefined;
     service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+    postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }, {
-    source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+    source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
     key: string;
     amountGbp: number | null;
     unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -129,6 +142,7 @@ export declare const PricedLineSchema: z.ZodEffects<z.ZodObject<{
     label?: string | null | undefined;
     minutes?: number | null | undefined;
     service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+    postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
     perOrderBand?: "high" | "low" | null | undefined;
     feeBasisVerified?: boolean | null | undefined;
 }>;
@@ -255,6 +269,10 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
          *  when the seller pays. Free postage is a threshold, not a service. */
         service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+        /** `postage` only: which rule the figure came from (closed): `ebay_policy` for a PUBLISHED
+         *  listing, `dispatch_rules` for an ESTIMATE (owner, 2026-10-09). With `ebay_policy` the line's
+         *  `source` is `ebay_policy` and `service` is null (the policy has no Dispatch service). */
+        postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
         /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
          *  seller, seller override) or unknown. */
         perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -265,7 +283,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
         note: z.ZodNullable<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -278,10 +296,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -294,10 +313,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -310,10 +330,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -326,6 +347,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, "many">;
@@ -373,6 +395,10 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
          *  when the seller pays. Free postage is a threshold, not a service. */
         service: z.ZodOptional<z.ZodNullable<z.ZodEnum<["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]>>>;
+        /** `postage` only: which rule the figure came from (closed): `ebay_policy` for a PUBLISHED
+         *  listing, `dispatch_rules` for an ESTIMATE (owner, 2026-10-09). With `ebay_policy` the line's
+         *  `source` is `ebay_policy` and `service` is null (the policy has no Dispatch service). */
+        postageBasis: z.ZodOptional<z.ZodNullable<z.ZodEnum<["ebay_policy", "dispatch_rules"]>>>;
         /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
          *  seller, seller override) or unknown. */
         perOrderBand: z.ZodOptional<z.ZodNullable<z.ZodEnum<["low", "high"]>>>;
@@ -383,7 +409,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
          *  your_rate | buyer_pays | free_postage | estimate | asking_basis | at_start_price. */
         note: z.ZodNullable<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -396,10 +422,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -412,10 +439,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -428,10 +456,11 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }, {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -444,6 +473,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }>, "many">;
@@ -510,7 +540,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     mode: "selling" | "buying";
     lines: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -523,11 +553,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -540,6 +571,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -569,7 +601,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, {
     mode: "selling" | "buying";
     lines: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -582,11 +614,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -599,6 +632,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -628,7 +662,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }>, {
     mode: "selling" | "buying";
     lines: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -641,11 +675,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -658,6 +693,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
@@ -687,7 +723,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
 }, {
     mode: "selling" | "buying";
     lines: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -700,11 +736,12 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];
     beside: {
-        source: "seller_profile" | "ebay_policy" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
+        source: "ebay_policy" | "seller_profile" | "fee_model" | "price_provider" | "card_override" | "request" | "default";
         key: string;
         amountGbp: number | null;
         unknownReason: "seller_type_not_set" | "vat_not_set" | "margin_not_set" | "asking_price_only" | "no_price" | "not_viable" | null;
@@ -717,6 +754,7 @@ export declare const PricedBreakdownSchema: z.ZodEffects<z.ZodObject<{
         label?: string | null | undefined;
         minutes?: number | null | undefined;
         service?: "rm48_ll" | "rm24_ll" | "tracked48_sp" | "special_delivery" | null | undefined;
+        postageBasis?: "ebay_policy" | "dispatch_rules" | null | undefined;
         perOrderBand?: "high" | "low" | null | undefined;
         feeBasisVerified?: boolean | null | undefined;
     }[];

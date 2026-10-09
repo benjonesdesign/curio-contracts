@@ -25,3 +25,5 @@ export * from "./api/physical-card.js";
 export * from "./api/listing-refusal.js";
 export * from "./api/game-availability.js";
 export * from "./api/listing-preview.js";
+export * from "./api/inventory-change.js";
+export * from "./api/inventory-graded.js";

@@ -38,7 +38,7 @@
 //     crash); `source`, `mode`, `editKey`, `feeBasis`, `channel` and `notSet` entries are small
 //     CLOSED enums, which every client decodes forward-compatibly (`unrecognised`/`Unknown`).
 import { z } from "zod";
-import { MaxBuyUnavailableReasonSchema, PostageServiceSchema, PriceKindSchema } from "./common.js";
+import { MaxBuyUnavailableReasonSchema, PostageBasisSchema, PostageServiceSchema, PriceKindSchema } from "./common.js";
 import { SellerTypeSchema } from "./profile.js";
 
 /** Where a line's figure came from. `dispatch_rules` and `profile_estimate`, which the postage
@@ -88,9 +88,21 @@ export type PostageMode = z.infer<typeof PostageModeSchema>;
  *   `max_buy` / `you_receive` are the mode's total and are ALWAYS present (rule 4), so a null
  *   total always has a line to carry its `unknownReason`.
  *
+ *   ROUNDING (owner, 2026-10-09): EVERY line's amount is rounded to the PENNY, and the mode's total
+ *   is the SUM OF THE ROUNDED LINES: `you_receive` is exactly the sum of the other `lines`;
+ *   `max_buy` is that sum rounded DOWN to the pound. Guarded in the breakdown below, because
+ *   "no screen sums" is only safe if the server's own lines add up to its own total. A total is
+ *   null (with its reason) as soon as an included line is unknown.
+ *   "YOU RECEIVE" CAN BE NEGATIVE (owner, 2026-10-09): the true negative is sent, never clamped to
+ *   0, and the line then carries `note: "below_cost"` so a screen can say "Below cost" without
+ *   computing anything. `max_buy` is never negative.
+ *
  *   TIME (owner, 2026-10-08; mirrors pokemon-tool #244; `your_time` is retired and must not be used):
- *     - `packing_time` is in `lines`, TAKEN OFF the sum (`included: true`): a NEGATIVE amount, an
- *       estimate, with `minutes`.
+ *     - `packing_time` is in `lines`, TAKEN OFF the sum (`included: true`): a NEGATIVE amount with
+ *       `minutes`. The minutes are the seller's own setting or, if unset, the RULED DEFAULT (a
+ *       flat 4 minutes a parcel and 2 for each extra card in it, no letter/parcel split:
+ *       `defaultPackingMinutes` below), and the line is flagged `estimate: true` exactly when the
+ *       default was used.
  *     - `listing_time` is NOT in `lines`. It is in the separate `beside` array: a POSITIVE
  *       magnitude, `minutes`, `included: false`, never in the arithmetic. (Whether listing time
  *       should ever be taken off is Ben's open "For Ben" item; the contract fixes `included: false`.)
@@ -109,7 +121,7 @@ export type PostageMode = z.infer<typeof PostageModeSchema>;
  * `tax_set_aside`). `listing_time` (beside the sum) is a positive magnitude. Enforced below, because a client that formats and never derives will print
  * exactly the sign it is given.
  */
-const VALUE_KEYS = new Set(["sale_price", "you_receive", "max_buy"]);
+const VALUE_KEYS = new Set(["sale_price", "max_buy"]);   // never negative. (`you_receive` may be: see ROUNDING)
 const DEDUCTION_KEYS = new Set([
   "ebay_fee", "fee_vat", "postage", "packing", "packing_time", "target_margin", "tax_set_aside",
 ]);
@@ -119,6 +131,22 @@ const MINUTES_KEYS = new Set(["packing_time", "listing_time"]);
  *  under £10, `high` above. Null (on the line) when the fee is not banded. */
 export const PerOrderBandSchema = z.enum(["low", "high"]);
 export type PerOrderBand = z.infer<typeof PerOrderBandSchema>;
+
+/**
+ * The RULED default packing time (owner, 2026-10-09): a flat 4 minutes for the parcel, plus 2 for
+ * each extra card in it. No letter/parcel split. Used only when the seller has set an hourly rate
+ * and has not set their own minutes; the `packing_time` line is then `estimate: true`.
+ */
+export function defaultPackingMinutes(cardsInParcel: number): number {
+  if (!Number.isInteger(cardsInParcel) || cardsInParcel < 1) {
+    throw new RangeError(`a parcel holds at least one card, got ${cardsInParcel}`);
+  }
+  return 4 + 2 * (cardsInParcel - 1);
+}
+
+/** Amounts are in whole pence: a line is rounded to the penny before it is sent. */
+const isWholePence = (gbp: number) => Math.abs(gbp * 100 - Math.round(gbp * 100)) < 1e-6;
+const pence = (gbp: number) => Math.round(gbp * 100);
 
 export const PricedLineSchema = z.object({
   /** Open string. See KNOWN LINE KEYS above. An unknown key still renders from `label`. */
@@ -161,6 +189,10 @@ export const PricedLineSchema = z.object({
    *  seller's postage is £0 and no service applies) or the seller has no Dispatch rules; present
    *  when the seller pays. Free postage is a threshold, not a service. */
   service: PostageServiceSchema.nullable().optional(),
+  /** `postage` only: which rule the figure came from (closed): `ebay_policy` for a PUBLISHED
+   *  listing, `dispatch_rules` for an ESTIMATE (owner, 2026-10-09). With `ebay_policy` the line's
+   *  `source` is `ebay_policy` and `service` is null (the policy has no Dispatch service). */
+  postageBasis: PostageBasisSchema.nullable().optional(),
   /** `ebay_fee` only: which per-order band applied; null when the fee is not banded (private
    *  seller, seller override) or unknown. */
   perOrderBand: PerOrderBandSchema.nullable().optional(),
@@ -193,6 +225,18 @@ export const PricedLineSchema = z.object({
   }
   if (l.minutes != null && (l.minutes < 0 || !Number.isInteger(l.minutes))) {
     issue("minutes", "minutes is a whole, non-negative number");
+  }
+  if (l.postageBasis != null) {
+    if (l.key !== "postage") issue("postageBasis", `line "${l.key}" is not the postage line: postageBasis belongs to postage only`);
+    else if (l.postageBasis === "ebay_policy" && l.source !== "ebay_policy") issue("postageBasis", 'postageBasis ebay_policy means the line\'s source is "ebay_policy"');
+    else if (l.postageBasis === "dispatch_rules" && l.source === "ebay_policy") issue("postageBasis", 'postageBasis dispatch_rules cannot have source "ebay_policy"');
+    else if (l.postageBasis === "ebay_policy" && l.service != null) issue("service", "a published listing\'s postage comes from the eBay policy, which has no Dispatch service: service must be null");
+  }
+  if (l.amountGbp !== null && !isWholePence(l.amountGbp)) {
+    issue("amountGbp", `line "${l.key}" must be rounded to the penny (got ${l.amountGbp}); totals are the sum of the rounded lines`);
+  }
+  if (l.key === "you_receive" && l.amountGbp !== null && l.amountGbp < 0 && l.note !== "below_cost") {
+    issue("note", 'a negative you_receive is sent as the true negative with note "below_cost" (never clamped to 0)');
   }
   if (l.service != null) {
     if (l.key !== "postage") issue("service", `line "${l.key}" is not the postage line: service belongs to postage only`);
@@ -373,6 +417,24 @@ export const PricedBreakdownSchema = z.object({
     issue(["lines"], `a ${b.mode} breakdown always carries a "${own}" line: a null total needs a line to carry its unknownReason`);
   } else if (totalLine.amountGbp !== ownTotal) {
     issue(["totals"], `totals and the "${own}" line disagree (${ownTotal ?? "null"} vs ${totalLine.amountGbp ?? "null"}): one figure, reported once`);
+  }
+
+  // ── The total is the SUM OF THE ROUNDED LINES (owner, 2026-10-09) ──────────────────────────
+  // Every included line other than the total itself adds up, in whole pence, to the total
+  // (selling), or to the total before it is rounded down to the pound (buying). One unknown
+  // included line makes the total null: an unknown is never summed as 0.
+  const addends = b.lines.filter((l) => l.key !== own && l.included);
+  const unknownAddend = addends.find((l) => l.amountGbp === null);
+  if (ownTotal !== null && unknownAddend) {
+    issue(["totals"], `the "${unknownAddend.key}" line is unknown, so the total must be null: an unknown is not summed as £0`);
+  } else if (ownTotal !== null) {
+    const sumPence = addends.reduce((acc, l) => acc + pence(l.amountGbp as number), 0);
+    if (b.mode === "selling" && pence(ownTotal) !== sumPence) {
+      issue(["totals", "youReceiveGbp"], `youReceiveGbp (${ownTotal}) is not the sum of the rounded lines (${sumPence / 100})`);
+    }
+    if (b.mode === "buying" && ownTotal !== Math.max(0, Math.floor(sumPence / 100))) {
+      issue(["totals", "maxBuyGbp"], `maxBuyGbp (${ownTotal}) is not the sum of the rounded lines (${sumPence / 100}) rounded down to the pound`);
+    }
   }
 
   // An unset fee position, or (buying) an unset margin, withholds the mode's total.

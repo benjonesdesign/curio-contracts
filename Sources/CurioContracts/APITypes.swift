@@ -1921,6 +1921,7 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
     case mine
     case setAside
     case unmatched
+    case slabUnverified
     case conditionNotConfirmed
     case noPrice
     case noSku
@@ -1935,6 +1936,7 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
         case .mine: return "mine"
         case .setAside: return "set_aside"
         case .unmatched: return "unmatched"
+        case .slabUnverified: return "slab_unverified"
         case .conditionNotConfirmed: return "condition_not_confirmed"
         case .noPrice: return "no_price"
         case .noSku: return "no_sku"
@@ -1949,6 +1951,7 @@ public enum ListingRefusalReason: Codable, Sendable, Equatable, Hashable {
         case "mine": self = .mine
         case "set_aside": self = .setAside
         case "unmatched": self = .unmatched
+        case "slab_unverified": self = .slabUnverified
         case "condition_not_confirmed": self = .conditionNotConfirmed
         case "no_price": self = .noPrice
         case "no_sku": self = .noSku
@@ -2897,11 +2900,12 @@ public struct PricedLine: Codable, Sendable {
     public let included: Bool
     public let minutes: Double?
     public let service: PostageService?
+    public let postageBasis: PostageBasis?
     public let perOrderBand: PerOrderBand?
     public let feeBasisVerified: Bool?
     public let note: String?
 
-    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, included: Bool, minutes: Double?, service: PostageService?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
+    public init(key: String, label: String?, amountGbp: Double?, unknownReason: MaxBuyUnavailableReason?, source: PricedLineSource, assumed: Bool, estimate: Bool, editable: Bool, editKey: PricedLineEditKey?, included: Bool, minutes: Double?, service: PostageService?, postageBasis: PostageBasis?, perOrderBand: PerOrderBand?, feeBasisVerified: Bool?, note: String?) {
         self.key = key
         self.label = label
         self.amountGbp = amountGbp
@@ -2914,6 +2918,7 @@ public struct PricedLine: Codable, Sendable {
         self.included = included
         self.minutes = minutes
         self.service = service
+        self.postageBasis = postageBasis
         self.perOrderBand = perOrderBand
         self.feeBasisVerified = feeBasisVerified
         self.note = note
@@ -3074,6 +3079,39 @@ public enum PostageService: Codable, Sendable, Equatable, Hashable {
         case "rm24_ll": self = .rm24Ll
         case "tracked48_sp": self = .tracked48Sp
         case "special_delivery": self = .specialDelivery
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum PostageBasis: Codable, Sendable, Equatable, Hashable {
+    case ebayPolicy
+    case dispatchRules
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ebayPolicy: return "ebay_policy"
+        case .dispatchRules: return "dispatch_rules"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ebay_policy": self = .ebayPolicy
+        case "dispatch_rules": self = .dispatchRules
         default: self = .unrecognised(rawValue)
         }
     }
@@ -3319,15 +3357,13 @@ public struct ProfileResponse: Codable, Sendable {
     public let feeNotSetReason: FeeNotSetReason?
     public let buyingTargetMarginPct: Double?
     public let buyingTargetMarginSetAt: String?
-    public let buyingTaxRate: Double?
-    public let buyingTaxRateSetAt: String?
     public let dispatchAddress: DispatchAddress
     public let agedInventoryDays: Int
     public let pricingSettings: StoredPricingSettings
     public let effectivePricingSettings: EffectivePricingSettings
     public let isAdmin: Bool
 
-    public init(sellerType: SellerType?, sellerTypeConfirmedAt: String?, sellerTypeSource: SellerTypeSource, suggestedSellerType: SellerType?, vatRegistered: Bool?, vatConfirmedAt: String?, feeNotSetReason: FeeNotSetReason?, buyingTargetMarginPct: Double?, buyingTargetMarginSetAt: String?, buyingTaxRate: Double?, buyingTaxRateSetAt: String?, dispatchAddress: DispatchAddress, agedInventoryDays: Int, pricingSettings: StoredPricingSettings, effectivePricingSettings: EffectivePricingSettings, isAdmin: Bool) {
+    public init(sellerType: SellerType?, sellerTypeConfirmedAt: String?, sellerTypeSource: SellerTypeSource, suggestedSellerType: SellerType?, vatRegistered: Bool?, vatConfirmedAt: String?, feeNotSetReason: FeeNotSetReason?, buyingTargetMarginPct: Double?, buyingTargetMarginSetAt: String?, dispatchAddress: DispatchAddress, agedInventoryDays: Int, pricingSettings: StoredPricingSettings, effectivePricingSettings: EffectivePricingSettings, isAdmin: Bool) {
         self.sellerType = sellerType
         self.sellerTypeConfirmedAt = sellerTypeConfirmedAt
         self.sellerTypeSource = sellerTypeSource
@@ -3337,8 +3373,6 @@ public struct ProfileResponse: Codable, Sendable {
         self.feeNotSetReason = feeNotSetReason
         self.buyingTargetMarginPct = buyingTargetMarginPct
         self.buyingTargetMarginSetAt = buyingTargetMarginSetAt
-        self.buyingTaxRate = buyingTaxRate
-        self.buyingTaxRateSetAt = buyingTaxRateSetAt
         self.dispatchAddress = dispatchAddress
         self.agedInventoryDays = agedInventoryDays
         self.pricingSettings = pricingSettings
@@ -3442,16 +3476,14 @@ public struct ProfilePatch: Codable, Sendable {
     public let sellerType: SellerType?
     public let vatRegistered: Bool?
     public let buyingTargetMarginPct: Double?
-    public let buyingTaxRate: Double?
     public let dispatchAddress: DispatchAddressPatch?
     public let agedInventoryDays: Int?
     public let pricingSettings: StoredPricingSettingsPatch?
 
-    public init(sellerType: SellerType?, vatRegistered: Bool?, buyingTargetMarginPct: Double?, buyingTaxRate: Double?, dispatchAddress: DispatchAddressPatch?, agedInventoryDays: Int?, pricingSettings: StoredPricingSettingsPatch?) {
+    public init(sellerType: SellerType?, vatRegistered: Bool?, buyingTargetMarginPct: Double?, dispatchAddress: DispatchAddressPatch?, agedInventoryDays: Int?, pricingSettings: StoredPricingSettingsPatch?) {
         self.sellerType = sellerType
         self.vatRegistered = vatRegistered
         self.buyingTargetMarginPct = buyingTargetMarginPct
-        self.buyingTaxRate = buyingTaxRate
         self.dispatchAddress = dispatchAddress
         self.agedInventoryDays = agedInventoryDays
         self.pricingSettings = pricingSettings
@@ -3505,8 +3537,12 @@ public struct PhysicalCard: Codable, Sendable {
     public let condition: Condition?
     public let conditionConfirmed: Bool
     public let heldAt: String?
+    public let isMine: Bool
+    public let mineSetAt: String?
+    public let setAsideReason: SetAsideReason?
+    public let setAsideAt: String?
 
-    public init(id: String, sku: String, status: PhysicalCardStatus, game: String, name: String?, setName: String?, cardNumber: String?, condition: Condition?, conditionConfirmed: Bool, heldAt: String?) {
+    public init(id: String, sku: String, status: PhysicalCardStatus, game: String, name: String?, setName: String?, cardNumber: String?, condition: Condition?, conditionConfirmed: Bool, heldAt: String?, isMine: Bool, mineSetAt: String?, setAsideReason: SetAsideReason?, setAsideAt: String?) {
         self.id = id
         self.sku = sku
         self.status = status
@@ -3517,6 +3553,10 @@ public struct PhysicalCard: Codable, Sendable {
         self.condition = condition
         self.conditionConfirmed = conditionConfirmed
         self.heldAt = heldAt
+        self.isMine = isMine
+        self.mineSetAt = mineSetAt
+        self.setAsideReason = setAsideReason
+        self.setAsideAt = setAsideAt
     }
 }
 
@@ -3551,6 +3591,45 @@ public enum Condition: Codable, Sendable, Equatable, Hashable {
         case "HP": self = .hP
         case "DMG": self = .dMG
         case "Graded": self = .graded
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum SetAsideReason: Codable, Sendable, Equatable, Hashable {
+    case looksOff
+    case alteredOrDamaged
+    case unsupportedGame
+    case other
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .looksOff: return "looks_off"
+        case .alteredOrDamaged: return "altered_or_damaged"
+        case .unsupportedGame: return "unsupported_game"
+        case .other: return "other"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "looks_off": self = .looksOff
+        case "altered_or_damaged": self = .alteredOrDamaged
+        case "unsupported_game": self = .unsupportedGame
+        case "other": self = .other
         default: self = .unrecognised(rawValue)
         }
     }
@@ -3729,6 +3808,397 @@ public struct ListingPreviewTotals: Codable, Sendable {
         self.belowFloorCount = belowFloorCount
         self.youReceiveGbp = youReceiveGbp
         self.unknownReason = unknownReason
+    }
+}
+
+public struct MineRequest: Codable, Sendable {
+    public let ids: [String]
+    public let mine: Bool
+
+    public init(ids: [String], mine: Bool) {
+        self.ids = ids
+        self.mine = mine
+    }
+}
+
+public struct SetAsideRequest: Codable, Sendable {
+    public let ids: [String]
+    public let reason: SetAsideReason?
+
+    public init(ids: [String], reason: SetAsideReason?) {
+        self.ids = ids
+        self.reason = reason
+    }
+}
+
+public struct PutBackRequest: Codable, Sendable {
+    public let ids: [String]
+
+    public init(ids: [String]) {
+        self.ids = ids
+    }
+}
+
+public struct InventoryChangeResponse: Codable, Sendable {
+    public let results: [InventoryChangeResult]
+    public let summary: InventoryChangeSummary
+
+    public init(results: [InventoryChangeResult], summary: InventoryChangeSummary) {
+        self.results = results
+        self.summary = summary
+    }
+}
+
+public struct InventoryChangeResult: Codable, Sendable {
+    public let id: String
+    public let outcome: InventoryChangeOutcome
+    public let reason: InventoryChangeRefusalReason?
+    public let error: String?
+    public let status: PhysicalCardStatus?
+    public let replacedChannel: String?
+    public let droppedChannel: String?
+    public let previousReason: SetAsideReason?
+
+    public init(id: String, outcome: InventoryChangeOutcome, reason: InventoryChangeRefusalReason?, error: String?, status: PhysicalCardStatus?, replacedChannel: String?, droppedChannel: String?, previousReason: SetAsideReason?) {
+        self.id = id
+        self.outcome = outcome
+        self.reason = reason
+        self.error = error
+        self.status = status
+        self.replacedChannel = replacedChannel
+        self.droppedChannel = droppedChannel
+        self.previousReason = previousReason
+    }
+}
+
+public enum InventoryChangeOutcome: Codable, Sendable, Equatable, Hashable {
+    case changed
+    case unchanged
+    case refused
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .changed: return "changed"
+        case .unchanged: return "unchanged"
+        case .refused: return "refused"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "changed": self = .changed
+        case "unchanged": self = .unchanged
+        case "refused": self = .refused
+        case "failed": self = .failed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum InventoryChangeRefusalReason: Codable, Sendable, Equatable, Hashable {
+    case liveOnEbay
+    case sold
+    case archived
+    case setAside
+    case notFound
+    case writeFailed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .liveOnEbay: return "live_on_ebay"
+        case .sold: return "sold"
+        case .archived: return "archived"
+        case .setAside: return "set_aside"
+        case .notFound: return "not_found"
+        case .writeFailed: return "write_failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "live_on_ebay": self = .liveOnEbay
+        case "sold": self = .sold
+        case "archived": self = .archived
+        case "set_aside": self = .setAside
+        case "not_found": self = .notFound
+        case "write_failed": self = .writeFailed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct InventoryChangeSummary: Codable, Sendable {
+    public let changed: Int
+    public let unchanged: Int
+    public let refused: Int
+    public let failed: Int
+
+    public init(changed: Int, unchanged: Int, refused: Int, failed: Int) {
+        self.changed = changed
+        self.unchanged = unchanged
+        self.refused = refused
+        self.failed = failed
+    }
+}
+
+public struct StatsResponse: Codable, Sendable {
+    public let statusCounts: [String: Int]
+    public let costBasis: Double
+    public let estValue: Double
+    public let realisedGain: Double
+    public let agedListings: Int
+    public let totalCards: Int
+    public let counts: InventoryCounts
+    public let collectionValue: CollectionValue
+
+    public init(statusCounts: [String: Int], costBasis: Double, estValue: Double, realisedGain: Double, agedListings: Int, totalCards: Int, counts: InventoryCounts, collectionValue: CollectionValue) {
+        self.statusCounts = statusCounts
+        self.costBasis = costBasis
+        self.estValue = estValue
+        self.realisedGain = realisedGain
+        self.agedListings = agedListings
+        self.totalCards = totalCards
+        self.counts = counts
+        self.collectionValue = collectionValue
+    }
+}
+
+public struct InventoryCounts: Codable, Sendable {
+    public let stock: Int
+    public let mine: Int
+    public let setAside: Int
+
+    public init(stock: Int, mine: Int, setAside: Int) {
+        self.stock = stock
+        self.mine = mine
+        self.setAside = setAside
+    }
+}
+
+public struct CollectionValue: Codable, Sendable {
+    public let count: Int
+    public let pricedCount: Int
+    public let notPricedCount: Int
+    public let lowGbp: Double?
+    public let highGbp: Double?
+    public let sources: [String]
+
+    public init(count: Int, pricedCount: Int, notPricedCount: Int, lowGbp: Double?, highGbp: Double?, sources: [String]) {
+        self.count = count
+        self.pricedCount = pricedCount
+        self.notPricedCount = notPricedCount
+        self.lowGbp = lowGbp
+        self.highGbp = highGbp
+        self.sources = sources
+    }
+}
+
+public struct GradedCreateRequest: Codable, Sendable {
+    public let batchId: String
+    public let game: String?
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let language: String?
+    public let grader: SlabGrader
+    public let grade: String
+    public let certNumber: String
+    public let purchaseCost: Double?
+    public let suggestedPrice: Double?
+    public let collectionType: SlabCollectionType?
+    public let photoPaths: [String]?
+    public let thumbPaths: [String]?
+    public let notes: String?
+
+    public init(batchId: String, game: String?, name: String, setName: String?, cardNumber: String?, language: String?, grader: SlabGrader, grade: String, certNumber: String, purchaseCost: Double?, suggestedPrice: Double?, collectionType: SlabCollectionType?, photoPaths: [String]?, thumbPaths: [String]?, notes: String?) {
+        self.batchId = batchId
+        self.game = game
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.language = language
+        self.grader = grader
+        self.grade = grade
+        self.certNumber = certNumber
+        self.purchaseCost = purchaseCost
+        self.suggestedPrice = suggestedPrice
+        self.collectionType = collectionType
+        self.photoPaths = photoPaths
+        self.thumbPaths = thumbPaths
+        self.notes = notes
+    }
+}
+
+public enum SlabGrader: Codable, Sendable, Equatable, Hashable {
+    case pSA
+    case bGSBeckett
+    case cGC
+    case aCE
+    case tAG
+    case sGC
+    case other
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .pSA: return "PSA"
+        case .bGSBeckett: return "BGS / Beckett"
+        case .cGC: return "CGC"
+        case .aCE: return "ACE"
+        case .tAG: return "TAG"
+        case .sGC: return "SGC"
+        case .other: return "Other"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "PSA": self = .pSA
+        case "BGS / Beckett": self = .bGSBeckett
+        case "CGC": self = .cGC
+        case "ACE": self = .aCE
+        case "TAG": self = .tAG
+        case "SGC": self = .sGC
+        case "Other": self = .other
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum SlabCollectionType: Codable, Sendable, Equatable, Hashable {
+    case resale
+    case personal
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .resale: return "resale"
+        case .personal: return "personal"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "resale": self = .resale
+        case "personal": self = .personal
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct GradedCreateResponse: Codable, Sendable {
+    public let physicalCardId: String
+    public let legacyCardId: String?
+    public let sku: String
+    public let status: PhysicalCardStatus
+    public let created: Bool
+    public let certVerified: Bool
+    public let certCheck: CertCheck
+    public let catalogueMatched: Bool
+
+    public init(physicalCardId: String, legacyCardId: String?, sku: String, status: PhysicalCardStatus, created: Bool, certVerified: Bool, certCheck: CertCheck, catalogueMatched: Bool) {
+        self.physicalCardId = physicalCardId
+        self.legacyCardId = legacyCardId
+        self.sku = sku
+        self.status = status
+        self.created = created
+        self.certVerified = certVerified
+        self.certCheck = certCheck
+        self.catalogueMatched = catalogueMatched
+    }
+}
+
+public enum CertCheck: Codable, Sendable, Equatable, Hashable {
+    case verified
+    case notFound
+    case gradeMismatch
+    case unavailable
+    case unsupportedGrader
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .verified: return "verified"
+        case .notFound: return "not_found"
+        case .gradeMismatch: return "grade_mismatch"
+        case .unavailable: return "unavailable"
+        case .unsupportedGrader: return "unsupported_grader"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "verified": self = .verified
+        case "not_found": self = .notFound
+        case "grade_mismatch": self = .gradeMismatch
+        case "unavailable": self = .unavailable
+        case "unsupported_grader": self = .unsupportedGrader
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 

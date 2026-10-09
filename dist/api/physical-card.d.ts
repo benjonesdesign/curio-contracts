@@ -2,6 +2,15 @@ import { z } from "zod";
 export declare const PhysicalCardStatusSchema: z.ZodEnum<["RECEIVED", "AWAITING_SCAN", "PROCESSING", "NEEDS_ID_REVIEW", "NEEDS_CONDITION", "NEEDS_DECISION", "READY_TO_LIST", "EBAY_DRAFT", "LISTED", "SOLD", "PICKED", "DISPATCHED", "COMPLETED", "EXCEPTION", "RETURNED", "ARCHIVED", "UNMATCHED", "HELD"]>;
 export type PhysicalCardStatus = z.infer<typeof PhysicalCardStatusSchema>;
 /**
+ * WHY a seller set a copy aside: a CHIP choice only, never free text (DECISIONS QC.7). Closed and
+ * forward-compatible (decisions/0027). Labels come from @curio/copy, not the contract:
+ *   looks_off ("Doesn't look genuine") · altered_or_damaged · unsupported_game ("Not a game Seek
+ *   lists") · other ("Something else"). Skipping the reason is allowed: it is null on the copy.
+ * From pokemon-tool #259/#260 (`physical_cards.set_aside_reason`, a CHECK on exactly these four).
+ */
+export declare const SetAsideReasonSchema: z.ZodEnum<["looks_off", "altered_or_damaged", "unsupported_game", "other"]>;
+export type SetAsideReason = z.infer<typeof SetAsideReasonSchema>;
+/**
  * One owned copy, as the API returns it (v0.2.0).
  *
  * ── `sku` IS A NON-NULL STRING ON EVERY COPY ────────────────────────────────────────────────
@@ -46,6 +55,18 @@ export declare const PhysicalCardSchema: z.ZodEffects<z.ZodObject<{
     /** When the seller chose to hold it (`held_at`). Non-null whenever `status` is HELD; null for a
      *  copy that was never held (or was listed on purpose, which clears the hold). Required key. */
     heldAt: z.ZodNullable<z.ZodString>;
+    /**
+     * Mine (a keeper, never listed): `allocation_channel = keep`. NOT a status (a copy is Mine OR
+     * stock; Mine and set aside can both be true). The only way back is "Change to stock".
+     */
+    isMine: z.ZodBoolean;
+    /** When it became Mine ("Set by you on {date}"). Stamped by the database, so a client cannot
+     *  back-date it; null when not Mine, and for a legacy Mine row from before the stamp existed. */
+    mineSetAt: z.ZodNullable<z.ZodString>;
+    /** The seller's chip, when the copy is set aside (status EXCEPTION). Null = skipped, or not set aside. */
+    setAsideReason: z.ZodNullable<z.ZodEnum<["looks_off", "altered_or_damaged", "unsupported_game", "other"]>>;
+    /** When it was set aside ("By you on {date}"). Non-null exactly while status is EXCEPTION. */
+    setAsideAt: z.ZodNullable<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
     id: string;
     game: string;
@@ -57,6 +78,10 @@ export declare const PhysicalCardSchema: z.ZodEffects<z.ZodObject<{
     condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
     conditionConfirmed: boolean;
     heldAt: string | null;
+    isMine: boolean;
+    mineSetAt: string | null;
+    setAsideReason: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null;
+    setAsideAt: string | null;
 }, {
     id: string;
     game: string;
@@ -68,6 +93,10 @@ export declare const PhysicalCardSchema: z.ZodEffects<z.ZodObject<{
     condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
     conditionConfirmed: boolean;
     heldAt: string | null;
+    isMine: boolean;
+    mineSetAt: string | null;
+    setAsideReason: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null;
+    setAsideAt: string | null;
 }>, {
     id: string;
     game: string;
@@ -79,6 +108,10 @@ export declare const PhysicalCardSchema: z.ZodEffects<z.ZodObject<{
     condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
     conditionConfirmed: boolean;
     heldAt: string | null;
+    isMine: boolean;
+    mineSetAt: string | null;
+    setAsideReason: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null;
+    setAsideAt: string | null;
 }, {
     id: string;
     game: string;
@@ -90,5 +123,9 @@ export declare const PhysicalCardSchema: z.ZodEffects<z.ZodObject<{
     condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
     conditionConfirmed: boolean;
     heldAt: string | null;
+    isMine: boolean;
+    mineSetAt: string | null;
+    setAsideReason: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null;
+    setAsideAt: string | null;
 }>;
 export type PhysicalCard = z.infer<typeof PhysicalCardSchema>;

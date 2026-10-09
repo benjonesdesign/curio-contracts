@@ -24,7 +24,7 @@ class DecideRoundTripTest {
             "marketValueGbp": 40.0, "feeGbp": 6.79, "feeNotSetReason": null, "postageGbp": 1.55, "packagingGbp": 0.1,
             "costBasisGbp": null, "taxProvisionGbp": 6.31, "expectedNetGbp": 25.25
           },
-          "maxBuyGbp": 25.23, "maxBuyUnavailableReason": null, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
+          "maxBuyGbp": 25.0, "maxBuyUnavailableReason": null, "minAcceptGbp": 1.65, "offerPctAtMax": 63.1,
           "degraded": false, "degradedReasons": []
         }
     """.trimIndent()
@@ -74,7 +74,7 @@ class DecideRoundTripTest {
         val d = json.decodeFromString<QuickScanResponse>(body)
         assertEquals("Charizard", d.match?.name)
         assertEquals(RecommendedRoute.LIST_SINGLE, d.decision?.route)
-        assertEquals(25.23, d.decision?.maxBuyGbp)
+        assertEquals(25.0, d.decision?.maxBuyGbp)
         assertEquals(1.65, d.decision?.minAcceptGbp)
     }
 

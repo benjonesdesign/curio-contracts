@@ -32,7 +32,7 @@ import {
   DecideBatchResponseSchema, DecideBatchResultSchema, DecideBatchCardSchema,
 } from "../src/api/decide.js";
 import {
-  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema, PostageServiceSchema,
+  LiquiditySchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, MaxBuyUnavailableReasonSchema, PriceKindSchema, PostageServiceSchema, PostageBasisSchema,
 } from "../src/api/common.js";
 import {
   EditionAmbiguitySchema, CardValueRequestSchema, CardValueResponseSchema,
@@ -66,7 +66,15 @@ import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
   DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
-import { PhysicalCardSchema, PhysicalCardStatusSchema } from "../src/api/physical-card.js";
+import { PhysicalCardSchema, PhysicalCardStatusSchema, SetAsideReasonSchema } from "../src/api/physical-card.js";
+import {
+  GradedCreateRequestSchema, GradedCreateResponseSchema, SlabGraderSchema, SlabCollectionTypeSchema, CertCheckSchema,
+} from "../src/api/inventory-graded.js";
+import {
+  MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, InventoryChangeResponseSchema,
+  InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
+  InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
+} from "../src/api/inventory-change.js";
 import {
   ListingRefusalSchema, ListingRefusalCodeSchema, ListingRefusalReasonSchema,
 } from "../src/api/listing-refusal.js";
@@ -174,11 +182,22 @@ registerName(PricedPriceSchema, "PricedPrice");
 registerName(PostageModeSchema, "PostageMode");
 registerName(PerOrderBandSchema, "PerOrderBand");
 registerName(PostageServiceSchema, "PostageService");
+registerName(PostageBasisSchema, "PostageBasis");
 
 // v0.2.0: the copy, its status, and the ONE closed refusal vocabulary. Every enum named here so
 // the emitter never mints a digit-suffixed twin (`status`, `reason`, `code` and `availability` are
 // all field names that recur across unrelated schemas).
 registerName(PhysicalCardStatusSchema, "PhysicalCardStatus");
+registerName(SetAsideReasonSchema, "SetAsideReason");
+registerName(SlabGraderSchema, "SlabGrader");
+registerName(SlabCollectionTypeSchema, "SlabCollectionType");
+registerName(CertCheckSchema, "CertCheck");
+registerName(InventoryChangeRefusalReasonSchema, "InventoryChangeRefusalReason");
+registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
+registerName(InventoryChangeResultSchema, "InventoryChangeResult");
+registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
+registerName(InventoryCountsSchema, "InventoryCounts");
+registerName(CollectionValueSchema, "CollectionValue");
 registerName(PhysicalCardSchema, "PhysicalCard");
 registerName(ListingRefusalReasonSchema, "ListingRefusalReason");
 registerName(ListingRefusalCodeSchema, "ListingRefusalCode");
@@ -238,6 +257,13 @@ emitSwift(GamesResponseSchema, "GamesResponse");
 emitSwift(GameRefusalSchema, "GameRefusal");
 emitSwift(ListingPreviewRequestSchema, "ListingPreviewRequest");
 emitSwift(ListingPreviewResponseSchema, "ListingPreviewResponse");
+emitSwift(MineRequestSchema, "MineRequest");
+emitSwift(SetAsideRequestSchema, "SetAsideRequest");
+emitSwift(PutBackRequestSchema, "PutBackRequest");
+emitSwift(InventoryChangeResponseSchema, "InventoryChangeResponse");
+emitSwift(StatsResponseSchema, "StatsResponse");
+emitSwift(GradedCreateRequestSchema, "GradedCreateRequest");
+emitSwift(GradedCreateResponseSchema, "GradedCreateResponse");
 
 
 emitSwift(DecideRequestSchema, "DecideRequest");

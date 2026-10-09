@@ -200,8 +200,10 @@ export const DecisionSchema = z.object({
     /**
      * ACQUISITION: the most the seller should PAY for this card.
      *
-     * v0.2.0 (BREAKING): NULL when no honest figure exists, with `maxBuyUnavailableReason` saying
-     * why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
+     * v0.2.0 (BREAKING): WHOLE POUNDS, rounded DOWN by the server (Ben, 2026-10-09: "most to pay"
+     * is shown to the pound everywhere, and it is the same figure as the breakdown's `max_buy` line).
+     * A pence figure here is refused by the server-side guard below. NULL when no honest figure
+     * exists, with `maxBuyUnavailableReason` saying why. Null is "we are not telling you a number", NEVER "£0" — £0 is a real answer ("pay
      * nothing") and rendering null as £0 is the original bug, from the other side. A client renders
      * the reason ("Set your buying margin", "Not set"), never a figure.
      */
@@ -248,6 +250,9 @@ export const DecisionSchema = z.object({
     // enforces them, which is exactly why they are tested here.
     const issue = (path, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
     const maxBuyNull = d.maxBuyGbp === null;
+    if (d.maxBuyGbp !== null && (!Number.isInteger(d.maxBuyGbp) || d.maxBuyGbp < 0)) {
+        issue("maxBuyGbp", "maxBuyGbp is a whole, non-negative number of pounds, rounded DOWN by the server: pence are refused (£0 is a real answer)");
+    }
     if (maxBuyNull && d.maxBuyUnavailableReason === null) {
         issue("maxBuyUnavailableReason", "maxBuyGbp is null, so maxBuyUnavailableReason is required: a null most-to-pay must say why");
     }
@@ -280,10 +285,9 @@ export const DecisionSchema = z.object({
  * lines while another screen renders `decision.maxBuyGbp` would show a seller two answers.
  * Called from every response that carries both. A SERVER-SIDE GUARD (Swift/Kotlin cannot express it).
  *
- * `breakdown.totals.maxBuyGbp` is the DISPLAY figure, rounded DOWN to the pound by the server.
- * `Decision.maxBuyGbp` may be the exact pence or already floored (this contract allows both; Ben to
- * rule, docs/V0.2.0-ADOPTION.md "Decisions for Ben"): the relation that holds either way is
- * floor(decision.maxBuyGbp) === breakdown total, so that is what is enforced.
+ * `breakdown.totals.maxBuyGbp` and `Decision.maxBuyGbp` are the SAME whole-pound figure, rounded
+ * DOWN by the server (Ben, 2026-10-09; it was an open question while the draft allowed pence):
+ * each is refused if it carries pence, and they must be equal.
  */
 function checkBreakdownMatchesDecision(decision, breakdown, ctx, path) {
     const issue = (sub, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [...path, ...sub], message });
@@ -297,8 +301,8 @@ function checkBreakdownMatchesDecision(decision, breakdown, ctx, path) {
             ? "decision.maxBuyGbp is null but the breakdown has a most-to-pay: one fact, reported once"
             : "decision.maxBuyGbp is a number but the breakdown's most-to-pay is null: one fact, reported once");
     }
-    else if (mb !== null && total !== null && Math.floor(mb + 1e-9) !== total) {
-        issue(["totals", "maxBuyGbp"], `the breakdown's most-to-pay (${total}) is not decision.maxBuyGbp (${mb}) rounded down to the pound`);
+    else if (mb !== null && total !== null && mb !== total) {
+        issue(["totals", "maxBuyGbp"], `the breakdown's most-to-pay (${total}) is not decision.maxBuyGbp (${mb}): one whole-pound figure, reported once`);
     }
     const maxBuyLine = breakdown.lines.find((l) => l.key === "max_buy");
     if (mb === null && maxBuyLine && maxBuyLine.unknownReason !== decision.maxBuyUnavailableReason) {

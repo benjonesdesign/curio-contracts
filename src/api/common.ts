@@ -168,6 +168,15 @@ export type MaxBuyUnavailableReason = z.infer<typeof MaxBuyUnavailableReasonSche
 export const PostageServiceSchema = z.enum(["rm48_ll", "rm24_ll", "tracked48_sp", "special_delivery"]);
 export type PostageService = z.infer<typeof PostageServiceSchema>;
 
+/**
+ * WHICH rule a postage figure came from (v0.2.0; owner ruling 2026-10-09): the seller's eBay
+ * postage POLICY for a PUBLISHED listing, the seller's Dispatch RULES for an ESTIMATE (a preview,
+ * a card not yet live, a buying decision). Closed, forward-compatible (decisions/0027); a client
+ * that meets an unknown basis shows the figure as an estimate. Declared once here.
+ */
+export const PostageBasisSchema = z.enum(["ebay_policy", "dispatch_rules"]);
+export type PostageBasis = z.infer<typeof PostageBasisSchema>;
+
 /** Where a market price came from, in the only two classes that matter to a seller. Hoisted from
  *  the response's inline enum in v0.2.0 so `PricedBreakdown.price.kind` can reuse it: an inline
  *  copy would have emitted `PriceKind2`. The wire values and the generated name (`PriceKind`) are

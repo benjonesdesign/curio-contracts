@@ -35,7 +35,7 @@ final class NullableMostToPayTests: XCTestCase {
         "postageGbp": 3.29, "packagingGbp": 0.34, "costBasisGbp": null,
         "taxProvisionGbp": 0.0, "expectedNetGbp": 114.09
       },
-      "maxBuyGbp": 66.49, "maxBuyUnavailableReason": null,
+      "maxBuyGbp": 66, "maxBuyUnavailableReason": null,
       "minAcceptGbp": 12.5, "offerPctAtMax": 48.9,
       "degraded": false, "degradedReasons": []
     }
@@ -58,7 +58,7 @@ final class NullableMostToPayTests: XCTestCase {
 
     func testANumberStillDecodesAsANumberWithNoReason() throws {
         let d = try decode(known)
-        XCTAssertEqual(d.maxBuyGbp, 66.49)
+        XCTAssertEqual(d.maxBuyGbp, 66)
         XCTAssertNil(d.maxBuyUnavailableReason)
         XCTAssertEqual(d.economics.feeGbp, 18.284)
         XCTAssertNil(d.economics.feeNotSetReason)
@@ -78,7 +78,7 @@ final class NullableMostToPayTests: XCTestCase {
 
     /// Zero is a real most-to-pay ("pay nothing"); null is "no honest figure". They must not merge.
     func testZeroIsNotNull() throws {
-        let d = try decode(known.replacingOccurrences(of: #""maxBuyGbp": 66.49"#, with: #""maxBuyGbp": 0"#))
+        let d = try decode(known.replacingOccurrences(of: #""maxBuyGbp": 66"#, with: #""maxBuyGbp": 0"#))
         XCTAssertEqual(d.maxBuyGbp, 0)
         XCTAssertNotNil(d.maxBuyGbp)
     }
@@ -100,7 +100,6 @@ final class NullableMostToPayTests: XCTestCase {
           "suggestedSellerType": "business", "vatRegistered": null, "vatConfirmedAt": null,
           "feeNotSetReason": "seller_type_not_set",
           "buyingTargetMarginPct": null, "buyingTargetMarginSetAt": null,
-          "buyingTaxRate": null, "buyingTaxRateSetAt": null,
           "dispatchAddress": {"line1": null, "city": null, "postcode": null, "country": "GB"},
           "agedInventoryDays": 60,
           "pricingSettings": {"ebayFeeRate": null, "ebayFeeFixed": null, "packagingCost": 0.1, "shippingCost": 0,

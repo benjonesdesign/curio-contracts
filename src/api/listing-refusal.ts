@@ -34,14 +34,19 @@ import { z } from "zod";
 /**
  * WHY a copy cannot be listed. Closed. Precedence when several apply is the server's call; the
  * recommended order (matching #243's predicate, then the rest) is:
- * set_aside, mine, unmatched, game_not_available, already_live, condition_not_confirmed, no_price,
- * no_sku.
+ * set_aside, mine, unmatched, slab_unverified, game_not_available, already_live,
+ * condition_not_confirmed, no_price, no_sku.
  *
  *  - `mine`                    the seller keeps it (`allocation_channel = keep`). A copy is Mine OR
  *                              stock; the only way back is "Change to stock".
  *  - `set_aside`               status EXCEPTION. Kept, never priced or listed.
  *  - `unmatched`               status UNMATCHED ("Not identified"): no catalogue match, so nothing
  *                              to list against. Identify it first.
+ *  - `slab_unverified`         a graded slab whose cert the server has not verified (see
+ *                              `GradedCreateResponse.certVerified`). Ben's ruling: an unverified
+ *                              slab is NEVER listed as graded. Replaces the flat
+ *                              `graded_not_verified` (400) that is on main today. Fix: verify the
+ *                              cert (PSA), or list it as ungraded with the condition confirmed.
  *  - `condition_not_confirmed` the seller has not chosen/confirmed a condition (or the only one
  *                              came from a failed check). The description is written from it.
  *  - `no_price`                no price on the copy (nothing to list at). "Price these first".
@@ -59,6 +64,7 @@ export const ListingRefusalReasonSchema = z.enum([
   "mine",
   "set_aside",
   "unmatched",
+  "slab_unverified",
   "condition_not_confirmed",
   "no_price",
   "no_sku",

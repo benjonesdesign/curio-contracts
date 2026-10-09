@@ -7,10 +7,10 @@
 // for the list; each rule below names the test that goes red.
 
 import { describe, it, expect } from "vitest";
-import { PricedBreakdownSchema, PricedLineSchema } from "./priced-breakdown.js";
+import { PricedBreakdownSchema, PricedLineSchema, defaultPackingMinutes } from "./priced-breakdown.js";
 import { PostageServiceSchema } from "./common.js";
 import {
-  line, SELLING_KNOWN, SELLING_FEE_UNSET, BUYING_PRIVATE, BUYING_BUSINESS, BUYING_MARGIN_UNSET, BUYING_FEE_UNSET,
+  line, rebalance, SELLING_KNOWN, SELLING_FEE_UNSET, BUYING_PRIVATE, BUYING_BUSINESS, BUYING_MARGIN_UNSET, BUYING_FEE_UNSET,
 } from "../test-support/breakdown-fixtures.js";
 
 const issues = (r: { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } }) =>
@@ -67,14 +67,14 @@ describe("PricedBreakdown (v0.2.0): accepts the states a real response is in", (
   });
 
   it("carries packing time ONLY as a line: present with an hourly rate, ABSENT without one", () => {
-    const withTime = {
+    const withTime = rebalance({
       ...BUYING_PRIVATE,
       lines: [
         ...BUYING_PRIVATE.lines.slice(0, 3),
         line({ key: "packing_time", label: "Packing time (estimate)", amountGbp: -1, minutes: 4, source: "seller_profile", estimate: true, note: "estimate" }),
         ...BUYING_PRIVATE.lines.slice(3),
       ],
-    };
+    });
     ok(withTime);
     ok(BUYING_PRIVATE);
     expect(BUYING_PRIVATE.lines.some((l) => l.key === "packing_time")).toBe(false);
@@ -208,14 +208,14 @@ describe("PricedBreakdown (v0.2.0): accepts the states a real response is in", (
   });
 
   it("carries tax set aside ONLY as a line, a deduction, when the seller has set a rate", () => {
-    ok({
+    ok(rebalance({
       ...BUYING_PRIVATE,
       lines: [
         ...BUYING_PRIVATE.lines.slice(0, 5),
         line({ key: "tax_set_aside", label: "Tax set aside", amountGbp: -11.9, source: "seller_profile", note: null }),
         ...BUYING_PRIVATE.lines.slice(5),
       ],
-    });
+    }));
   });
 
   it("round-trips through JSON", () => {
@@ -372,9 +372,164 @@ describe("PricedBreakdown: rules that keep the fee position and the totals hones
 
   it("does not require a fee line at all (the `direct` channel's fee line is undefined in the plans)", () => {
     ok({
-      ...SELLING_KNOWN,
-      lines: SELLING_KNOWN.lines.filter((l) => l.key !== "ebay_fee"),
+      ...rebalance({ ...SELLING_KNOWN, lines: SELLING_KNOWN.lines.filter((l) => l.key !== "ebay_fee") }),
       feePosition: { sellerType: null, vatRegistered: null, channel: "direct", feeBasis: "seller_override" },
     });
+  });
+});
+
+// ── Owner rulings, 2026-10-09 ──────────────────────────────────────────────────────────────────
+
+describe("rounding: every line to the penny, and the total is the SUM OF THE ROUNDED LINES", () => {
+  it("accepts a selling total that is exactly the sum of its lines, and REJECTS one that is a penny out", () => {
+    ok(SELLING_KNOWN);
+    const out = (youReceiveGbp: number) => ({ ...SELLING_KNOWN, totals: { youReceiveGbp, maxBuyGbp: null },
+      lines: SELLING_KNOWN.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: youReceiveGbp } : l)) });
+    const r = PricedBreakdownSchema.safeParse(out(148.39));
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /not the sum of the rounded lines/.test(i.message))).toBe(true);
+    expect(PricedBreakdownSchema.safeParse(out(148.37)).success).toBe(false);
+  });
+
+  it("REJECTS a line that is not rounded to the penny, even when the total would foot to it", () => {
+    const r = PricedLineSchema.safeParse(line({ key: "postage", amountGbp: -3.285 }));
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /rounded to the penny/.test(i.message))).toBe(true);
+    expect(PricedLineSchema.safeParse(line({ key: "postage", amountGbp: -3.29 })).success).toBe(true);
+    // a float that IS a whole number of pence (0.1 + 0.2) is fine: tolerance is for float noise only
+    expect(PricedLineSchema.safeParse(line({ key: "sale_price", amountGbp: 0.1 + 0.2, source: "request", note: null })).success).toBe(true);
+  });
+
+  it("sums each line ROUNDED, not the unrounded figures behind them: three £0.335 fees are three £0.34 lines", () => {
+    // 0.335 x 3 = 1.005 -> 1.01 if rounded once at the end; 3 x 0.34 = 1.02 if each is rounded first.
+    const mk = (sale: number) => rebalance({
+      ...SELLING_KNOWN,
+      lines: [
+        line({ key: "sale_price", amountGbp: sale, source: "request", note: null }),
+        line({ key: "ebay_fee", amountGbp: -0.34, perOrderBand: "low" }),
+        line({ key: "fee_vat", amountGbp: -0.34, source: "fee_model", note: "vat_unrecoverable" }),
+        line({ key: "packing", amountGbp: -0.34, source: "default", assumed: true, estimate: true, note: "estimate" }),
+        line({ key: "you_receive", amountGbp: 0, source: "fee_model", note: null }),
+      ],
+    });
+    const b = mk(10);
+    expect(b.totals.youReceiveGbp).toBe(8.98);   // 10 - 1.02, the sum of the ROUNDED lines
+    ok(b);
+    expect(PricedBreakdownSchema.safeParse({ ...b, totals: { youReceiveGbp: 8.99, maxBuyGbp: null },
+      lines: b.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 8.99 } : l)) }).success).toBe(false);
+  });
+
+  it("buying: the total is the sum rounded DOWN to the pound (£84.77 -> £84), never to the nearest", () => {
+    ok(BUYING_PRIVATE);
+    const to = (maxBuy: number) => ({ ...BUYING_PRIVATE, totals: { youReceiveGbp: null, maxBuyGbp: maxBuy },
+      lines: BUYING_PRIVATE.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: maxBuy } : l)) });
+    expect(PricedBreakdownSchema.safeParse(to(85)).success).toBe(false);
+    expect(PricedBreakdownSchema.safeParse(to(83)).success).toBe(false);
+  });
+
+  it("buying: a sum under £1 is a £0 most-to-pay (a real 'pay nothing'), and a negative sum is £0, not negative", () => {
+    const cheap = rebalance({ ...BUYING_PRIVATE, lines: BUYING_PRIVATE.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: 52.21 } : l)) });
+    // 52.21 - 0.34 - 3.29 - 47.60 = 0.98
+    expect(cheap.totals.maxBuyGbp).toBe(0);
+    ok(cheap);
+    const underwater = rebalance({ ...BUYING_PRIVATE, lines: BUYING_PRIVATE.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: 10 } : l)) });
+    expect(underwater.totals.maxBuyGbp).toBe(0);
+    ok(underwater);
+    const negative = { ...underwater, totals: { youReceiveGbp: null, maxBuyGbp: -41 },
+      lines: underwater.lines.map((l) => (l.key === "max_buy" ? { ...l, amountGbp: -41 } : l)) };
+    expect(PricedBreakdownSchema.safeParse(negative).success).toBe(false);
+  });
+
+  it("an unknown included line makes the total null: an unknown is never summed as £0", () => {
+    const unknownPostage = { ...SELLING_KNOWN, lines: SELLING_KNOWN.lines.map((l) => (l.key === "postage" ? { ...l, amountGbp: null, unknownReason: "no_price", note: null } : l)) };
+    const r = PricedBreakdownSchema.safeParse(unknownPostage);
+    expect(r.success).toBe(false);
+    expect(issues(r).some((i) => /not summed as £0/.test(i.message))).toBe(true);
+    // ...and the same breakdown with a null total (and the reason on it) is the honest one
+    ok({ ...unknownPostage, totals: NO_TOTAL(), lines: unknownPostage.lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: null, unknownReason: "no_price" } : l)) });
+  });
+
+  it("sums pence by ROUNDING each line, not truncating: £0.29 is 29p although 0.29 x 100 is 28.999...", () => {
+    const tiny = rebalance({ ...SELLING_KNOWN, lines: [
+      line({ key: "sale_price", amountGbp: 0.29, source: "request", note: null }),
+      line({ key: "you_receive", amountGbp: 0, source: "fee_model", note: null }),
+    ] });
+    expect(tiny.totals.youReceiveGbp).toBe(0.29);
+    ok(tiny);
+  });
+
+  it("does not sum a line shown BESIDE the sum", () => {
+    const b = { ...SELLING_KNOWN, beside: [line({ key: "listing_time", amountGbp: 9, minutes: 45, estimate: true, included: false, note: "not_included" })] };
+    ok(b);   // the total still foots without the £9 of listing time
+  });
+});
+
+function NO_TOTAL() { return { youReceiveGbp: null, maxBuyGbp: null }; }
+
+describe("you receive can be NEGATIVE: the true negative is sent, flagged below_cost", () => {
+  const loss = rebalance({
+    ...SELLING_KNOWN,
+    lines: SELLING_KNOWN.lines.map((l) => (l.key === "sale_price" ? { ...l, amountGbp: 5 } : l)),
+  });
+  // 5 - 18.28 - 0 - 0.34 = -13.62
+  const withNote = (note: string | null) => ({ ...loss, lines: loss.lines.map((l) => (l.key === "you_receive" ? { ...l, note } : l)) });
+
+  it("accepts a negative total with note below_cost and does NOT clamp it to 0", () => {
+    expect(loss.totals.youReceiveGbp).toBe(-13.62);
+    ok(withNote("below_cost"));
+    expect(PricedBreakdownSchema.parse(withNote("below_cost")).totals.youReceiveGbp).toBe(-13.62);
+  });
+
+  it("REJECTS a negative you_receive without the below_cost flag, and a clamped £0 where the lines say -£13.62", () => {
+    expect(PricedBreakdownSchema.safeParse(withNote(null)).success).toBe(false);
+    const clamped = { ...withNote("below_cost"), totals: { youReceiveGbp: 0, maxBuyGbp: null },
+      lines: withNote("below_cost").lines.map((l) => (l.key === "you_receive" ? { ...l, amountGbp: 0 } : l)) };
+    expect(PricedBreakdownSchema.safeParse(clamped).success).toBe(false);
+  });
+
+  it("still never lets a sale price or a most-to-pay go negative", () => {
+    expect(PricedLineSchema.safeParse(line({ key: "sale_price", amountGbp: -5, source: "request", note: null })).success).toBe(false);
+    expect(PricedLineSchema.safeParse(line({ key: "max_buy", amountGbp: -1, note: null })).success).toBe(false);
+  });
+});
+
+describe("postage basis: the eBay policy for a PUBLISHED listing, Dispatch rules for an ESTIMATE", () => {
+  const postageLine = (over: Record<string, unknown> = {}) =>
+    line({ key: "postage", amountGbp: -3.29, source: "seller_profile", service: "tracked48_sp", postageBasis: "dispatch_rules", note: null, ...over });
+
+  it("accepts an estimate on Dispatch rules with a service, and a published listing on the policy with none", () => {
+    expect(PricedLineSchema.safeParse(postageLine()).success).toBe(true);
+    expect(PricedLineSchema.safeParse(postageLine({ source: "ebay_policy", service: null, postageBasis: "ebay_policy" })).success).toBe(true);
+  });
+
+  it("REJECTS a basis that contradicts the line's source, and a Dispatch service on a policy figure", () => {
+    expect(PricedLineSchema.safeParse(postageLine({ postageBasis: "ebay_policy", service: null })).success).toBe(false);       // source seller_profile
+    expect(PricedLineSchema.safeParse(postageLine({ source: "ebay_policy" })).success).toBe(false);                            // dispatch_rules from the policy
+    expect(PricedLineSchema.safeParse(postageLine({ source: "ebay_policy", postageBasis: "ebay_policy" })).success).toBe(false); // policy + a service
+  });
+
+  it("is closed, optional (older servers), and belongs to the postage line only", () => {
+    expect(PricedLineSchema.safeParse(postageLine({ postageBasis: "estimate" })).success).toBe(false);
+    const { postageBasis: _p, ...none } = postageLine();
+    expect(PricedLineSchema.safeParse(none).success).toBe(true);
+    expect(PricedLineSchema.safeParse(line({ key: "packing", amountGbp: -0.34, postageBasis: "dispatch_rules" })).success).toBe(false);
+  });
+});
+
+describe("packing time: the ruled default is 4 minutes a parcel and 2 for each extra card", () => {
+  it("computes 4, 6, 8 ... for 1, 2, 3 cards, with no letter/parcel split", () => {
+    expect([1, 2, 3, 10].map(defaultPackingMinutes)).toEqual([4, 6, 8, 22]);
+  });
+
+  it("refuses a parcel with no cards or a fractional count", () => {
+    expect(() => defaultPackingMinutes(0)).toThrow(RangeError);
+    expect(() => defaultPackingMinutes(1.5)).toThrow(RangeError);
+    expect(() => defaultPackingMinutes(-1)).toThrow(RangeError);
+  });
+
+  it("a packing_time line on the default minutes is flagged estimate; the seller's own minutes are not", () => {
+    const pt = (estimate: boolean, minutes: number) => line({ key: "packing_time", amountGbp: -1, minutes, estimate, source: "seller_profile", note: estimate ? "estimate" : null });
+    expect(PricedLineSchema.safeParse(pt(true, defaultPackingMinutes(1))).success).toBe(true);
+    expect(PricedLineSchema.safeParse(pt(false, 7)).success).toBe(true);
   });
 });

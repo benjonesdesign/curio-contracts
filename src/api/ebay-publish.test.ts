@@ -202,6 +202,12 @@ describe("EbayPublishError: the refusals made before eBay is contacted (v0.2.0)"
     }
   });
 
+  it("accepts slab_unverified as a reason, and keeps the flat graded_not_verified arm until the server switch", () => {
+    expect(EbayPublishErrorSchema.safeParse({ code: "card_not_listable", message: "m", reason: "slab_unverified" }).success).toBe(true);
+    // on main today, clients may handle it: the arm stays, deprecated, and is converted at the switch
+    expect(EbayPublishErrorSchema.safeParse({ code: "graded_not_verified", message: "m", gradingCompany: null }).success).toBe(true);
+  });
+
   it("does not accept #243's flat codes as arms: they are reasons now", () => {
     for (const code of ["card_mine", "card_set_aside", "condition_not_confirmed"]) {
       expect(EbayPublishErrorSchema.safeParse({ code, message: "m" }).success, code).toBe(false);

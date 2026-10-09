@@ -95,6 +95,9 @@ export const EbayPublishErrorSchema = z.discriminatedUnion("code", [
     maxLength: z.number().int(),
   }),
   z.object({
+    // DEPRECATED at the v0.2.0 server switch: this flat 400 is on main today and clients may handle
+    // it, so the arm STAYS; the server converts it to `card_not_listable` with reason
+    // `slab_unverified` (409) at the same switch as the nulls. Do not add new uses.
     code: z.literal("graded_not_verified"),
     message: z.string(),
     // Null when the card claims a grade with no company recorded — the reason the check fires at

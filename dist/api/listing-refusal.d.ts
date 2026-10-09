@@ -2,14 +2,19 @@ import { z } from "zod";
 /**
  * WHY a copy cannot be listed. Closed. Precedence when several apply is the server's call; the
  * recommended order (matching #243's predicate, then the rest) is:
- * set_aside, mine, unmatched, game_not_available, already_live, condition_not_confirmed, no_price,
- * no_sku.
+ * set_aside, mine, unmatched, slab_unverified, game_not_available, already_live,
+ * condition_not_confirmed, no_price, no_sku.
  *
  *  - `mine`                    the seller keeps it (`allocation_channel = keep`). A copy is Mine OR
  *                              stock; the only way back is "Change to stock".
  *  - `set_aside`               status EXCEPTION. Kept, never priced or listed.
  *  - `unmatched`               status UNMATCHED ("Not identified"): no catalogue match, so nothing
  *                              to list against. Identify it first.
+ *  - `slab_unverified`         a graded slab whose cert the server has not verified (see
+ *                              `GradedCreateResponse.certVerified`). Ben's ruling: an unverified
+ *                              slab is NEVER listed as graded. Replaces the flat
+ *                              `graded_not_verified` (400) that is on main today. Fix: verify the
+ *                              cert (PSA), or list it as ungraded with the condition confirmed.
  *  - `condition_not_confirmed` the seller has not chosen/confirmed a condition (or the only one
  *                              came from a failed check). The description is written from it.
  *  - `no_price`                no price on the copy (nothing to list at). "Price these first".
@@ -23,7 +28,7 @@ import { z } from "zod";
  * NOT here, deliberately: `held`. A HELD copy may be listed on purpose (it moves to
  * READY_TO_LIST), so holding is a suggestion rule ("left out of List now"), not a refusal.
  */
-export declare const ListingRefusalReasonSchema: z.ZodEnum<["mine", "set_aside", "unmatched", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
+export declare const ListingRefusalReasonSchema: z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>;
 export type ListingRefusalReason = z.infer<typeof ListingRefusalReasonSchema>;
 /**
  * Which KIND of refusal a listing route returned, before it contacted any marketplace.
@@ -61,22 +66,22 @@ export declare const LISTING_REFUSAL_HTTP_STATUS: Record<ListingRefusalCode, num
 export declare const ListingRefusalSchema: z.ZodEffects<z.ZodObject<{
     error: z.ZodString;
     code: z.ZodEnum<["card_not_listable", "game_not_available", "sku_required", "sku_unavailable", "card_read_failed", "card_not_found"]>;
-    reason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>>;
+    reason: z.ZodNullable<z.ZodEnum<["mine", "set_aside", "unmatched", "slab_unverified", "condition_not_confirmed", "no_price", "no_sku", "game_not_available", "already_live"]>>;
 }, "strip", z.ZodTypeAny, {
     error: string;
     code: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found";
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
 }, {
     error: string;
     code: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found";
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
 }>, {
     error: string;
     code: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found";
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
 }, {
     error: string;
     code: "game_not_available" | "card_not_listable" | "sku_required" | "sku_unavailable" | "card_read_failed" | "card_not_found";
-    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
+    reason: "no_price" | "game_not_available" | "mine" | "set_aside" | "unmatched" | "slab_unverified" | "condition_not_confirmed" | "no_sku" | "already_live" | null;
 }>;
 export type ListingRefusal = z.infer<typeof ListingRefusalSchema>;

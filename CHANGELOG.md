@@ -237,6 +237,40 @@ line rule and equality, a null/known fee mismatch already caught by the fee-basi
 and a listing_time-in-lines key rule already implied by "lines are all included") and were deleted. On Swift and Kotlin, four schema mutations (line reason, refusal reason,
 `heldAt` and stored `taxRate` made non-null) each failed both platforms' new tests.
 
+### Round 3 (2026-10-09): Ben's rulings, Mine / set aside, graded slabs
+
+Plain commits on the same untagged v0.2.0. Rulings: LANE-REPORTS/DECISIONS.md (FOR-BEN 3, 4, 11, 14,
+22-25); shapes from pokemon-tool #259/#260 (Mine, set aside, put back, stats) and #263 (graded slabs).
+
+- **`maxBuyGbp` is WHOLE POUNDS everywhere** (`Decision` and the breakdown's `max_buy`): rounded down
+  by the server, pence refused by the guard on both, and the two must be equal. Closes the draft's
+  open "pence or pounds" question.
+- **Rounding invariant.** Every line to the penny; the total is the SUM OF THE ROUNDED LINES
+  (`you_receive` exactly, `max_buy` rounded down to the pound, never negative); an unknown included
+  line makes the total null. Guarded, plus golden vector `total_is_not_the_sum_of_the_rounded_lines`.
+- **You receive may be NEGATIVE**: the true negative, flagged `note: "below_cost"` (guarded).
+- **One tax rate.** `Profile.buyingTaxRate` / `buyingTaxRateSetAt` and `ProfilePatch.buyingTaxRate`
+  REMOVED; `pricingSettings.taxRate` (stored and effective) is `number | null`, bounded 0 <= t < 1.
+- **Packing time**: ruled default 4 minutes a parcel + 2 per extra card (`defaultPackingMinutes`),
+  `estimate: true` when used; `listing_time` stays beside. **Postage precedence** (policy for
+  published, Dispatch rules for estimates) as the closed `PostageBasis` on the postage line.
+- **Mine / set aside / put back** (additive): `SetAsideReason`, `InventoryChangeRefusalReason`,
+  `InventoryChangeOutcome`, the three requests, `InventoryChangeResponse`; `PhysicalCard` gains
+  required `isMine`, `mineSetAt`, `setAsideReason`, `setAsideAt` (Mine is not a status); `StatsResponse`
+  with `counts {stock, mine, setAside}` and `collectionValue`. HELD and Not identified are in no value.
+- **Graded slabs** (additive): `GradedCreateRequest/Response`, `SlabGrader`, `CertCheck`;
+  `ListingRefusalReason` gains **`slab_unverified`**; the `graded_not_verified` arm stays (deprecated)
+  and converts at the server switch.
+- Lockstep rule now defined: `ECONOMICS_V2_WIRED` stays OFF until web is deployed on v0.2.0, the iOS
+  and Android builds are merged, and a minimum-version check exists before outside testers.
+
+Verification (round 3): `npm run build` (161/161 schemas), `npm run check` (no drift), `tsc`, vitest
+(33 files, 519 tests), `swift test` (45), `./gradlew test --offline` (50), 5 new golden vectors.
+**Mutation check, round 3.** 57 hand mutations (every rule above, the sum/rounding/negative logic,
+the postage basis branches, the default packing minutes, every inventory-change guard, the graded
+guards); the first pass left 2 survivors (a truncating sum and an unisolated basis/source branch),
+each fixed with an isolated test; all red at the end.
+
 ### Generator change (internal, but it is why `DecisionEconomics` is not called `Economics2`)
 
 `zod-to-swift.ts` / `zod-to-kotlin.ts` handled `ZodEffects` (a `.refine`/`.superRefine`) by unwrapping

@@ -169,12 +169,6 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
      */
     buyingTargetMarginPct: z.ZodNullable<z.ZodEffects<z.ZodNumber, number, number>>;
     buyingTargetMarginSetAt: z.ZodNullable<z.ZodString>;
-    /** The tax set-aside applied to BUYING, as a FRACTION. Null = no provision (not set); 0 = the
-     *  seller chose "none". Kept separate from `pricingSettings.taxRate` (which is now ALSO null =
-     *  not set, v0.2.0) because #224 §5 stores them apart; whether the two should merge into one
-     *  rate is a question for Ben (docs/V0.2.0-ADOPTION.md). */
-    buyingTaxRate: z.ZodNullable<z.ZodNumber>;
-    buyingTaxRateSetAt: z.ZodNullable<z.ZodString>;
     dispatchAddress: z.ZodObject<{
         line1: z.ZodNullable<z.ZodString>;
         city: z.ZodNullable<z.ZodString>;
@@ -307,8 +301,6 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -347,8 +339,6 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -387,8 +377,6 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -427,8 +415,6 @@ export declare const ProfileSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -504,8 +490,6 @@ export declare const ProfilePatchSchema: z.ZodObject<{
     /** v0.2.0. Writing a margin sets `buyingTargetMarginSetAt`. Number only: PLAN-MOST-TO-PAY #224
      *  defines no way to clear a chosen margin back to "Not set". */
     buyingTargetMarginPct: z.ZodOptional<z.ZodEffects<z.ZodNumber, number, number>>;
-    /** v0.2.0. 0 is a legal, deliberate "no provision". */
-    buyingTaxRate: z.ZodOptional<z.ZodNumber>;
     dispatchAddress: z.ZodOptional<z.ZodObject<{
         line1: z.ZodOptional<z.ZodNullable<z.ZodString>>;
         city: z.ZodOptional<z.ZodNullable<z.ZodString>>;
@@ -565,7 +549,6 @@ export declare const ProfilePatchSchema: z.ZodObject<{
     sellerType?: "private" | "business" | undefined;
     vatRegistered?: boolean | undefined;
     buyingTargetMarginPct?: number | undefined;
-    buyingTaxRate?: number | undefined;
     dispatchAddress?: {
         line1?: string | null | undefined;
         city?: string | null | undefined;
@@ -587,7 +570,6 @@ export declare const ProfilePatchSchema: z.ZodObject<{
     sellerType?: "private" | "business" | undefined;
     vatRegistered?: boolean | undefined;
     buyingTargetMarginPct?: number | undefined;
-    buyingTaxRate?: number | undefined;
     dispatchAddress?: {
         line1?: string | null | undefined;
         city?: string | null | undefined;
@@ -633,12 +615,6 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
      */
     buyingTargetMarginPct: z.ZodNullable<z.ZodEffects<z.ZodNumber, number, number>>;
     buyingTargetMarginSetAt: z.ZodNullable<z.ZodString>;
-    /** The tax set-aside applied to BUYING, as a FRACTION. Null = no provision (not set); 0 = the
-     *  seller chose "none". Kept separate from `pricingSettings.taxRate` (which is now ALSO null =
-     *  not set, v0.2.0) because #224 §5 stores them apart; whether the two should merge into one
-     *  rate is a question for Ben (docs/V0.2.0-ADOPTION.md). */
-    buyingTaxRate: z.ZodNullable<z.ZodNumber>;
-    buyingTaxRateSetAt: z.ZodNullable<z.ZodString>;
     dispatchAddress: z.ZodObject<{
         line1: z.ZodNullable<z.ZodString>;
         city: z.ZodNullable<z.ZodString>;
@@ -771,8 +747,6 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -811,8 +785,6 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -851,8 +823,6 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
@@ -891,8 +861,6 @@ export declare const ProfileResponseSchema: z.ZodEffects<z.ZodObject<{
     vatConfirmedAt: string | null;
     buyingTargetMarginPct: number | null;
     buyingTargetMarginSetAt: string | null;
-    buyingTaxRate: number | null;
-    buyingTaxRateSetAt: string | null;
     dispatchAddress: {
         line1: string | null;
         city: string | null;
