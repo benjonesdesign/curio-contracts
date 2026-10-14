@@ -75,6 +75,10 @@ import {
   GradedCreateRequestSchema, GradedCreateResponseSchema, SlabGraderSchema, SlabCollectionTypeSchema, CertCheckSchema,
 } from "../src/api/inventory-graded.js";
 import {
+  ChangeCardRequestSchema, ChangeCardResponseSchema, ChangeCardIdentitySchema, ChangeCardOutcomeSchema,
+  ChangeCardRefusalReasonSchema,
+} from "../src/api/inventory-change-card.js";
+import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
@@ -200,6 +204,9 @@ registerName(SlabCollectionTypeSchema, "SlabCollectionType");
 registerName(CertCheckSchema, "CertCheck");
 registerName(InventoryChangeRefusalReasonSchema, "InventoryChangeRefusalReason");
 registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
+registerName(ChangeCardRefusalReasonSchema, "ChangeCardRefusalReason");
+registerName(ChangeCardOutcomeSchema, "ChangeCardOutcome");
+registerName(ChangeCardIdentitySchema, "ChangeCardIdentity");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -271,6 +278,8 @@ emitKotlin(StopHoldingRequestSchema, "StopHoldingRequest");
 // contract), so nothing pulls it in; emitted so a client can compile its status switch now.
 emitKotlin(InventoryStatusKeySchema, "InventoryStatusKey");
 emitKotlin(InventoryChangeResponseSchema, "InventoryChangeResponse");
+emitKotlin(ChangeCardRequestSchema, "ChangeCardRequest");
+emitKotlin(ChangeCardResponseSchema, "ChangeCardResponse");
 emitKotlin(StatsResponseSchema, "StatsResponse");
 emitKotlin(GradedCreateRequestSchema, "GradedCreateRequest");
 emitKotlin(GradedCreateResponseSchema, "GradedCreateResponse");

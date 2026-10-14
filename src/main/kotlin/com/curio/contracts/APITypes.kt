@@ -3353,6 +3353,228 @@ public data class InventoryChangeSummary(
 )
 
 @Serializable
+public data class ChangeCardRequest(
+    @SerialName("physical_card_id") val physicalCardId: String,
+    val to: To,
+)
+
+@Serializable
+public data class To(
+    val game: String,
+    val nativeId: String,
+)
+
+@Serializable
+public data class ChangeCardResponse(
+    val outcome: ChangeCardOutcome,
+    val reason: ChangeCardRefusalReason? = null,
+    val error: String? = null,
+    val identity: ChangeCardIdentity? = null,
+    val status: PhysicalCardStatus? = null,
+    val idVerifiedBySeller: Boolean? = null,
+    val cleared: List<Cleared>? = null,
+    val kept: List<Kept>? = null,
+    val legacyUpdated: Boolean? = null,
+)
+
+@Serializable(with = ChangeCardOutcomeSerializer::class)
+public sealed interface ChangeCardOutcome {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CHANGED : ChangeCardOutcome {
+        override val rawValue: String get() = "changed"
+    }
+    public object UNCHANGED : ChangeCardOutcome {
+        override val rawValue: String get() = "unchanged"
+    }
+    public object REFUSED : ChangeCardOutcome {
+        override val rawValue: String get() = "refused"
+    }
+    public object FAILED : ChangeCardOutcome {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ChangeCardOutcome
+
+    public companion object {
+        public fun from(raw: String): ChangeCardOutcome = when (raw) {
+            "changed" -> CHANGED
+            "unchanged" -> UNCHANGED
+            "refused" -> REFUSED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChangeCardOutcomeSerializer : KSerializer<ChangeCardOutcome> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ChangeCardOutcome", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ChangeCardOutcome = ChangeCardOutcome.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ChangeCardOutcome) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = ChangeCardRefusalReasonSerializer::class)
+public sealed interface ChangeCardRefusalReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object LIVE_ON_EBAY : ChangeCardRefusalReason {
+        override val rawValue: String get() = "live_on_ebay"
+    }
+    public object SOLD : ChangeCardRefusalReason {
+        override val rawValue: String get() = "sold"
+    }
+    public object ARCHIVED : ChangeCardRefusalReason {
+        override val rawValue: String get() = "archived"
+    }
+    public object NOT_FOUND : ChangeCardRefusalReason {
+        override val rawValue: String get() = "not_found"
+    }
+    public object TARGET_NOT_FOUND : ChangeCardRefusalReason {
+        override val rawValue: String get() = "target_not_found"
+    }
+    public object GAME_NOT_AVAILABLE : ChangeCardRefusalReason {
+        override val rawValue: String get() = "game_not_available"
+    }
+    public object WRITE_FAILED : ChangeCardRefusalReason {
+        override val rawValue: String get() = "write_failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ChangeCardRefusalReason
+
+    public companion object {
+        public fun from(raw: String): ChangeCardRefusalReason = when (raw) {
+            "live_on_ebay" -> LIVE_ON_EBAY
+            "sold" -> SOLD
+            "archived" -> ARCHIVED
+            "not_found" -> NOT_FOUND
+            "target_not_found" -> TARGET_NOT_FOUND
+            "game_not_available" -> GAME_NOT_AVAILABLE
+            "write_failed" -> WRITE_FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChangeCardRefusalReasonSerializer : KSerializer<ChangeCardRefusalReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ChangeCardRefusalReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ChangeCardRefusalReason = ChangeCardRefusalReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ChangeCardRefusalReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class ChangeCardIdentity(
+    val game: String,
+    val nativeId: String,
+    val catalogueCardId: String,
+    val name: String,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val rarity: String? = null,
+    val language: String,
+    val imageRef: String? = null,
+)
+
+@Serializable(with = ClearedSerializer::class)
+public sealed interface Cleared {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object MARKET_PRICE : Cleared {
+        override val rawValue: String get() = "market_price"
+    }
+    public object IDENTITY_CONFIRMATION : Cleared {
+        override val rawValue: String get() = "identity_confirmation"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Cleared
+
+    public companion object {
+        public fun from(raw: String): Cleared = when (raw) {
+            "market_price" -> MARKET_PRICE
+            "identity_confirmation" -> IDENTITY_CONFIRMATION
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ClearedSerializer : KSerializer<Cleared> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Cleared", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Cleared = Cleared.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Cleared) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = KeptSerializer::class)
+public sealed interface Kept {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CONDITION : Kept {
+        override val rawValue: String get() = "condition"
+    }
+    public object SKU : Kept {
+        override val rawValue: String get() = "sku"
+    }
+    public object ASKING_PRICE : Kept {
+        override val rawValue: String get() = "asking_price"
+    }
+    public object COST : Kept {
+        override val rawValue: String get() = "cost"
+    }
+    public object NOTES : Kept {
+        override val rawValue: String get() = "notes"
+    }
+    public object PHOTOS : Kept {
+        override val rawValue: String get() = "photos"
+    }
+    public object ALLOCATION : Kept {
+        override val rawValue: String get() = "allocation"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Kept
+
+    public companion object {
+        public fun from(raw: String): Kept = when (raw) {
+            "condition" -> CONDITION
+            "sku" -> SKU
+            "asking_price" -> ASKING_PRICE
+            "cost" -> COST
+            "notes" -> NOTES
+            "photos" -> PHOTOS
+            "allocation" -> ALLOCATION
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object KeptSerializer : KSerializer<Kept> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Kept", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Kept = Kept.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Kept) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class StatsResponse(
     val statusCounts: Map<String, Int>,
     val costBasis: Double,

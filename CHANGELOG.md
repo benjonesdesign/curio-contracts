@@ -1,5 +1,16 @@
 # Changelog
 
+
+## Unreleased (v0.2.0 draft addition, 2026-10-14): change-card
+
+Additive, for pokemon-tool's `POST /api/inventory/change-card` (GAP-006; the smallest slice the product
+owner approved). New `src/api/inventory-change-card.ts`: `ChangeCardRequest` `{ physical_card_id, to:
+{ game, nativeId } }`, `ChangeCardResponse` (`outcome`, `reason`, `identity`, `status`, `cleared`,
+`kept`, `legacyUpdated`), closed `ChangeCardRefusalReason` (`live_on_ebay`, `sold`, `archived`,
+`not_found`, `target_not_found`, `game_not_available`, `write_failed`). Wording is @curio/copy's
+`changeRefusalReasonLabels`; `target_not_found` and `game_not_available` need design's sentences.
+Mutation-checked: 4 mutants red (test header). Swift and Kotlin emit it; coverage 170/170.
+
 ## v0.2.0 — BREAKING: most to pay and the fee position are nullable, and a null always says why
 
 **Untagged.** The version is bumped in `package.json` / `package-lock.json`; Ben tags. Rulings:
