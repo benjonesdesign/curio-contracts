@@ -46,6 +46,10 @@ import {
 } from "../src/api/ebay-publish.js";
 import { EntitlementSchema } from "../src/api/entitlement.js";
 import { VerificationEventRequestSchema, VerificationEventResponseSchema } from "../src/api/verification-event.js";
+import {
+  ScanTraceRequestSchema, ScanTraceResponseSchema, ScanTraceMatchSchema, ScanTraceOcrSchema, ScanTraceAnswerSchema,
+  ScanTraceOutcomeSchema, ScanTracePlatformSchema,
+} from "../src/api/scan-trace.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
 import { SignedPhotoUrlRequestSchema, SignedPhotoUrlResponseSchema, SignedPhotoUrlResultSchema } from "../src/api/signed-photo-url.js";
 import { PricingRuleSchema, PricingRuleInputSchema, PricingRuleListResponseSchema } from "../src/api/pricing-rule.js";
@@ -62,6 +66,12 @@ const root = join(__dirname, "..");
 // Name the shared/reused nested types explicitly so every route that references them (e.g.
 // RecommendedRoute inside both RecommendResponse.route and .alternatives[].route) emits one
 // Kotlin type, reused — not a duplicate per call site.
+// W15 Phase 1: shared names for the scan trace, registered before any emit.
+registerName(ScanTraceMatchSchema, "ScanTraceMatch");
+registerName(ScanTraceOcrSchema, "ScanTraceOcr");
+registerName(ScanTraceAnswerSchema, "ScanTraceAnswer");
+registerName(ScanTraceOutcomeSchema, "ScanTraceOutcome");
+registerName(ScanTracePlatformSchema, "ScanTracePlatform");
 registerName(RecommendedRouteSchema, "RecommendedRoute");
 registerName(CardSearchResultSchema, "CardSearchResult");
 registerName(RecommendBatchCardInputSchema, "RecommendBatchCardInput");
@@ -138,6 +148,8 @@ emitKotlin(CatalogueLookupResponseSchema, "CatalogueLookupResponse");
 emitKotlin(EntitlementSchema, "Entitlement");
 emitKotlin(VerificationEventRequestSchema, "VerificationEventRequest");
 emitKotlin(VerificationEventResponseSchema, "VerificationEventResponse");
+emitKotlin(ScanTraceRequestSchema, "ScanTraceRequest");
+emitKotlin(ScanTraceResponseSchema, "ScanTraceResponse");
 emitKotlin(InspectionDepthHintRequestSchema, "InspectionDepthHintRequest");
 emitKotlin(InspectionDepthHintResponseSchema, "InspectionDepthHintResponse");
 emitKotlin(SignedPhotoUrlRequestSchema, "SignedPhotoUrlRequest");

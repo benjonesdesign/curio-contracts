@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.1.46 — the scan trace (W15 Phase 1), on its own line
+
+**Additive only. Branched from `v0.1.45`, NOT from `main`.** This release sits on its own line: it has none of
+the `v0.1.47`+ commits (the tier rename, the entitlement response) and none of `v0.2.0`'s breaking changes, so web,
+iOS and Android can move `v0.1.45` to `v0.1.46` as one small coordinated bump without adopting anything else.
+**`v0.2.0` MUST merge this line** (`git merge release/v0.1` into the v0.2.0 branch) before it is tagged, so the
+scan-trace schemas are not lost; the v0.2.0 CHANGELOG and ADOPTION doc carry the same reminder.
+
+**`POST /api/scan-trace`** (`src/api/scan-trace.ts`): one client-written event per scan, so Tier 0 (read the
+number and set code, look the card up) can be measured before any more identification work is built.
+`ScanTraceRequest` { `v`:1, `scanId` (uuid v4), `platform` (`ios|android|web`), `appVersion?`, `gameHint?`,
+`ocr?` { number, total, setCode, setName, name, confidence?, lines?, ms? }, `answer` { by, resolverTier?,
+candidateCount?, match?, ms? }, `outcome` { sellerAction, changedFields?, finalMatch? } } and
+`ScanTraceResponse` `{ ok: true }`. `answer.by` and `outcome.sellerAction` are open strings (ADR 0027).
+Card text only, no photos; the server caps the body at 8 KB and 120 per 5 minutes per account, and computes a
+shadow Tier 0 result from `ocr` itself (not part of this contract: nothing but `ok` is returned).
+
 ## v0.1.45 — the generator can express a union again, and two bugs it was hiding
 
 **`z.discriminatedUnion` emits.** It threw in both emitters, so the idiomatic way to make two
