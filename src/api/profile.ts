@@ -15,6 +15,7 @@
 // replaced the original catch-all owner policy with granular ones whose UPDATE `with check` pins
 // `is_admin` to its existing value — so omitting it here is defence in depth, not the only guard.
 import { z } from "zod";
+import { FeeNotSetReasonSchema } from "./common.js";
 import { PricingSettingsSchema } from "./recommend.js";
 
 export const SellerTypeSchema = z.enum(["private", "business"]);
@@ -36,6 +37,14 @@ export const DispatchAddressSchema = z.object({
 export type DispatchAddress = z.infer<typeof DispatchAddressSchema>;
 
 /**
+ * THE tax rate, a FRACTION (0.20 = 20%), bounded 0 <= t < 1 (the most-to-pay formula divides by
+ * 1 - t). ONE rate, set once in Cost, for buying AND selling (Ben, 2026-10-09; the draft's separate
+ * `buyingTaxRate` is REMOVED). 0 is a real, chosen "no provision"; null is "never set" and means NO
+ * tax is set aside, anywhere.
+ */
+const TaxRateSchema = z.number().min(0).lt(1);
+
+/**
  * The seller's STORED pricing settings, as persisted.
  *
  * Differs from `PricingSettingsSchema` (the fully-resolved shape the engines consume) in exactly
@@ -54,16 +63,92 @@ export const StoredPricingSettingsSchema = z.object({
   ebayFeeFixed: z.number().nullable(),
   packagingCost: z.number(),
   shippingCost: z.number(),
-  taxRate: z.number(),
+  /**
+   * v0.2.0 (BREAKING): NULL = the seller has not set a tax rate, and then NO tax is set aside —
+   * buying or selling (owner, 2026-10-08: "tax applies only when the seller sets a rate"). It was
+   * a number with the DB default 0.20, so a stored default was read as a choice and every resale
+   * copy carried a 20% provision the seller never asked for. 0 is a real, chosen "no provision";
+   * null is "never set". Contracts only MODEL null: the database default 0.20 becomes null in a
+   * separate migration that needs Ben's go (and until it runs the server keeps sending 0.2).
+   * PATCH `taxRate: null` clears a chosen rate back to "not set". A tax line appears in a
+   * breakdown only when this is non-null.
+   */
+  taxRate: TaxRateSchema.nullable(),
   minProfitPct: z.number(),
   minSaleValue: z.number(),
   postageCost: z.number(),
 });
 export type StoredPricingSettings = z.infer<typeof StoredPricingSettingsSchema>;
 
+/**
+ * `PricingSettingsSchema` with the two fee fields nullable (v0.2.0, BREAKING for `Profile`).
+ *
+ * `effectivePricingSettings` is "what the server will ACTUALLY use", with the seller-type
+ * derivation applied to a null fee. When the seller type has never been confirmed there is nothing
+ * to derive from, and answering with the private-seller fee (0) is the assumption this release
+ * removes. So `ebayFeeRate`/`ebayFeeFixed` are null — together — exactly when `feeNotSetReason` is
+ * set. A separate schema, not a loosened `PricingSettingsSchema`: that one is also a REQUEST body,
+ * where the client asserts a fee and null would mean nothing. (The same holds for `taxRate`, which
+ * is nullable here for the same reason: "no rate set" is an answer only the server can give.)
+ */
+export const EffectivePricingSettingsSchema = PricingSettingsSchema.extend({
+  ebayFeeRate: z.number().nullable(),
+  ebayFeeFixed: z.number().nullable(),
+  /** v0.2.0: null = no tax rate set, so no tax is set aside (see `StoredPricingSettings.taxRate`). */
+  taxRate: TaxRateSchema.nullable(),
+}).superRefine((e, ctx) => {
+  if ((e.ebayFeeRate === null) !== (e.ebayFeeFixed === null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ebayFeeFixed"],
+      message: "ebayFeeRate and ebayFeeFixed are one fee: both null or both numbers" });
+  }
+});
+export type EffectivePricingSettings = z.infer<typeof EffectivePricingSettingsSchema>;
+
+/**
+ * A buying margin as a PERCENTAGE OF THE SALE PRICE (35 = 35%), bounded 0 <= m < 100 (the DB check,
+ * PLAN-MOST-TO-PAY #224 §5: a share of the sale cannot reach 100%). 0 is a real choice ("accept any
+ * profit"); (0, 1) is rejected as a rate sent by mistake, exactly as on DecideRequest.targetMarginPct
+ * — the `*Pct`/`*Rate` hazard (recommend.ts) applies to a stored value as much as a request.
+ */
+const BuyingMarginPctSchema = z.number().min(0).lt(100).refine((v) => v === 0 || v >= 1, {
+  message: "buyingTargetMarginPct is a percentage (35 = 35%), not a rate. A value between 0 and 1 " +
+           "looks like a rate sent by mistake.",
+});
+
+
 export const ProfileSchema = z.object({
-  sellerType: SellerTypeSchema,
+  /**
+   * v0.2.0 (BREAKING): NULL until the seller has answered "private or business?" (asked once, on
+   * first opening Sell or connecting eBay). Was non-null with `not null default 'private'`, so a
+   * seller who had never been asked read as private and every fee downstream assumed £0.
+   * Null exactly when `sellerTypeConfirmedAt` is null. An eBay-detected type is NOT an answer — it
+   * is `suggestedSellerType`.
+   */
+  sellerType: SellerTypeSchema.nullable(),
+  /** ISO time the seller answered. Null = never asked/answered. "Set" means this is non-null and
+   *  nothing else (PLAN-SELLER-TYPE-FIRST-ASK §2). Read-only: written by PATCH `sellerType`. */
+  sellerTypeConfirmedAt: z.string().datetime().nullable(),
   sellerTypeSource: SellerTypeSourceSchema,
+  /** eBay's detected type (`sellerTypeSource` "auto"), offered as a SUGGESTION the seller
+   *  confirms — never applied on its own, and only ever "business" (absence of
+   *  `BusinessSellerDetails` is not evidence of a private seller). Null when there is none. */
+  suggestedSellerType: SellerTypeSchema.nullable(),
+  /** Only meaningful for a business seller. Null = the VAT question is unanswered (or the seller
+   *  type is not set / private). Null exactly when `vatConfirmedAt` is null. */
+  vatRegistered: z.boolean().nullable(),
+  vatConfirmedAt: z.string().datetime().nullable(),
+  /** Read-only. Why the seller's fee is unknown, or null when it is known — either from the
+   *  answers above or because the seller set their own fee override (a stated cost). The same
+   *  fact the server reports as `feeNotSetReason` on every priced response. */
+  feeNotSetReason: FeeNotSetReasonSchema.nullable(),
+  /**
+   * The seller's BUYING margin, as a % of the SALE price (PLAN-MOST-TO-PAY #224 §2). Its own
+   * setting with NO fallback to the selling floor (`pricingSettings.minProfitPct`): null =
+   * "Not set" and there is no most-to-pay (`maxBuyUnavailableReason: "margin_not_set"`). A stored
+   * default is not a choice. Null exactly when `buyingTargetMarginSetAt` is null.
+   */
+  buyingTargetMarginPct: BuyingMarginPctSchema.nullable(),
+  buyingTargetMarginSetAt: z.string().datetime().nullable(),
   dispatchAddress: DispatchAddressSchema,
   /** Days before unsold stock is flagged as aged on the dashboard. */
   agedInventoryDays: z.number().int(),
@@ -71,12 +156,41 @@ export const ProfileSchema = z.object({
    *  a null fee field as empty-with-a-placeholder, not as "0". */
   pricingSettings: StoredPricingSettingsSchema,
   /** What the server will ACTUALLY use: `pricingSettings` with ADR 0006's seller-type derivation
-   *  already applied to any null fee field. Read-only (PATCH `pricingSettings` to change it) and
-   *  the honest thing to show beside a blank input, so a business seller never sees a £0 fee
-   *  estimate and has to work out for themselves that it's wrong. */
-  effectivePricingSettings: PricingSettingsSchema,
+   *  already applied to any null fee field. v0.2.0: the fee fields are NULL while the fee position
+   *  is not set (`feeNotSetReason`) — the type is now `EffectivePricingSettings`, not
+   *  `PricingSettings`. Read-only (PATCH `pricingSettings` to change it). */
+  effectivePricingSettings: EffectivePricingSettingsSchema,
   /** Read-only. Only the service role can flip it — never accepted on PATCH. */
   isAdmin: z.boolean(),
+}).superRefine((p, ctx) => {
+  // A confirmation timestamp and the value it confirms are one fact; neither may exist alone.
+  const pair = (value: unknown, at: unknown, valueKey: string, atKey: string) => {
+    if ((value === null) !== (at === null)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [valueKey],
+        message: `${valueKey} and ${atKey} are one fact: both null (never answered) or both set` });
+    }
+  };
+  pair(p.sellerType, p.sellerTypeConfirmedAt, "sellerType", "sellerTypeConfirmedAt");
+  pair(p.vatRegistered, p.vatConfirmedAt, "vatRegistered", "vatConfirmedAt");
+  pair(p.buyingTargetMarginPct, p.buyingTargetMarginSetAt, "buyingTargetMarginPct", "buyingTargetMarginSetAt");
+
+  // The effective fee is null exactly when the reason says it is.
+  const effNull = p.effectivePricingSettings.ebayFeeRate === null;
+  if (effNull !== (p.feeNotSetReason !== null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["feeNotSetReason"],
+      message: effNull
+        ? "effectivePricingSettings.ebayFeeRate is null, so feeNotSetReason is required: a null fee must say why"
+        : "feeNotSetReason is set but effectivePricingSettings carries a fee: a fee that is known has no reason to be missing" });
+  }
+  // The reason must agree with the answers it is derived from.
+  if (p.feeNotSetReason === "seller_type_not_set" && p.sellerType !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["feeNotSetReason"],
+      message: "seller_type_not_set but sellerType is set" });
+  }
+  if (p.feeNotSetReason === "vat_not_set" && !(p.sellerType === "business" && p.vatRegistered === null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["feeNotSetReason"],
+      message: "vat_not_set applies only to a business seller whose VAT question is unanswered" });
+  }
 });
 export type Profile = z.infer<typeof ProfileSchema>;
 
@@ -93,7 +207,14 @@ export type StoredPricingSettingsPatch = z.infer<typeof StoredPricingSettingsPat
 // Every field optional: a partial write. An omitted field is left alone; an explicitly-null
 // `ebayFeeRate`/`ebayFeeFixed` clears the override back to the seller-type-derived default.
 export const ProfilePatchSchema = z.object({
+  /** Writing this CONFIRMS the seller type (sets `sellerTypeSource` "manual" and
+   *  `sellerTypeConfirmedAt`). There is no way to PATCH it back to unset. */
   sellerType: SellerTypeSchema.optional(),
+  /** v0.2.0. Writing this answers the VAT question (sets `vatConfirmedAt`). */
+  vatRegistered: z.boolean().optional(),
+  /** v0.2.0. Writing a margin sets `buyingTargetMarginSetAt`. Number only: PLAN-MOST-TO-PAY #224
+   *  defines no way to clear a chosen margin back to "Not set". */
+  buyingTargetMarginPct: BuyingMarginPctSchema.optional(),
   dispatchAddress: DispatchAddressPatchSchema.optional(),
   agedInventoryDays: z.number().int().optional(),
   pricingSettings: StoredPricingSettingsPatchSchema.optional(),

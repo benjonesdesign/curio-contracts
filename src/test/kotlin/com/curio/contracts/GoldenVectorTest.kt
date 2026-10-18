@@ -95,6 +95,62 @@ class GoldenVectorTest {
                         "vector $name did not round-trip unchanged",
                     )
                 }
+                "ListingPreviewResponse" -> {
+                    val decoded = json.decodeFromJsonElement(ListingPreviewResponse.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(ListingPreviewResponse.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "GamesResponse" -> {
+                    val decoded = json.decodeFromJsonElement(GamesResponse.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(GamesResponse.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "PricedBreakdown" -> {
+                    val decoded = json.decodeFromJsonElement(PricedBreakdown.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(PricedBreakdown.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "PhysicalCard" -> {
+                    val decoded = json.decodeFromJsonElement(PhysicalCard.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(PhysicalCard.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "InventoryChangeResponse" -> {
+                    val decoded = json.decodeFromJsonElement(InventoryChangeResponse.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(InventoryChangeResponse.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "GradedCreateResponse" -> {
+                    val decoded = json.decodeFromJsonElement(GradedCreateResponse.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(GradedCreateResponse.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
+                "Decision" -> {
+                    val decoded = json.decodeFromJsonElement(Decision.serializer(), payload)
+                    val reencoded = encoder.encodeToJsonElement(Decision.serializer(), decoded)
+                    assertEquals(
+                        stripNulls(payload), stripNulls(reencoded),
+                        "vector $name did not round-trip unchanged",
+                    )
+                }
                 else -> fail("vector $name names type $type, which this runner does not handle — add it rather than letting it skip")
             }
         }

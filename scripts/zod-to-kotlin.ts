@@ -193,8 +193,18 @@ function resolve(schema: z.ZodTypeAny, hintName: string): string {
   // first attempt (bounding `targetMarginPct` so a rate sent as a percentage is rejected) failed
   // the build. A validation vocabulary the generator silently forbids is one nobody reaches for,
   // and the constraints it forbids here are exactly the unit checks on money fields.
+  //
+  // v0.2.0: the wrapper is now also VISITED and NAMED. Cross-field invariants ("a null most-to-pay
+  // carries a reason") are `.superRefine()` on an exported OBJECT schema, so `DecisionSchema` is a
+  // ZodEffects. Two things that was not doing: (1) `registerName(DecisionSchema, "Decision")` was
+  // ignored — the name sat on the wrapper while the walker named the inner object from the FIELD
+  // name, which would have emitted `Economics2` for `DecisionEconomics` — and (2) the wrapper was
+  // never recorded in `schemaToName`, so `assert-coverage` reported the exported schema as never
+  // emitted. Both were invisible while the only refinements in the contract sat on number fields.
   if (schema instanceof z.ZodEffects) {
-    return resolve(schema._def.schema, hintName);
+    const resolved = resolve(schema._def.schema, nameRegistry.get(schema) ?? hintName);
+    schemaToName.set(schema, resolved);
+    return resolved;
   }
   if (schema instanceof z.ZodString) return "String";
   if (schema instanceof z.ZodNumber) return isIntSchema(schema) ? "Int" : "Double";

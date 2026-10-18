@@ -1,3 +1,5 @@
+// MUTATION-CHECKED 2026-10-08 (v0.2.0 refusal arms, SKU): see CHANGELOG "Mutation check, round 2".
+//
 // MUTATION-CHECKED 2026-09-03 (v0.1.46 arms): red against `missingRequired: z.array(z.string())`
 // made `.optional()` (the arm stops requiring the one field it exists to carry), and red against
 // the four token arms collapsed into a single `token_error` literal; green against current.
@@ -9,9 +11,11 @@
 import { describe, it, expect } from "vitest";
 import {
   EbayPublishRequestSchema,
+  EbayPublishSuccessSchema,
   EbayPublishErrorSchema,
   EbayPublishErrorResponseSchema,
 } from "./ebay-publish.js";
+import { ListingRefusalReasonSchema } from "./listing-refusal.js";
 
 describe("EbayPublishRequest", () => {
   const base = {
@@ -96,6 +100,9 @@ describe("EbayPublishError", () => {
       "no_photos", "missing_required_aspects", "no_dispatch_address", "location_create_failed",
       "rate_limited", "publish_failed", "not_connected", "expired", "refresh_failed",
       "not_configured",
+      // v0.2.0: the refusals made BEFORE eBay is contacted (#243 guards, #246 game gate, #227 SKU).
+      "card_not_listable", "game_not_available", "sku_required", "sku_unavailable",
+      "card_read_failed", "card_not_found",
     ];
     const declared = new Set(EbayPublishErrorSchema.options.map((o) => o.shape.code.value as string));
     const missing = ROUTE_CODES.filter((c) => !declared.has(c));
@@ -140,5 +147,88 @@ describe("EbayPublishError", () => {
         error: "m", failure: { code: "invented_later", message: "m" },
       }).success
     ).toBe(false);
+  });
+});
+
+describe("EbayPublishRequest carries NO sku since v0.2.0 (a SKU is given when the copy is added and never edited)", () => {
+  const base = {
+    title: "Charizard Base Set 4/102", description: "d", condition: "NM",
+    priceGbp: 250, photoUrls: [], aspectValues: {}, physicalCardId: "abc-123",
+  };
+
+  it("accepts a request with no sku: the server reads the copy's own", () => {
+    expect(EbayPublishRequestSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("has no sku field to send: the parsed request cannot carry one, even from a pinned build that still sends it", () => {
+    const parsed = EbayPublishRequestSchema.parse({ ...base, sku: "SKU-OTHERCOPY" }) as Record<string, unknown>;
+    expect("sku" in parsed).toBe(false);
+  });
+});
+
+describe("EbayPublishSuccess.sku (v0.2.0)", () => {
+  const ok = { status: "published", sku: "SKU-ABC12345", offerId: "o1", listingId: "l1", listingUrl: "https://ebay.co.uk/itm/l1", production: true };
+
+  it("carries the SKU the listing was published under, non-null", () => {
+    expect(EbayPublishSuccessSchema.parse(ok).sku).toBe("SKU-ABC12345");
+  });
+
+  it("REQUIRES it: the SKU is how the seller finds the row on eBay, and a retry must find the same listing", () => {
+    const { sku: _s, ...noSku } = ok;
+    expect(EbayPublishSuccessSchema.safeParse(noSku).success).toBe(false);
+    expect(EbayPublishSuccessSchema.safeParse({ ...ok, sku: null }).success).toBe(false);
+    expect(EbayPublishSuccessSchema.safeParse({ ...ok, sku: "" }).success).toBe(false);
+  });
+
+  it("is OPAQUE: a lot listing's server-minted SKU is just another string", () => {
+    expect(EbayPublishSuccessSchema.safeParse({ ...ok, sku: "LOT-1350-BOX6" }).success).toBe(true);
+  });
+});
+
+describe("EbayPublishError: the refusals made before eBay is contacted (v0.2.0)", () => {
+  it("card_not_listable carries its REASON, and every reason in the one closed list is accepted", () => {
+    for (const reason of ListingRefusalReasonSchema.options) {
+      expect(EbayPublishErrorSchema.safeParse({ code: "card_not_listable", message: "m", reason }).success, reason).toBe(true);
+    }
+  });
+
+  it("REJECTS card_not_listable without a reason: a refusal must say why", () => {
+    expect(EbayPublishErrorSchema.safeParse({ code: "card_not_listable", message: "m" }).success).toBe(false);
+  });
+
+  it("REJECTS a reason outside the closed list, including #243's separate flat codes", () => {
+    for (const reason of ["held", "card_mine", "card_set_aside", "keep", "exception", ""]) {
+      expect(EbayPublishErrorSchema.safeParse({ code: "card_not_listable", message: "m", reason }).success, reason).toBe(false);
+    }
+  });
+
+  it("accepts slab_unverified as a reason, and keeps the flat graded_not_verified arm until the server switch", () => {
+    expect(EbayPublishErrorSchema.safeParse({ code: "card_not_listable", message: "m", reason: "slab_unverified" }).success).toBe(true);
+    // on main today, clients may handle it: the arm stays, deprecated, and is converted at the switch
+    expect(EbayPublishErrorSchema.safeParse({ code: "graded_not_verified", message: "m", gradingCompany: null }).success).toBe(true);
+  });
+
+  it("does not accept #243's flat codes as arms: they are reasons now", () => {
+    for (const code of ["card_mine", "card_set_aside", "condition_not_confirmed"]) {
+      expect(EbayPublishErrorSchema.safeParse({ code, message: "m" }).success, code).toBe(false);
+    }
+  });
+
+  it("game_not_available names the game (null for an id this build does not know) and its display name", () => {
+    expect(EbayPublishErrorSchema.safeParse({ code: "game_not_available", message: "m", game: "mtg", displayName: "Magic: The Gathering" }).success).toBe(true);
+    expect(EbayPublishErrorSchema.safeParse({ code: "game_not_available", message: "m", game: null, displayName: "This game" }).success).toBe(true);
+    expect(EbayPublishErrorSchema.safeParse({ code: "game_not_available", message: "m" }).success).toBe(false);
+  });
+
+  it("the four message-only refusals decode in the full envelope, and error equals failure.message", () => {
+    for (const code of ["sku_required", "sku_unavailable", "card_read_failed", "card_not_found"]) {
+      const r = EbayPublishErrorResponseSchema.safeParse({ error: "m", code, failure: { code, message: "m" } });
+      expect(r.success, code).toBe(true);
+    }
+  });
+
+  it("the flat {error, code} bodies #243 and #246 return today are NOT a complete response: `failure` is required", () => {
+    // The web lane builds the envelope when it adopts this release (docs/V0.2.0-ADOPTION.md).
+    expect(EbayPublishErrorResponseSchema.safeParse({ error: "Kept as yours", code: "card_not_listable" }).success).toBe(false);
   });
 });

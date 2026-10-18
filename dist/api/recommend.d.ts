@@ -308,8 +308,8 @@ export declare const RecommendBatchCardInputSchema: z.ZodObject<{
     isVintage: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     id: string;
-    collectionType: "personal" | "resale" | null;
     condition: string | null;
+    collectionType: "personal" | "resale" | null;
     priceSource: string | null;
     avgGbp: number | null;
     lowGbp: number | null;
@@ -320,8 +320,8 @@ export declare const RecommendBatchCardInputSchema: z.ZodObject<{
     isVintage?: boolean | undefined;
 }, {
     id: string;
-    collectionType: "personal" | "resale" | null;
     condition: string | null;
+    collectionType: "personal" | "resale" | null;
     priceSource: string | null;
     avgGbp: number | null;
     lowGbp: number | null;
@@ -348,8 +348,8 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         isVintage: z.ZodOptional<z.ZodBoolean>;
     }, "strip", z.ZodTypeAny, {
         id: string;
-        collectionType: "personal" | "resale" | null;
         condition: string | null;
+        collectionType: "personal" | "resale" | null;
         priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
@@ -360,8 +360,8 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
         isVintage?: boolean | undefined;
     }, {
         id: string;
-        collectionType: "personal" | "resale" | null;
         condition: string | null;
+        collectionType: "personal" | "resale" | null;
         priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
@@ -414,8 +414,8 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     cards: {
         id: string;
-        collectionType: "personal" | "resale" | null;
         condition: string | null;
+        collectionType: "personal" | "resale" | null;
         priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;
@@ -438,8 +438,8 @@ export declare const RecommendBatchRequestSchema: z.ZodObject<{
 }, {
     cards: {
         id: string;
-        collectionType: "personal" | "resale" | null;
         condition: string | null;
+        collectionType: "personal" | "resale" | null;
         priceSource: string | null;
         avgGbp: number | null;
         lowGbp: number | null;

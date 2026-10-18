@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { CatalogueLookupMatchSchema } from "./catalogue-lookup.js";
 import { GameIdSchema } from "./common.js";
+import { PhysicalCardStatusSchema } from "./physical-card.js";
 const DetailImageSchema = z.object({
     side: z.enum(["front", "back"]).optional(),
     corner: z.string().optional(),
@@ -113,6 +114,16 @@ const EbaySchema = z.object({
 });
 export const CaptureCommitResponseSchema = z.object({
     physicalCardId: z.string(),
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key). The copy's SKU, a non-null string: a PhysicalCard gets its
+     * SKU when it is created (Ben, 2026-10-08), and capture-commit is where a captured copy is
+     * created, so it is the first response that can carry it. OPAQUE: display, copy and send back
+     * verbatim; never parse it. Same value on every later response for this copy.
+     */
+    sku: z.string().min(1),
+    /** v0.2.0 (BREAKING: new REQUIRED key). The copy's lifecycle status as created
+     *  (READY_TO_LIST, NEEDS_DECISION, NEEDS_ID_REVIEW, ...). Decode forward-compatibly. */
+    status: PhysicalCardStatusSchema,
     legacyCardId: z.string().nullable(),
     game: z.string(),
     gameDisplayName: z.string(),

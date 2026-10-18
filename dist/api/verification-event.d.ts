@@ -22,7 +22,7 @@ export declare const VerificationEventRequestSchema: z.ZodObject<{
     physicalCardId: string;
     kind: "condition" | "identity";
     field: string;
-    source?: "ios_capture" | "web_add_flow" | "other" | undefined;
+    source?: "other" | "ios_capture" | "web_add_flow" | undefined;
     verdict?: "confirmed" | "not_present" | "unsure" | undefined;
     previousValue?: string | null | undefined;
     correctedValue?: string | null | undefined;
@@ -30,7 +30,7 @@ export declare const VerificationEventRequestSchema: z.ZodObject<{
     physicalCardId: string;
     kind: "condition" | "identity";
     field: string;
-    source?: "ios_capture" | "web_add_flow" | "other" | undefined;
+    source?: "other" | "ios_capture" | "web_add_flow" | undefined;
     verdict?: "confirmed" | "not_present" | "unsure" | undefined;
     previousValue?: string | null | undefined;
     correctedValue?: string | null | undefined;

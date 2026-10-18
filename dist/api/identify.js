@@ -3,6 +3,7 @@
 // the UX this feeds, and pokemon-tool's app/api/identify/route.ts for the implementation.
 import { z } from "zod";
 import { GameIdSchema, ConditionSchema, ConfidenceSchema } from "./common.js";
+import { UnavailableGameSchema } from "./game-availability.js";
 const TaxonomyAspectSchema = z.object({
     localizedAspectName: z.string(),
     aspectConstraint: z.object({ aspectMode: z.string().optional() }).optional(),
@@ -126,4 +127,8 @@ export const IdentifyAmbiguousTierSchema = z.enum(["ambiguous"]);
 export const IdentifyAmbiguousResponseSchema = z.object({
     tier: IdentifyAmbiguousTierSchema,
     candidates: z.array(IdentifyCandidateSchema),
+    /** v0.2.0, additive. Present when the card is of a game that is "coming" (Pokémon only at
+     *  beta, #246): `candidates` is empty and this names the game, so a current client says
+     *  "Magic: The Gathering is coming" while a pinned one renders "not recognised". */
+    unavailableGame: UnavailableGameSchema.nullable().optional(),
 });

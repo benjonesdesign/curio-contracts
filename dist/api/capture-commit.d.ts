@@ -391,6 +391,16 @@ export declare const CaptureCommitRequestSchema: z.ZodObject<{
 export type CaptureCommitRequest = z.infer<typeof CaptureCommitRequestSchema>;
 export declare const CaptureCommitResponseSchema: z.ZodObject<{
     physicalCardId: z.ZodString;
+    /**
+     * v0.2.0 (BREAKING: new REQUIRED key). The copy's SKU, a non-null string: a PhysicalCard gets its
+     * SKU when it is created (Ben, 2026-10-08), and capture-commit is where a captured copy is
+     * created, so it is the first response that can carry it. OPAQUE: display, copy and send back
+     * verbatim; never parse it. Same value on every later response for this copy.
+     */
+    sku: z.ZodString;
+    /** v0.2.0 (BREAKING: new REQUIRED key). The copy's lifecycle status as created
+     *  (READY_TO_LIST, NEEDS_DECISION, NEEDS_ID_REVIEW, ...). Decode forward-compatibly. */
+    status: z.ZodEnum<["RECEIVED", "AWAITING_SCAN", "PROCESSING", "NEEDS_ID_REVIEW", "NEEDS_CONDITION", "NEEDS_DECISION", "READY_TO_LIST", "EBAY_DRAFT", "LISTED", "SOLD", "PICKED", "DISPATCHED", "COMPLETED", "EXCEPTION", "RETURNED", "ARCHIVED", "UNMATCHED", "HELD"]>;
     legacyCardId: z.ZodNullable<z.ZodString>;
     game: z.ZodString;
     gameDisplayName: z.ZodString;
@@ -422,14 +432,16 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
     image: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
     game: string;
+    status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
     name: string;
     rarity: string | null;
     setName: string | null;
     cardNumber: string | null;
+    sku: string;
+    condition: string | null;
     physicalCardId: string;
     legacyCardId: string | null;
     gameDisplayName: string;
-    condition: string | null;
     suggestedPrice: number | null;
     ebay: {
         low: number | null;
@@ -440,14 +452,16 @@ export declare const CaptureCommitResponseSchema: z.ZodObject<{
     image?: string | null | undefined;
 }, {
     game: string;
+    status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
     name: string;
     rarity: string | null;
     setName: string | null;
     cardNumber: string | null;
+    sku: string;
+    condition: string | null;
     physicalCardId: string;
     legacyCardId: string | null;
     gameDisplayName: string;
-    condition: string | null;
     suggestedPrice: number | null;
     ebay: {
         low: number | null;
