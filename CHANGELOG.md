@@ -1,6 +1,8 @@
 # Changelog
 
 
+> **Merge `release/v0.1` (v0.1.46, the scan trace) into this branch before tagging v0.2.0.** It was cut from `v0.1.45` and is not in this history. See `docs/V0.2.0-ADOPTION.md`.
+
 ## v0.2.0 — BREAKING: most to pay and the fee position are nullable, and a null always says why
 
 ### Also in v0.2.0 (additive): change-card, `POST /api/inventory/change-card`
