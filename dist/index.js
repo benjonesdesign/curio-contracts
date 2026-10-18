@@ -26,5 +26,6 @@ export * from "./api/listing-refusal.js";
 export * from "./api/game-availability.js";
 export * from "./api/listing-preview.js";
 export * from "./api/inventory-change.js";
+export * from "./api/inventory-change-card.js";
 export * from "./api/inventory-graded.js";
 export * from "./api/inventory-list.js";

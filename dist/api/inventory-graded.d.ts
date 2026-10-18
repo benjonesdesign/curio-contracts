@@ -43,9 +43,9 @@ export declare const GradedCreateRequestSchema: z.ZodObject<{
     purchaseCost?: number | null | undefined;
     collectionType?: "personal" | "resale" | undefined;
     suggestedPrice?: number | null | undefined;
+    notes?: string | null | undefined;
     photoPaths?: string[] | undefined;
     thumbPaths?: string[] | undefined;
-    notes?: string | null | undefined;
 }, {
     name: string;
     grader: "PSA" | "BGS / Beckett" | "CGC" | "ACE" | "TAG" | "SGC" | "Other";
@@ -59,9 +59,9 @@ export declare const GradedCreateRequestSchema: z.ZodObject<{
     purchaseCost?: number | null | undefined;
     collectionType?: "personal" | "resale" | undefined;
     suggestedPrice?: number | null | undefined;
+    notes?: string | null | undefined;
     photoPaths?: string[] | undefined;
     thumbPaths?: string[] | undefined;
-    notes?: string | null | undefined;
 }>;
 export type GradedCreateRequest = z.infer<typeof GradedCreateRequestSchema>;
 /**

@@ -4076,6 +4076,247 @@ public struct InventoryChangeSummary: Codable, Sendable {
     }
 }
 
+public struct ChangeCardRequest: Codable, Sendable {
+    public let physicalCardId: String
+    public let to: To
+
+    enum CodingKeys: String, CodingKey {
+        case physicalCardId = "physical_card_id"
+        case to
+    }
+
+    public init(physicalCardId: String, to: To) {
+        self.physicalCardId = physicalCardId
+        self.to = to
+    }
+}
+
+public struct To: Codable, Sendable {
+    public let game: String
+    public let nativeId: String
+
+    public init(game: String, nativeId: String) {
+        self.game = game
+        self.nativeId = nativeId
+    }
+}
+
+public struct ChangeCardResponse: Codable, Sendable {
+    public let outcome: ChangeCardOutcome
+    public let reason: ChangeCardRefusalReason?
+    public let error: String?
+    public let identity: ChangeCardIdentity?
+    public let status: PhysicalCardStatus?
+    public let idVerifiedBySeller: Bool?
+    public let cleared: [Cleared]?
+    public let kept: [Kept]?
+    public let legacyUpdated: Bool?
+
+    public init(outcome: ChangeCardOutcome, reason: ChangeCardRefusalReason?, error: String?, identity: ChangeCardIdentity?, status: PhysicalCardStatus?, idVerifiedBySeller: Bool?, cleared: [Cleared]?, kept: [Kept]?, legacyUpdated: Bool?) {
+        self.outcome = outcome
+        self.reason = reason
+        self.error = error
+        self.identity = identity
+        self.status = status
+        self.idVerifiedBySeller = idVerifiedBySeller
+        self.cleared = cleared
+        self.kept = kept
+        self.legacyUpdated = legacyUpdated
+    }
+}
+
+public enum ChangeCardOutcome: Codable, Sendable, Equatable, Hashable {
+    case changed
+    case unchanged
+    case refused
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .changed: return "changed"
+        case .unchanged: return "unchanged"
+        case .refused: return "refused"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "changed": self = .changed
+        case "unchanged": self = .unchanged
+        case "refused": self = .refused
+        case "failed": self = .failed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum ChangeCardRefusalReason: Codable, Sendable, Equatable, Hashable {
+    case liveOnEbay
+    case sold
+    case archived
+    case notFound
+    case targetNotFound
+    case gameNotAvailable
+    case writeFailed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .liveOnEbay: return "live_on_ebay"
+        case .sold: return "sold"
+        case .archived: return "archived"
+        case .notFound: return "not_found"
+        case .targetNotFound: return "target_not_found"
+        case .gameNotAvailable: return "game_not_available"
+        case .writeFailed: return "write_failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "live_on_ebay": self = .liveOnEbay
+        case "sold": self = .sold
+        case "archived": self = .archived
+        case "not_found": self = .notFound
+        case "target_not_found": self = .targetNotFound
+        case "game_not_available": self = .gameNotAvailable
+        case "write_failed": self = .writeFailed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct ChangeCardIdentity: Codable, Sendable {
+    public let game: String
+    public let nativeId: String
+    public let catalogueCardId: String
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+    public let rarity: String?
+    public let language: String
+    public let imageRef: String?
+
+    public init(game: String, nativeId: String, catalogueCardId: String, name: String, setName: String?, cardNumber: String?, rarity: String?, language: String, imageRef: String?) {
+        self.game = game
+        self.nativeId = nativeId
+        self.catalogueCardId = catalogueCardId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.rarity = rarity
+        self.language = language
+        self.imageRef = imageRef
+    }
+}
+
+public enum Cleared: Codable, Sendable, Equatable, Hashable {
+    case marketPrice
+    case identityConfirmation
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .marketPrice: return "market_price"
+        case .identityConfirmation: return "identity_confirmation"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "market_price": self = .marketPrice
+        case "identity_confirmation": self = .identityConfirmation
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum Kept: Codable, Sendable, Equatable, Hashable {
+    case condition
+    case sku
+    case askingPrice
+    case cost
+    case notes
+    case photos
+    case allocation
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .condition: return "condition"
+        case .sku: return "sku"
+        case .askingPrice: return "asking_price"
+        case .cost: return "cost"
+        case .notes: return "notes"
+        case .photos: return "photos"
+        case .allocation: return "allocation"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "condition": self = .condition
+        case "sku": self = .sku
+        case "asking_price": self = .askingPrice
+        case "cost": self = .cost
+        case "notes": self = .notes
+        case "photos": self = .photos
+        case "allocation": self = .allocation
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct StatsResponse: Codable, Sendable {
     public let statusCounts: [String: Int]
     public let costBasis: Double
