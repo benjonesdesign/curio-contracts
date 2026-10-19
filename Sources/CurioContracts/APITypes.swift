@@ -2323,6 +2323,138 @@ public struct VerificationEventResponse: Codable, Sendable {
     }
 }
 
+public struct ScanTraceRequest: Codable, Sendable {
+    public let v: Int
+    public let scanId: String
+    public let platform: ScanTracePlatform
+    public let appVersion: String?
+    public let gameHint: String?
+    public let ocr: ScanTraceOcr?
+    public let answer: ScanTraceAnswer
+    public let outcome: ScanTraceOutcome
+
+    public init(v: Int, scanId: String, platform: ScanTracePlatform, appVersion: String?, gameHint: String?, ocr: ScanTraceOcr?, answer: ScanTraceAnswer, outcome: ScanTraceOutcome) {
+        self.v = v
+        self.scanId = scanId
+        self.platform = platform
+        self.appVersion = appVersion
+        self.gameHint = gameHint
+        self.ocr = ocr
+        self.answer = answer
+        self.outcome = outcome
+    }
+}
+
+public enum ScanTracePlatform: Codable, Sendable, Equatable, Hashable {
+    case ios
+    case android
+    case web
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ios: return "ios"
+        case .android: return "android"
+        case .web: return "web"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ios": self = .ios
+        case "android": self = .android
+        case "web": self = .web
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct ScanTraceOcr: Codable, Sendable {
+    public let number: String?
+    public let total: String?
+    public let setCode: String?
+    public let setName: String?
+    public let name: String?
+    public let confidence: Double?
+    public let lines: [String]?
+    public let ms: Int?
+
+    public init(number: String?, total: String?, setCode: String?, setName: String?, name: String?, confidence: Double?, lines: [String]?, ms: Int?) {
+        self.number = number
+        self.total = total
+        self.setCode = setCode
+        self.setName = setName
+        self.name = name
+        self.confidence = confidence
+        self.lines = lines
+        self.ms = ms
+    }
+}
+
+public struct ScanTraceAnswer: Codable, Sendable {
+    public let by: String
+    public let resolverTier: String?
+    public let candidateCount: Int?
+    public let match: ScanTraceMatch?
+    public let ms: Int?
+
+    public init(by: String, resolverTier: String?, candidateCount: Int?, match: ScanTraceMatch?, ms: Int?) {
+        self.by = by
+        self.resolverTier = resolverTier
+        self.candidateCount = candidateCount
+        self.match = match
+        self.ms = ms
+    }
+}
+
+public struct ScanTraceMatch: Codable, Sendable {
+    public let game: String?
+    public let nativeId: String?
+    public let name: String
+    public let setName: String?
+    public let cardNumber: String?
+
+    public init(game: String?, nativeId: String?, name: String, setName: String?, cardNumber: String?) {
+        self.game = game
+        self.nativeId = nativeId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+    }
+}
+
+public struct ScanTraceOutcome: Codable, Sendable {
+    public let sellerAction: String
+    public let changedFields: [String]?
+    public let finalMatch: ScanTraceMatch?
+
+    public init(sellerAction: String, changedFields: [String]?, finalMatch: ScanTraceMatch?) {
+        self.sellerAction = sellerAction
+        self.changedFields = changedFields
+        self.finalMatch = finalMatch
+    }
+}
+
+public struct ScanTraceResponse: Codable, Sendable {
+    public let ok: Bool
+
+    public init(ok: Bool) {
+        self.ok = ok
+    }
+}
+
 public struct InspectionDepthHintRequest: Codable, Sendable {
     public let name: String
     public let setName: String?

@@ -1,7 +1,14 @@
 # Changelog
 
 
-> **Merge `release/v0.1` (v0.1.46, the scan trace) into this branch before tagging v0.2.0.** It was cut from `v0.1.45` and is not in this history. See `docs/V0.2.0-ADOPTION.md`.
+## v0.2.1 — v0.2.0 plus the scan trace (use this, not v0.2.0)
+
+**v0.2.0 is withdrawn.** The `v0.2.0` tag was created on 18 Oct at the change-card draft (`0426cba`), before `release/v0.1`
+(v0.1.46, the scan trace) was merged, so that tag does not contain `ScanTraceRequestSchema`, which web imports. A published tag is
+never moved; **v0.2.1 is v0.2.0 + the merge of `release/v0.1`** and nothing else. No schema changed in this merge: the
+v0.1.46 files (`src/api/scan-trace.ts` and its Swift/Kotlin emits) are added as they were released. Adopt v0.2.1 wherever
+this document and `docs/V0.2.0-ADOPTION.md` say v0.2.0. Untagged: Ben tags.
+
 
 ## v0.2.0 — BREAKING: most to pay and the fee position are nullable, and a null always says why
 
@@ -429,6 +436,22 @@ named arm before it leaves the route, so that arm describes a pass-through that 
 Kept rather than removed — it shipped in v0.1.45 and dropping an arm breaks an exhaustive switch on
 three platforms — but recorded in the schema as a claim rather than an artifact, so nobody reads
 its presence as evidence the route passes codes through.
+## v0.1.46 — the scan trace (W15 Phase 1), on its own line
+
+**Additive only. Branched from `v0.1.45`, NOT from `main`.** This release sits on its own line: it has none of
+the `v0.1.47`+ commits (the tier rename, the entitlement response) and none of `v0.2.0`'s breaking changes, so web,
+iOS and Android can move `v0.1.45` to `v0.1.46` as one small coordinated bump without adopting anything else.
+**`v0.2.0` MUST merge this line** (`git merge release/v0.1` into the v0.2.0 branch) before it is tagged, so the
+scan-trace schemas are not lost; the v0.2.0 CHANGELOG and ADOPTION doc carry the same reminder.
+
+**`POST /api/scan-trace`** (`src/api/scan-trace.ts`): one client-written event per scan, so Tier 0 (read the
+number and set code, look the card up) can be measured before any more identification work is built.
+`ScanTraceRequest` { `v`:1, `scanId` (uuid v4), `platform` (`ios|android|web`), `appVersion?`, `gameHint?`,
+`ocr?` { number, total, setCode, setName, name, confidence?, lines?, ms? }, `answer` { by, resolverTier?,
+candidateCount?, match?, ms? }, `outcome` { sellerAction, changedFields?, finalMatch? } } and
+`ScanTraceResponse` `{ ok: true }`. `answer.by` and `outcome.sellerAction` are open strings (ADR 0027).
+Card text only, no photos; the server caps the body at 8 KB and 120 per 5 minutes per account, and computes a
+shadow Tier 0 result from `ocr` itself (not part of this contract: nothing but `ok` is returned).
 
 ## v0.1.45 — the generator can express a union again, and two bugs it was hiding
 
