@@ -3016,6 +3016,82 @@ public data class StoredPricingSettingsPatch(
 )
 
 @Serializable
+public data class ProfileSettingsPatch(
+    val sellerType: SellerType? = null,
+    val vatRegistered: Boolean? = null,
+    val incomeTaxRatePct: Double? = null,
+    val buyingTargetMarginPct: Double? = null,
+    val hourlyRateGbp: Double? = null,
+    val packingMaterialsGbp: Double? = null,
+    val packingMinutesPerParcel: Int? = null,
+    val postageRules: StoredPostageRules? = null,
+    val handlingDays: Int? = null,
+    val neverBidAboveGbp: Double? = null,
+)
+
+@Serializable
+public data class StoredPostageRules(
+    val v: Int,
+    val freePostageAboveGbp: Double? = null,
+    val services: List<StoredPostageService>,
+)
+
+@Serializable
+public data class StoredPostageService(
+    val key: String,
+    val enabled: Boolean,
+    val usedAboveGbp: Double? = null,
+    val isDefault: Boolean,
+    val costOverrideGbp: Double? = null,
+)
+
+@Serializable
+public data class ProfileSettingsResponse(
+    val profile: ProfileSettingsView,
+)
+
+@Serializable
+public data class ProfileSettingsView(
+    val sellerType: SellerType? = null,
+    val sellerTypeConfirmedAt: String? = null,
+    val vatRegistered: Boolean? = null,
+    val vatConfirmedAt: String? = null,
+    val buyingTargetMarginPct: Double? = null,
+    val buyingTargetMarginSetAt: String? = null,
+    val incomeTaxRatePct: Double? = null,
+    val hourlyRateGbp: Double? = null,
+    val handlingDays: Int? = null,
+    val neverBidAboveGbp: Double? = null,
+    val packingMaterialsGbp: Double? = null,
+    val packingMinutesPerParcel: Int? = null,
+    val postageRules: StoredPostageRules? = null,
+    val notSet: ProfileSettingsNotSet,
+    val feeNotSetReason: FeeNotSetReason? = null,
+    val mostToPayReady: Boolean,
+)
+
+@Serializable
+public data class ProfileSettingsNotSet(
+    val sellerType: Boolean,
+    val vatPosition: Boolean,
+    val buyingTargetMargin: Boolean,
+    val incomeTaxRate: Boolean,
+    val hourlyRate: Boolean,
+    val packingMaterials: Boolean,
+    val packingMinutes: Boolean,
+    val handlingDays: Boolean,
+    val neverBidAbove: Boolean,
+)
+
+@Serializable
+public data class ProfileSettingsInvalid(
+    val error: String,
+    val code: String,
+    val requestId: String? = null,
+    val fields: Map<String, String>,
+)
+
+@Serializable
 public data class PhysicalCard(
     val id: String,
     val sku: String,
@@ -3699,9 +3775,10 @@ public data class CollectionValue(
 
 @Serializable
 public data class GradedCreateRequest(
-    val batchId: String,
+    val batchId: String? = null,
+    val physicalCardId: String? = null,
     val game: String? = null,
-    val name: String,
+    val name: String? = null,
     val setName: String? = null,
     val cardNumber: String? = null,
     val language: String? = null,
