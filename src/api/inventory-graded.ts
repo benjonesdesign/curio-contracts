@@ -19,7 +19,20 @@
 //
 // The SKU is given now, opaque, and never changes: it is in the response and in NO request.
 //
-// Error body `{ error, code }`: 400 invalid_request, 401 unauthenticated, 422 game_not_available
+// ── v0.2.2 (ADDITIVE): grade a copy that already exists ───────────────────────────────────
+// A seller who has already captured a card (capture-commit made the copy, with its SKU) and now finds it is a slab
+// does not ADD a card; they say what it is graded. Send `physicalCardId` instead of `batchId`: the server finds that
+// copy (the caller's own), runs the cert check itself, writes grader / grade / cert (and condition "Graded") onto it and
+// its legacy row, and answers with the SAME response, `created: false` (HTTP 200). No second copy, no second SKU, no
+// scan batch. The identity (name, set, number) is the capture's and is NEVER rewritten; on this path only `grader`,
+// `grade` and `certNumber` are read, every other request field is ignored. Fail-closed like the add: the server alone
+// sets `certVerified`; PSA unreachable = saved UNVERIFIED (`certCheck: "unavailable"`); a changed cert on a verified slab
+// is reset and re-checked, an unchanged verified one is never re-asked or downgraded. A copy that is live or finished
+// is not edited: 409 `not_editable` (LISTED, EBAY_DRAFT, SOLD, PICKED, DISPATCHED, COMPLETED), because a cert is never
+// changed under a live listing. Exactly one of `batchId` / `physicalCardId`: both is a 400, neither is a 400.
+//
+// Error body `{ error, code }`: 400 invalid_request, 401 unauthenticated, 404 not_found (grading a copy that is not
+// the caller's), 409 not_editable (grading a copy in a live or finished state), 422 game_not_available
 // (`GameRefusal`), 503 sku_unavailable (`ListingRefusal`), 500 internal_error.
 import { z } from "zod";
 import { PhysicalCardStatusSchema } from "./physical-card.js";
@@ -36,11 +49,16 @@ export const SlabCollectionTypeSchema = z.enum(["resale", "personal"]);
 export type SlabCollectionType = z.infer<typeof SlabCollectionTypeSchema>;
 
 export const GradedCreateRequestSchema = z.object({
-  /** One per Add attempt. A retry with the same id returns the same copy and SKU. */
-  batchId: z.string().uuid(),
+  /** ADD a new slab. One per Add attempt; a retry with the same id returns the same copy and SKU. Required unless
+   *  `physicalCardId` is sent (v0.2.2; it was always required before). */
+  batchId: z.string().uuid().optional(),
+  /** v0.2.2: GRADE an existing copy instead of adding one. The caller's own copy; only `grader`, `grade` and
+   *  `certNumber` are read. Not together with `batchId`. */
+  physicalCardId: z.string().uuid().optional(),
   /** Defaults to "pokemon" when absent. The Pokémon-only gate applies (`GameRefusal`). */
   game: z.string().optional(),
-  name: z.string().trim().min(1),
+  /** Required to ADD a slab; not read when `physicalCardId` is sent (the copy already has its identity). */
+  name: z.string().trim().min(1).optional(),
   setName: z.string().trim().nullable().optional(),
   cardNumber: z.string().trim().nullable().optional(),
   language: z.string().trim().optional(),
@@ -57,6 +75,16 @@ export const GradedCreateRequestSchema = z.object({
   photoPaths: z.array(z.string().min(1)).max(12).optional(),
   thumbPaths: z.array(z.string().min(1)).max(12).optional(),
   notes: z.string().nullable().optional(),
+}).superRefine((r, ctx) => {
+  if (r.batchId !== undefined && r.physicalCardId !== undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["physicalCardId"],
+      message: "send batchId (add a new slab) or physicalCardId (grade an existing copy), not both" });
+  } else if (r.batchId === undefined && r.physicalCardId === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["batchId"],
+      message: "batchId is required to add a slab (or send physicalCardId to grade an existing copy)" });
+  } else if (r.physicalCardId === undefined && r.name === undefined) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["name"], message: "name is required to add a slab" });
+  }
 });
 export type GradedCreateRequest = z.infer<typeof GradedCreateRequestSchema>;
 
@@ -79,7 +107,7 @@ export const GradedCreateResponseSchema = z.object({
   sku: z.string().min(1),
   /** NEEDS_DECISION, or NEEDS_ID_REVIEW when the typed identity did not match the catalogue. */
   status: PhysicalCardStatusSchema,
-  /** False on a retry that found the copy already there (HTTP 200); true on first create (201). */
+  /** False on a retry that found the copy already there, and when an existing copy was graded (HTTP 200); true on first create (201). */
   created: z.boolean(),
   /** Server-decided. An unverified slab is never listed as graded. */
   certVerified: z.boolean(),

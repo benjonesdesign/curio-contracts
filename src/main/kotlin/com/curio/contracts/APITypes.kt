@@ -3699,9 +3699,10 @@ public data class CollectionValue(
 
 @Serializable
 public data class GradedCreateRequest(
-    val batchId: String,
+    val batchId: String? = null,
+    val physicalCardId: String? = null,
     val game: String? = null,
-    val name: String,
+    val name: String? = null,
     val setName: String? = null,
     val cardNumber: String? = null,
     val language: String? = null,

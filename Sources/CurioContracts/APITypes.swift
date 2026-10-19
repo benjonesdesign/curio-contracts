@@ -4506,9 +4506,10 @@ public struct CollectionValue: Codable, Sendable {
 }
 
 public struct GradedCreateRequest: Codable, Sendable {
-    public let batchId: String
+    public let batchId: String?
+    public let physicalCardId: String?
     public let game: String?
-    public let name: String
+    public let name: String?
     public let setName: String?
     public let cardNumber: String?
     public let language: String?
@@ -4522,8 +4523,9 @@ public struct GradedCreateRequest: Codable, Sendable {
     public let thumbPaths: [String]?
     public let notes: String?
 
-    public init(batchId: String, game: String?, name: String, setName: String?, cardNumber: String?, language: String?, grader: SlabGrader, grade: String, certNumber: String, purchaseCost: Double?, suggestedPrice: Double?, collectionType: SlabCollectionType?, photoPaths: [String]?, thumbPaths: [String]?, notes: String?) {
+    public init(batchId: String?, physicalCardId: String?, game: String?, name: String?, setName: String?, cardNumber: String?, language: String?, grader: SlabGrader, grade: String, certNumber: String, purchaseCost: Double?, suggestedPrice: Double?, collectionType: SlabCollectionType?, photoPaths: [String]?, thumbPaths: [String]?, notes: String?) {
         self.batchId = batchId
+        self.physicalCardId = physicalCardId
         self.game = game
         self.name = name
         self.setName = setName
