@@ -26,10 +26,11 @@ columns directly from the client can never set `cert_verified` (server-only, #28
   `neverBidAboveGbp`); the route keeps its own zod until clients adopt this. **Not the W18 `Profile*` schemas in `profile.ts`:**
   those describe a different, larger shape (dispatch address, stored/effective pricing settings, `isAdmin`, GET answers the
   profile itself) that the route does not serve. They are left untouched so nothing that compiled against them breaks; adopt
-  the `ProfileSettings*` set. Retiring the old ones is for the next breaking version. Coverage 184/184.
-  Note for native clients: the generated Swift/Kotlin patch types cannot send an explicit `null` (nil is omitted), so
-  "clear this setting" needs a hand-encoded body today (for `incomeTaxRatePct`, `hourlyRateGbp` and `neverBidAboveGbp`,
-  sending `0` also clears).
+  the `ProfileSettings*` set. **`ProfileSchema`, `ProfilePatchSchema` and `ProfileResponseSchema` are now marked `@deprecated` / SUPERSEDED in their doc comments** (no behaviour change; the rest of `profile.ts` is still shared). They are retired in the next breaking version. Coverage 184/184.
+  **Known limitation (native clients):** the generated Swift/Kotlin patch types cannot send an explicit `null` (nil is omitted),
+  and `null` is how a setting is cleared, so "clear this setting" needs a hand-encoded body today (for `incomeTaxRatePct`,
+  `hourlyRateGbp` and `neverBidAboveGbp`, sending `0` also clears). The same limit applies to every other `*Patch` type. The emitter
+  fix is tracked separately and is NOT part of v0.2.2 (curio-contracts issue linked from #40).
 - Mutation-checked (7 more mutants red). **Untagged: Ben tags.**
 
 

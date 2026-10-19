@@ -1,3 +1,7 @@
+// ⚠️ SUPERSEDED for GET/PATCH /api/profile (v0.2.2): use `profile-settings.ts` (`ProfileSettings*`), which is what the route
+// serves. `ProfileSchema`, `ProfilePatchSchema` and `ProfileResponseSchema` below are @deprecated and retired in the next
+// breaking version; the rest of this file (SellerType, DispatchAddress, StoredPricingSettings, ...) is still shared.
+//
 // Contract for GET/PATCH /api/profile (pokemon-tool) — W18 P1
 // (curio-shared/canon/discovery/W18-onboarding-and-profile-discovery.md §5/§6).
 //
@@ -116,6 +120,12 @@ const BuyingMarginPctSchema = z.number().min(0).lt(100).refine((v) => v === 0 ||
 });
 
 
+/**
+ * @deprecated SUPERSEDED (v0.2.2) by `ProfileSettingsResponseSchema` / `ProfileSettingsViewSchema` in `profile-settings.ts`.
+ * This W18 P1 shape (dispatch address, stored/effective pricing settings, `isAdmin`, GET answers the profile itself) is NOT what
+ * `GET /api/profile` returns: the route answers `{ profile }` with the pricing settings and the reasons a figure is missing.
+ * Do not adopt it. Kept unchanged so nothing already compiled against it breaks; it is retired in the next breaking version.
+ */
 export const ProfileSchema = z.object({
   /**
    * v0.2.0 (BREAKING): NULL until the seller has answered "private or business?" (asked once, on
@@ -206,6 +216,11 @@ export type StoredPricingSettingsPatch = z.infer<typeof StoredPricingSettingsPat
 
 // Every field optional: a partial write. An omitted field is left alone; an explicitly-null
 // `ebayFeeRate`/`ebayFeeFixed` clears the override back to the seller-type-derived default.
+/**
+ * @deprecated SUPERSEDED (v0.2.2) by `ProfileSettingsPatchSchema` in `profile-settings.ts`, which is the key set
+ * `PATCH /api/profile` actually accepts (strict: these keys are refused). Do not adopt this one; it is retired in the
+ * next breaking version.
+ */
 export const ProfilePatchSchema = z.object({
   /** Writing this CONFIRMS the seller type (sets `sellerTypeSource` "manual" and
    *  `sellerTypeConfirmedAt`). There is no way to PATCH it back to unset. */
@@ -224,5 +239,9 @@ export type ProfilePatch = z.infer<typeof ProfilePatchSchema>;
 /** Both GET and PATCH return the full, post-write profile, so a caller never has to re-fetch to
  *  see what its own partial write resolved to (notably `effectivePricingSettings`, which can
  *  change as a side effect of a `sellerType` write). */
+/**
+ * @deprecated SUPERSEDED (v0.2.2) by `ProfileSettingsResponseSchema` (`{ profile }`). The route does not return the bare
+ * profile this describes. Do not adopt; retired in the next breaking version.
+ */
 export const ProfileResponseSchema = ProfileSchema;
 export type ProfileResponse = z.infer<typeof ProfileResponseSchema>;
