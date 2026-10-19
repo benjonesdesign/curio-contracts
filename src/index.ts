@@ -21,6 +21,7 @@ export * from "./api/pricing-rule.js";
 export * from "./api/listing-template.js";
 export * from "./api/pricing-breakdown.js";
 export * from "./api/profile.js";
+export * from "./api/profile-settings.js";
 export * from "./api/priced-breakdown.js";
 export * from "./api/physical-card.js";
 export * from "./api/listing-refusal.js";

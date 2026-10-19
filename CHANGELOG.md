@@ -18,8 +18,19 @@ columns directly from the client can never set `cert_verified` (server-only, #28
   (LISTED, EBAY_DRAFT, SOLD, PICKED, DISPATCHED, COMPLETED: a cert is never changed under a live listing).
 - Fail-closed: the server alone sets `certVerified`; PSA unreachable = saved unverified; a changed cert on a verified slab
   is reset and re-checked; an unchanged verified one is never re-asked or downgraded.
-- Mutation-checked (4 mutants red, test header). Swift and Kotlin emit it; coverage 177/177.
-- Bundled with the `/api/profile` entry in v0.2.2 (separate PR). **Untagged: Ben tags.**
+- Mutation-checked (4 mutants red, test header). Swift and Kotlin emit it.
+- **Also in v0.2.2 (additive): `GET/PATCH /api/profile` as the server actually serves it** — new `src/api/profile-settings.ts`:
+  `ProfileSettingsPatch` (strict, any non-empty subset, `null` clears), `ProfileSettingsResponse` (`{ profile }`),
+  `ProfileSettingsView`, `ProfileSettingsNotSet`, `ProfileSettingsInvalid` (the 400 body), `StoredPostageRules` /
+  `StoredPostageService`. Mirrors pokemon-tool's `lib/profile/settings.ts` field for field (incl. item 94's `handlingDays` and
+  `neverBidAboveGbp`); the route keeps its own zod until clients adopt this. **Not the W18 `Profile*` schemas in `profile.ts`:**
+  those describe a different, larger shape (dispatch address, stored/effective pricing settings, `isAdmin`, GET answers the
+  profile itself) that the route does not serve. They are left untouched so nothing that compiled against them breaks; adopt
+  the `ProfileSettings*` set. Retiring the old ones is for the next breaking version. Coverage 184/184.
+  Note for native clients: the generated Swift/Kotlin patch types cannot send an explicit `null` (nil is omitted), so
+  "clear this setting" needs a hand-encoded body today (for `incomeTaxRatePct`, `hourlyRateGbp` and `neverBidAboveGbp`,
+  sending `0` also clears).
+- Mutation-checked (7 more mutants red). **Untagged: Ben tags.**
 
 
 ## v0.2.1 — v0.2.0 plus the scan trace (use this, not v0.2.0)

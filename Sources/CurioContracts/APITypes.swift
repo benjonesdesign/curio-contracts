@@ -3696,6 +3696,144 @@ public struct StoredPricingSettingsPatch: Codable, Sendable {
     }
 }
 
+public struct ProfileSettingsPatch: Codable, Sendable {
+    public let sellerType: SellerType?
+    public let vatRegistered: Bool?
+    public let incomeTaxRatePct: Double?
+    public let buyingTargetMarginPct: Double?
+    public let hourlyRateGbp: Double?
+    public let packingMaterialsGbp: Double?
+    public let packingMinutesPerParcel: Int?
+    public let postageRules: StoredPostageRules?
+    public let handlingDays: Int?
+    public let neverBidAboveGbp: Double?
+
+    public init(sellerType: SellerType?, vatRegistered: Bool?, incomeTaxRatePct: Double?, buyingTargetMarginPct: Double?, hourlyRateGbp: Double?, packingMaterialsGbp: Double?, packingMinutesPerParcel: Int?, postageRules: StoredPostageRules?, handlingDays: Int?, neverBidAboveGbp: Double?) {
+        self.sellerType = sellerType
+        self.vatRegistered = vatRegistered
+        self.incomeTaxRatePct = incomeTaxRatePct
+        self.buyingTargetMarginPct = buyingTargetMarginPct
+        self.hourlyRateGbp = hourlyRateGbp
+        self.packingMaterialsGbp = packingMaterialsGbp
+        self.packingMinutesPerParcel = packingMinutesPerParcel
+        self.postageRules = postageRules
+        self.handlingDays = handlingDays
+        self.neverBidAboveGbp = neverBidAboveGbp
+    }
+}
+
+public struct StoredPostageRules: Codable, Sendable {
+    public let v: Int
+    public let freePostageAboveGbp: Double?
+    public let services: [StoredPostageService]
+
+    public init(v: Int, freePostageAboveGbp: Double?, services: [StoredPostageService]) {
+        self.v = v
+        self.freePostageAboveGbp = freePostageAboveGbp
+        self.services = services
+    }
+}
+
+public struct StoredPostageService: Codable, Sendable {
+    public let key: String
+    public let enabled: Bool
+    public let usedAboveGbp: Double?
+    public let isDefault: Bool
+    public let costOverrideGbp: Double?
+
+    public init(key: String, enabled: Bool, usedAboveGbp: Double?, isDefault: Bool, costOverrideGbp: Double?) {
+        self.key = key
+        self.enabled = enabled
+        self.usedAboveGbp = usedAboveGbp
+        self.isDefault = isDefault
+        self.costOverrideGbp = costOverrideGbp
+    }
+}
+
+public struct ProfileSettingsResponse: Codable, Sendable {
+    public let profile: ProfileSettingsView
+
+    public init(profile: ProfileSettingsView) {
+        self.profile = profile
+    }
+}
+
+public struct ProfileSettingsView: Codable, Sendable {
+    public let sellerType: SellerType?
+    public let sellerTypeConfirmedAt: String?
+    public let vatRegistered: Bool?
+    public let vatConfirmedAt: String?
+    public let buyingTargetMarginPct: Double?
+    public let buyingTargetMarginSetAt: String?
+    public let incomeTaxRatePct: Double?
+    public let hourlyRateGbp: Double?
+    public let handlingDays: Int?
+    public let neverBidAboveGbp: Double?
+    public let packingMaterialsGbp: Double?
+    public let packingMinutesPerParcel: Int?
+    public let postageRules: StoredPostageRules?
+    public let notSet: ProfileSettingsNotSet
+    public let feeNotSetReason: FeeNotSetReason?
+    public let mostToPayReady: Bool
+
+    public init(sellerType: SellerType?, sellerTypeConfirmedAt: String?, vatRegistered: Bool?, vatConfirmedAt: String?, buyingTargetMarginPct: Double?, buyingTargetMarginSetAt: String?, incomeTaxRatePct: Double?, hourlyRateGbp: Double?, handlingDays: Int?, neverBidAboveGbp: Double?, packingMaterialsGbp: Double?, packingMinutesPerParcel: Int?, postageRules: StoredPostageRules?, notSet: ProfileSettingsNotSet, feeNotSetReason: FeeNotSetReason?, mostToPayReady: Bool) {
+        self.sellerType = sellerType
+        self.sellerTypeConfirmedAt = sellerTypeConfirmedAt
+        self.vatRegistered = vatRegistered
+        self.vatConfirmedAt = vatConfirmedAt
+        self.buyingTargetMarginPct = buyingTargetMarginPct
+        self.buyingTargetMarginSetAt = buyingTargetMarginSetAt
+        self.incomeTaxRatePct = incomeTaxRatePct
+        self.hourlyRateGbp = hourlyRateGbp
+        self.handlingDays = handlingDays
+        self.neverBidAboveGbp = neverBidAboveGbp
+        self.packingMaterialsGbp = packingMaterialsGbp
+        self.packingMinutesPerParcel = packingMinutesPerParcel
+        self.postageRules = postageRules
+        self.notSet = notSet
+        self.feeNotSetReason = feeNotSetReason
+        self.mostToPayReady = mostToPayReady
+    }
+}
+
+public struct ProfileSettingsNotSet: Codable, Sendable {
+    public let sellerType: Bool
+    public let vatPosition: Bool
+    public let buyingTargetMargin: Bool
+    public let incomeTaxRate: Bool
+    public let hourlyRate: Bool
+    public let packingMaterials: Bool
+    public let packingMinutes: Bool
+    public let handlingDays: Bool
+    public let neverBidAbove: Bool
+
+    public init(sellerType: Bool, vatPosition: Bool, buyingTargetMargin: Bool, incomeTaxRate: Bool, hourlyRate: Bool, packingMaterials: Bool, packingMinutes: Bool, handlingDays: Bool, neverBidAbove: Bool) {
+        self.sellerType = sellerType
+        self.vatPosition = vatPosition
+        self.buyingTargetMargin = buyingTargetMargin
+        self.incomeTaxRate = incomeTaxRate
+        self.hourlyRate = hourlyRate
+        self.packingMaterials = packingMaterials
+        self.packingMinutes = packingMinutes
+        self.handlingDays = handlingDays
+        self.neverBidAbove = neverBidAbove
+    }
+}
+
+public struct ProfileSettingsInvalid: Codable, Sendable {
+    public let error: String
+    public let code: String
+    public let requestId: String?
+    public let fields: [String: String]
+
+    public init(error: String, code: String, requestId: String?, fields: [String: String]) {
+        self.error = error
+        self.code = code
+        self.requestId = requestId
+        self.fields = fields
+    }
+}
+
 public struct PhysicalCard: Codable, Sendable {
     public let id: String
     public let sku: String
