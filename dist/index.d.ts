@@ -14,6 +14,7 @@ export * from "./api/card-value.js";
 export * from "./api/decide.js";
 export * from "./api/entitlement.js";
 export * from "./api/verification-event.js";
+export * from "./api/scan-trace.js";
 export * from "./api/inspection-depth.js";
 export * from "./api/signed-photo-url.js";
 export * from "./api/pricing-rule.js";

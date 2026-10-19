@@ -1865,6 +1865,98 @@ public data class VerificationEventResponse(
 )
 
 @Serializable
+public data class ScanTraceRequest(
+    val v: Int,
+    val scanId: String,
+    val platform: ScanTracePlatform,
+    val appVersion: String? = null,
+    val gameHint: String? = null,
+    val ocr: ScanTraceOcr? = null,
+    val answer: ScanTraceAnswer,
+    val outcome: ScanTraceOutcome,
+)
+
+@Serializable(with = ScanTracePlatformSerializer::class)
+public sealed interface ScanTracePlatform {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IOS : ScanTracePlatform {
+        override val rawValue: String get() = "ios"
+    }
+    public object ANDROID : ScanTracePlatform {
+        override val rawValue: String get() = "android"
+    }
+    public object WEB : ScanTracePlatform {
+        override val rawValue: String get() = "web"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ScanTracePlatform
+
+    public companion object {
+        public fun from(raw: String): ScanTracePlatform = when (raw) {
+            "ios" -> IOS
+            "android" -> ANDROID
+            "web" -> WEB
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ScanTracePlatformSerializer : KSerializer<ScanTracePlatform> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ScanTracePlatform", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ScanTracePlatform = ScanTracePlatform.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ScanTracePlatform) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class ScanTraceOcr(
+    val number: String? = null,
+    val total: String? = null,
+    val setCode: String? = null,
+    val setName: String? = null,
+    val name: String? = null,
+    val confidence: Double? = null,
+    val lines: List<String>? = null,
+    val ms: Int? = null,
+)
+
+@Serializable
+public data class ScanTraceAnswer(
+    val by: String,
+    val resolverTier: String? = null,
+    val candidateCount: Int? = null,
+    val match: ScanTraceMatch? = null,
+    val ms: Int? = null,
+)
+
+@Serializable
+public data class ScanTraceMatch(
+    val game: String? = null,
+    val nativeId: String? = null,
+    val name: String,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+)
+
+@Serializable
+public data class ScanTraceOutcome(
+    val sellerAction: String,
+    val changedFields: List<String>? = null,
+    val finalMatch: ScanTraceMatch? = null,
+)
+
+@Serializable
+public data class ScanTraceResponse(
+    val ok: Boolean,
+)
+
+@Serializable
 public data class InspectionDepthHintRequest(
     val name: String,
     val setName: String? = null,
