@@ -13,6 +13,12 @@
 // art in different sets. `variantUndecided` says so, and the printed number / set code (on-device OCR, or the seller) decides the
 // variant. A client must never present a picture match as having chosen the variant.
 //
+// WHO MAY CALL IT (product owner ruling, 26 Oct 2026, reversible, Ben can overrule): an ANONYMOUS Quick Scan may call this route. It has
+// no AI cost, and Ben's rule that anonymous never calls the AI is about AI spend (FOR-BEN 119). Conditions: a per-IP / per-device rate
+// limit on the route (provisional: 30 requests per 5 minutes anonymous, 120 per 5 minutes signed in); the image is discarded after
+// fingerprinting; neither the image nor its fingerprint is logged or stored against a user; the response reveals no more than the
+// existing CatalogueLookupMatch fields.
+//
 // WHAT IS SENT: one JPEG of the WHOLE CARD, already cropped and upright by the app's whole-card crop (the same crop the Quick
 // Scan guide needs; a raw photo with a table around it will not match). The server computes a fingerprint, ranks, and DISCARDS
 // the image: nothing is stored. The catalogue's own images are never stored either, only fingerprints derived from them (the R4
