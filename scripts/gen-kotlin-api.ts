@@ -73,6 +73,10 @@ import {
   ProfileResponseSchema, ProfilePatchSchema, DispatchAddressSchema, StoredPricingSettingsSchema,
   DispatchAddressPatchSchema, StoredPricingSettingsPatchSchema, EffectivePricingSettingsSchema,
 } from "../src/api/profile.js";
+import {
+  ProfileSettingsPatchSchema, ProfileSettingsResponseSchema, ProfileSettingsInvalidSchema, ProfileSettingsViewSchema,
+  ProfileSettingsNotSetSchema, StoredPostageRulesSchema, StoredPostageServiceSchema,
+} from "../src/api/profile-settings.js";
 import { PhysicalCardSchema, PhysicalCardStatusSchema, SetAsideReasonSchema } from "../src/api/physical-card.js";
 import { InventoryStatusKeySchema } from "../src/api/inventory-list.js";
 import {
@@ -168,6 +172,10 @@ registerName(DispatchAddressSchema, "DispatchAddress");
 registerName(StoredPricingSettingsSchema, "StoredPricingSettings");
 registerName(DispatchAddressPatchSchema, "DispatchAddressPatch");
 registerName(StoredPricingSettingsPatchSchema, "StoredPricingSettingsPatch");
+registerName(StoredPostageRulesSchema, "StoredPostageRules");
+registerName(StoredPostageServiceSchema, "StoredPostageService");
+registerName(ProfileSettingsViewSchema, "ProfileSettingsView");
+registerName(ProfileSettingsNotSetSchema, "ProfileSettingsNotSet");
 registerName(IdentifyCandidateSchema, "IdentifyCandidate");
 registerName(IdentifyAmbiguousTierSchema, "IdentifyAmbiguousTier");
 
@@ -275,6 +283,9 @@ emitKotlin(PricingBreakdownRequestSchema, "PricingBreakdownRequest");
 emitKotlin(PricingBreakdownResponseSchema, "PricingBreakdownResponse");
 emitKotlin(ProfileResponseSchema, "ProfileResponse");
 emitKotlin(ProfilePatchSchema, "ProfilePatch");
+emitKotlin(ProfileSettingsPatchSchema, "ProfileSettingsPatch");
+emitKotlin(ProfileSettingsResponseSchema, "ProfileSettingsResponse");
+emitKotlin(ProfileSettingsInvalidSchema, "ProfileSettingsInvalid");
 emitKotlin(PricedBreakdownSchema, "PricedBreakdown");
 emitKotlin(PhysicalCardSchema, "PhysicalCard");
 emitKotlin(ListingRefusalSchema, "ListingRefusal");

@@ -1,6 +1,39 @@
 # Changelog
 
 
+## v0.2.2 (UNTAGGED, in progress) — grade a copy that already exists (additive)
+
+`POST /api/inventory/graded` gains an UPDATE mode: send `physicalCardId` instead of `batchId` and the server grades that
+existing copy (the caller's own) rather than adding one. Why: capture-commit already made the copy (with its SKU) and
+Android's and iOS's graded flows VERIFY a captured card; calling the add route would make a duplicate, and writing the
+columns directly from the client can never set `cert_verified` (server-only, #288).
+
+- `GradedCreateRequest`: new optional `physicalCardId` (uuid); `batchId` and `name` become optional with a refine
+  (exactly one of `batchId` / `physicalCardId`: both is invalid, neither is invalid; `name` is required only to ADD).
+  Swift: `batchId`/`name` are now `String?` and the memberwise `init` gains `physicalCardId:` (no defaults in Swift, so a
+  call site of the create init must pass it; neither iOS nor the current Android code calls the create init today).
+  Kotlin: the new/changed fields default to `null`.
+- On an update only `grader`, `grade` and `certNumber` are read; the capture's identity is never rewritten.
+- Response unchanged: `created: false` (HTTP 200). New refusals: 404 `not_found` (not the caller's copy), 409 `not_editable`
+  (LISTED, EBAY_DRAFT, SOLD, PICKED, DISPATCHED, COMPLETED: a cert is never changed under a live listing).
+- Fail-closed: the server alone sets `certVerified`; PSA unreachable = saved unverified; a changed cert on a verified slab
+  is reset and re-checked; an unchanged verified one is never re-asked or downgraded.
+- Mutation-checked (4 mutants red, test header). Swift and Kotlin emit it.
+- **Also in v0.2.2 (additive): `GET/PATCH /api/profile` as the server actually serves it** — new `src/api/profile-settings.ts`:
+  `ProfileSettingsPatch` (strict, any non-empty subset, `null` clears), `ProfileSettingsResponse` (`{ profile }`),
+  `ProfileSettingsView`, `ProfileSettingsNotSet`, `ProfileSettingsInvalid` (the 400 body), `StoredPostageRules` /
+  `StoredPostageService`. Mirrors pokemon-tool's `lib/profile/settings.ts` field for field (incl. item 94's `handlingDays` and
+  `neverBidAboveGbp`); the route keeps its own zod until clients adopt this. **Not the W18 `Profile*` schemas in `profile.ts`:**
+  those describe a different, larger shape (dispatch address, stored/effective pricing settings, `isAdmin`, GET answers the
+  profile itself) that the route does not serve. They are left untouched so nothing that compiled against them breaks; adopt
+  the `ProfileSettings*` set. **`ProfileSchema`, `ProfilePatchSchema` and `ProfileResponseSchema` are now marked `@deprecated` / SUPERSEDED in their doc comments** (no behaviour change; the rest of `profile.ts` is still shared). They are retired in the next breaking version. Coverage 184/184.
+  **Known limitation (native clients):** the generated Swift/Kotlin patch types cannot send an explicit `null` (nil is omitted),
+  and `null` is how a setting is cleared, so "clear this setting" needs a hand-encoded body today (for `incomeTaxRatePct`,
+  `hourlyRateGbp` and `neverBidAboveGbp`, sending `0` also clears). The same limit applies to every other `*Patch` type. The emitter
+  fix is tracked separately and is NOT part of v0.2.2 (curio-contracts issue linked from #40).
+- Mutation-checked (7 more mutants red). **Untagged: Ben tags.**
+
+
 ## v0.2.1 — v0.2.0 plus the scan trace (use this, not v0.2.0)
 
 **v0.2.0 is withdrawn.** The `v0.2.0` tag was created on 18 Oct at the change-card draft (`0426cba`), before `release/v0.1`

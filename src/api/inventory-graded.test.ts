@@ -1,4 +1,4 @@
-// MUTATION-CHECKED 2026-10-09 (graded slab record): see CHANGELOG "Mutation check, round 3".
+// MUTATION-CHECKED 2026-10-09 (graded slab record): see CHANGELOG "Mutation check, round 3". 2026-10-19 (v0.2.2, grade an existing copy): red against `r.batchId !== undefined && r.physicalCardId !== undefined` changed to `false` in src/api/inventory-graded.ts (the both-together test), red against `r.batchId === undefined && r.physicalCardId === undefined` changed to `false` (the neither test and the adding-needs-batchId test), red against `r.physicalCardId === undefined && r.name === undefined` changed to `false` (the adding-needs-name test), red against `physicalCardId: z.string().uuid().optional()` changed to `z.string().optional()` (the uuid test), green against current.
 
 import { describe, it, expect } from "vitest";
 import {
@@ -29,10 +29,54 @@ describe("POST /api/inventory/graded: request", () => {
     expect(GradedCreateRequestSchema.parse({ ...REQ, purchaseCost: 0 }).purchaseCost).toBe(0);   // a gift: a real £0
   });
 
-  it("REQUIRES a uuid batchId: it is what makes a retry return the same copy and SKU", () => {
+  it("ADDING a slab still REQUIRES a uuid batchId: it is what makes a retry return the same copy and SKU", () => {
     const { batchId: _b, ...none } = REQ;
     expect(GradedCreateRequestSchema.safeParse(none).success).toBe(false);
     expect(GradedCreateRequestSchema.safeParse({ ...REQ, batchId: "not-a-uuid" }).success).toBe(false);
+  });
+
+  it("ADDING a slab still REQUIRES the typed name", () => {
+    const { name: _n, ...noName } = REQ;
+    expect(GradedCreateRequestSchema.safeParse(noName).success).toBe(false);
+  });
+
+  // v0.2.2: grade a copy that already exists (capture-commit made it, with its SKU).
+  describe("grading an EXISTING copy (physicalCardId, v0.2.2)", () => {
+    const GRADE = { physicalCardId: CARD_ID, grader: "PSA", grade: "10", certNumber: "87402113" };
+
+    it("accepts a physicalCardId with grader, grade and cert, and NO batchId and NO name", () => {
+      expect(GradedCreateRequestSchema.safeParse(GRADE).success).toBe(true);
+    });
+
+    it("refuses batchId and physicalCardId together: one or the other", () => {
+      const r = GradedCreateRequestSchema.safeParse({ ...GRADE, batchId: BATCH });
+      expect(r.success).toBe(false);
+      expect(r.success ? [] : r.error.issues.map((i) => i.path.join("."))).toContain("physicalCardId");
+    });
+
+    it("refuses neither", () => {
+      const r = GradedCreateRequestSchema.safeParse({ grader: "PSA", grade: "10", certNumber: "87402113", name: "Charizard" });
+      expect(r.success).toBe(false);
+      expect(r.success ? [] : r.error.issues.map((i) => i.path.join("."))).toContain("batchId");
+    });
+
+    it("physicalCardId must be a uuid", () => {
+      expect(GradedCreateRequestSchema.safeParse({ ...GRADE, physicalCardId: "not-a-uuid" }).success).toBe(false);
+    });
+
+    it("still needs a real grader, grade and cert", () => {
+      for (const bad of [{ grade: "" }, { certNumber: " " }, { grader: "Acme" }]) {
+        expect(GradedCreateRequestSchema.safeParse({ ...GRADE, ...bad }).success, JSON.stringify(bad)).toBe(false);
+      }
+      const { grader: _g, ...noGrader } = GRADE;
+      expect(GradedCreateRequestSchema.safeParse(noGrader).success).toBe(false);
+    });
+
+    it("tolerates the identity fields (the server ignores them on this path) and still carries no verification flag", () => {
+      const parsed = GradedCreateRequestSchema.parse({ ...GRADE, name: "Charizard", setName: "Base Set", certVerified: true } as never) as Record<string, unknown>;
+      expect(parsed.name).toBe("Charizard");
+      expect("certVerified" in parsed).toBe(false);
+    });
   });
 
   it("carries NO verification flag and NO sku: the server alone decides both", () => {

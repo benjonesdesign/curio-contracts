@@ -8,12 +8,17 @@ export type SlabGrader = z.infer<typeof SlabGraderSchema>;
  *  inline copies already in the generated debt list. */
 export declare const SlabCollectionTypeSchema: z.ZodEnum<["resale", "personal"]>;
 export type SlabCollectionType = z.infer<typeof SlabCollectionTypeSchema>;
-export declare const GradedCreateRequestSchema: z.ZodObject<{
-    /** One per Add attempt. A retry with the same id returns the same copy and SKU. */
-    batchId: z.ZodString;
+export declare const GradedCreateRequestSchema: z.ZodEffects<z.ZodObject<{
+    /** ADD a new slab. One per Add attempt; a retry with the same id returns the same copy and SKU. Required unless
+     *  `physicalCardId` is sent (v0.2.2; it was always required before). */
+    batchId: z.ZodOptional<z.ZodString>;
+    /** v0.2.2: GRADE an existing copy instead of adding one. The caller's own copy; only `grader`, `grade` and
+     *  `certNumber` are read. Not together with `batchId`. */
+    physicalCardId: z.ZodOptional<z.ZodString>;
     /** Defaults to "pokemon" when absent. The Pokémon-only gate applies (`GameRefusal`). */
     game: z.ZodOptional<z.ZodString>;
-    name: z.ZodString;
+    /** Required to ADD a slab; not read when `physicalCardId` is sent (the copy already has its identity). */
+    name: z.ZodOptional<z.ZodString>;
     setName: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     cardNumber: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     language: z.ZodOptional<z.ZodString>;
@@ -31,35 +36,71 @@ export declare const GradedCreateRequestSchema: z.ZodObject<{
     thumbPaths: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     notes: z.ZodOptional<z.ZodNullable<z.ZodString>>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
     grader: "PSA" | "BGS / Beckett" | "CGC" | "ACE" | "TAG" | "SGC" | "Other";
     certNumber: string;
     grade: string;
-    batchId: string;
     game?: string | undefined;
+    name?: string | undefined;
     language?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
     purchaseCost?: number | null | undefined;
     collectionType?: "personal" | "resale" | undefined;
+    physicalCardId?: string | undefined;
     suggestedPrice?: number | null | undefined;
     notes?: string | null | undefined;
+    batchId?: string | undefined;
     photoPaths?: string[] | undefined;
     thumbPaths?: string[] | undefined;
 }, {
-    name: string;
     grader: "PSA" | "BGS / Beckett" | "CGC" | "ACE" | "TAG" | "SGC" | "Other";
     certNumber: string;
     grade: string;
-    batchId: string;
     game?: string | undefined;
+    name?: string | undefined;
     language?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
     purchaseCost?: number | null | undefined;
     collectionType?: "personal" | "resale" | undefined;
+    physicalCardId?: string | undefined;
     suggestedPrice?: number | null | undefined;
     notes?: string | null | undefined;
+    batchId?: string | undefined;
+    photoPaths?: string[] | undefined;
+    thumbPaths?: string[] | undefined;
+}>, {
+    grader: "PSA" | "BGS / Beckett" | "CGC" | "ACE" | "TAG" | "SGC" | "Other";
+    certNumber: string;
+    grade: string;
+    game?: string | undefined;
+    name?: string | undefined;
+    language?: string | undefined;
+    setName?: string | null | undefined;
+    cardNumber?: string | null | undefined;
+    purchaseCost?: number | null | undefined;
+    collectionType?: "personal" | "resale" | undefined;
+    physicalCardId?: string | undefined;
+    suggestedPrice?: number | null | undefined;
+    notes?: string | null | undefined;
+    batchId?: string | undefined;
+    photoPaths?: string[] | undefined;
+    thumbPaths?: string[] | undefined;
+}, {
+    grader: "PSA" | "BGS / Beckett" | "CGC" | "ACE" | "TAG" | "SGC" | "Other";
+    certNumber: string;
+    grade: string;
+    game?: string | undefined;
+    name?: string | undefined;
+    language?: string | undefined;
+    setName?: string | null | undefined;
+    cardNumber?: string | null | undefined;
+    purchaseCost?: number | null | undefined;
+    collectionType?: "personal" | "resale" | undefined;
+    physicalCardId?: string | undefined;
+    suggestedPrice?: number | null | undefined;
+    notes?: string | null | undefined;
+    batchId?: string | undefined;
     photoPaths?: string[] | undefined;
     thumbPaths?: string[] | undefined;
 }>;
@@ -82,7 +123,7 @@ export declare const GradedCreateResponseSchema: z.ZodEffects<z.ZodObject<{
     sku: z.ZodString;
     /** NEEDS_DECISION, or NEEDS_ID_REVIEW when the typed identity did not match the catalogue. */
     status: z.ZodEnum<["RECEIVED", "AWAITING_SCAN", "PROCESSING", "NEEDS_ID_REVIEW", "NEEDS_CONDITION", "NEEDS_DECISION", "READY_TO_LIST", "EBAY_DRAFT", "LISTED", "SOLD", "PICKED", "DISPATCHED", "COMPLETED", "EXCEPTION", "RETURNED", "ARCHIVED", "UNMATCHED", "HELD"]>;
-    /** False on a retry that found the copy already there (HTTP 200); true on first create (201). */
+    /** False on a retry that found the copy already there, and when an existing copy was graded (HTTP 200); true on first create (201). */
     created: z.ZodBoolean;
     /** Server-decided. An unverified slab is never listed as graded. */
     certVerified: z.ZodBoolean;
