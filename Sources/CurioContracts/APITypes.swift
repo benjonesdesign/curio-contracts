@@ -3750,6 +3750,105 @@ public struct StoredPostageService: Codable, Sendable {
     }
 }
 
+public struct IdentifyMatchRequest: Codable, Sendable {
+    public let game: Game?
+    public let image: String
+    public let setCode: String?
+    public let collectorNumber: String?
+
+    public init(game: Game?, image: String, setCode: String?, collectorNumber: String?) {
+        self.game = game
+        self.image = image
+        self.setCode = setCode
+        self.collectorNumber = collectorNumber
+    }
+}
+
+public struct IdentifyMatchResponse: Codable, Sendable {
+    public let candidates: [Candidate]
+    public let confidence: GameConfidence?
+    public let variantUndecided: Bool
+    public let unavailableReason: UnavailableReason?
+    public let indexVersion: String?
+
+    enum CodingKeys: String, CodingKey {
+        case candidates
+        case confidence
+        case variantUndecided
+        case unavailableReason
+        case indexVersion
+    }
+
+    public init(candidates: [Candidate], confidence: GameConfidence?, variantUndecided: Bool, unavailableReason: UnavailableReason?, indexVersion: String?) {
+        self.candidates = candidates
+        self.confidence = confidence
+        self.variantUndecided = variantUndecided
+        self.unavailableReason = unavailableReason
+        self.indexVersion = indexVersion
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.candidates = try c.decodeIfPresent([Candidate].self, forKey: .candidates) ?? []
+        self.confidence = try c.decodeIfPresent(GameConfidence.self, forKey: .confidence)
+        self.variantUndecided = try c.decode(Bool.self, forKey: .variantUndecided)
+        self.unavailableReason = try c.decodeIfPresent(UnavailableReason.self, forKey: .unavailableReason)
+        self.indexVersion = try c.decodeIfPresent(String.self, forKey: .indexVersion)
+    }
+}
+
+public struct Candidate: Codable, Sendable {
+    public let match: CatalogueLookupMatch
+    public let score: Double
+
+    public init(match: CatalogueLookupMatch, score: Double) {
+        self.match = match
+        self.score = score
+    }
+}
+
+public enum UnavailableReason: Codable, Sendable, Equatable, Hashable {
+    case indexNotReady
+    case gameNotIndexed
+    case imageUnreadable
+    case imageTooLarge
+    case noMatch
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .indexNotReady: return "index_not_ready"
+        case .gameNotIndexed: return "game_not_indexed"
+        case .imageUnreadable: return "image_unreadable"
+        case .imageTooLarge: return "image_too_large"
+        case .noMatch: return "no_match"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "index_not_ready": self = .indexNotReady
+        case "game_not_indexed": self = .gameNotIndexed
+        case "image_unreadable": self = .imageUnreadable
+        case "image_too_large": self = .imageTooLarge
+        case "no_match": self = .noMatch
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct ProfileSettingsResponse: Codable, Sendable {
     public let profile: ProfileSettingsView
 

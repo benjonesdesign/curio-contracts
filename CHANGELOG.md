@@ -1,6 +1,23 @@
 # Changelog
 
 
+## v0.2.3 (UNTAGGED, DRAFT, PROVISIONAL) — W15 Tier 1 picture matching: `POST /api/identify/match` (additive)
+
+New `src/api/identify-match.ts` so iOS and Android can STUB the route before it exists. Not for adoption by the server until the W15 spike
+numbers are in and Ben has ruled on the pgvector migration and the R4 fingerprint legal line; the SHAPE is what is fixed, the
+confidence rule and thresholds are not.
+
+- `IdentifyMatchRequest`: `image` (base64 of ONE JPEG, the whole card cropped and upright; the server fingerprints it and discards it),
+  optional `game` (Pokémon only to start), optional on-device OCR hints `setCode` / `collectorNumber` that narrow the candidates.
+- `IdentifyMatchResponse`: `candidates` (at most 5, best first; each is the existing `CatalogueLookupMatch` plus a 0..1 `score`),
+  `confidence` (null with no candidates), `variantUndecided` (true when the top candidates share the art: picture matching cannot tell a holo
+  from a reverse holo or two printings of one art, so the printed number/set decides), `unavailableReason` (`index_not_ready`,
+  `game_not_indexed`, `image_unreadable`, `image_too_large`, `no_match`) and `indexVersion`.
+- Until the index exists the route answers `index_not_ready` with no candidates, so a client falls through to the next tier.
+- Cross-field rules: candidates empty exactly when `unavailableReason` is set; candidates need a confidence.
+- Swift and Kotlin emit it; coverage 188/188. Mutation-checked (5 mutants red, test header). Version bumped to 0.2.3 so a tag would equal it; **untagged: Ben tags.**
+
+
 ## v0.2.2 (UNTAGGED, in progress) — grade a copy that already exists (additive)
 
 `POST /api/inventory/graded` gains an UPDATE mode: send `physicalCardId` instead of `batchId` and the server grades that

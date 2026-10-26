@@ -3046,6 +3046,75 @@ public data class StoredPostageService(
 )
 
 @Serializable
+public data class IdentifyMatchRequest(
+    val game: Game? = null,
+    val image: String,
+    val setCode: String? = null,
+    val collectorNumber: String? = null,
+)
+
+@Serializable
+public data class IdentifyMatchResponse(
+    val candidates: List<Candidate> = emptyList(),
+    val confidence: GameConfidence? = null,
+    val variantUndecided: Boolean,
+    val unavailableReason: UnavailableReason? = null,
+    val indexVersion: String? = null,
+)
+
+@Serializable
+public data class Candidate(
+    val match: CatalogueLookupMatch,
+    val score: Double,
+)
+
+@Serializable(with = UnavailableReasonSerializer::class)
+public sealed interface UnavailableReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object INDEX_NOT_READY : UnavailableReason {
+        override val rawValue: String get() = "index_not_ready"
+    }
+    public object GAME_NOT_INDEXED : UnavailableReason {
+        override val rawValue: String get() = "game_not_indexed"
+    }
+    public object IMAGE_UNREADABLE : UnavailableReason {
+        override val rawValue: String get() = "image_unreadable"
+    }
+    public object IMAGE_TOO_LARGE : UnavailableReason {
+        override val rawValue: String get() = "image_too_large"
+    }
+    public object NO_MATCH : UnavailableReason {
+        override val rawValue: String get() = "no_match"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : UnavailableReason
+
+    public companion object {
+        public fun from(raw: String): UnavailableReason = when (raw) {
+            "index_not_ready" -> INDEX_NOT_READY
+            "game_not_indexed" -> GAME_NOT_INDEXED
+            "image_unreadable" -> IMAGE_UNREADABLE
+            "image_too_large" -> IMAGE_TOO_LARGE
+            "no_match" -> NO_MATCH
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object UnavailableReasonSerializer : KSerializer<UnavailableReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UnavailableReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): UnavailableReason = UnavailableReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: UnavailableReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class ProfileSettingsResponse(
     val profile: ProfileSettingsView,
 )
