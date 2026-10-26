@@ -79,7 +79,7 @@ export declare const IdentifyMatchCandidateSchema: z.ZodObject<{
 }>;
 export type IdentifyMatchCandidate = z.infer<typeof IdentifyMatchCandidateSchema>;
 /** Why there are no candidates. Closed, forward-compatible (a client treats an unknown value as "no picture match"). */
-export declare const IdentifyMatchUnavailableReasonSchema: z.ZodEnum<["index_not_ready", "game_not_indexed", "image_unreadable", "image_too_large", "no_match"]>;
+export declare const IdentifyMatchUnavailableReasonSchema: z.ZodEnum<["index_not_ready", "game_not_indexed", "image_unreadable", "image_too_large", "no_match", "crop_loose"]>;
 export type IdentifyMatchUnavailableReason = z.infer<typeof IdentifyMatchUnavailableReasonSchema>;
 export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
     /** Best first, at most 5. Empty exactly when `unavailableReason` is set. */
@@ -145,9 +145,14 @@ export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
     confidence: z.ZodNullable<z.ZodEnum<["high", "medium", "low"]>>;
     /** True when the top candidates share the same artwork, so the picture cannot settle which printing or finish it is. */
     variantUndecided: z.ZodBoolean;
-    unavailableReason: z.ZodNullable<z.ZodEnum<["index_not_ready", "game_not_indexed", "image_unreadable", "image_too_large", "no_match"]>>;
+    unavailableReason: z.ZodNullable<z.ZodEnum<["index_not_ready", "game_not_indexed", "image_unreadable", "image_too_large", "no_match", "crop_loose"]>>;
     /** Which index answered (for the scan trace and for comparing runs); null when none did. */
     indexVersion: z.ZodNullable<z.ZodString>;
+    /** The SERVER's own read of the crop it was sent, so the app can learn which of its detected quads are good (docs/IDENTIFY-MATCH-CROP-SPEC.md):
+     *  "ok" = it looks within the tolerance; "loose" = it looks outside it (a re-framed copy of the image matched noticeably better), so any
+     *  candidates are less reliable and `unavailableReason` may be "crop_loose"; "unknown" = not assessed. The first server version always says
+     *  "unknown"; the check and its threshold come from real photos. Omitted means "unknown". */
+    crop: z.ZodDefault<z.ZodEnum<["ok", "loose", "unknown"]>>;
 }, "strip", z.ZodTypeAny, {
     confidence: "high" | "medium" | "low" | null;
     candidates: {
@@ -164,12 +169,13 @@ export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
         score: number;
     }[];
     variantUndecided: boolean;
-    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | null;
+    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | "crop_loose" | null;
     indexVersion: string | null;
+    crop: "unknown" | "ok" | "loose";
 }, {
     confidence: "high" | "medium" | "low" | null;
     variantUndecided: boolean;
-    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | null;
+    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | "crop_loose" | null;
     indexVersion: string | null;
     candidates?: {
         match: {
@@ -184,6 +190,7 @@ export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
         };
         score: number;
     }[] | undefined;
+    crop?: "unknown" | "ok" | "loose" | undefined;
 }>, {
     confidence: "high" | "medium" | "low" | null;
     candidates: {
@@ -200,12 +207,13 @@ export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
         score: number;
     }[];
     variantUndecided: boolean;
-    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | null;
+    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | "crop_loose" | null;
     indexVersion: string | null;
+    crop: "unknown" | "ok" | "loose";
 }, {
     confidence: "high" | "medium" | "low" | null;
     variantUndecided: boolean;
-    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | null;
+    unavailableReason: "index_not_ready" | "game_not_indexed" | "image_unreadable" | "image_too_large" | "no_match" | "crop_loose" | null;
     indexVersion: string | null;
     candidates?: {
         match: {
@@ -220,5 +228,6 @@ export declare const IdentifyMatchResponseSchema: z.ZodEffects<z.ZodObject<{
         };
         score: number;
     }[] | undefined;
+    crop?: "unknown" | "ok" | "loose" | undefined;
 }>;
 export type IdentifyMatchResponse = z.infer<typeof IdentifyMatchResponseSchema>;

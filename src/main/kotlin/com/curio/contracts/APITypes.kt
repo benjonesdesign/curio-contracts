@@ -3060,6 +3060,7 @@ public data class IdentifyMatchResponse(
     val variantUndecided: Boolean,
     val unavailableReason: UnavailableReason? = null,
     val indexVersion: String? = null,
+    val crop: Crop = Crop.from("unknown"),
 )
 
 @Serializable
@@ -3089,6 +3090,9 @@ public sealed interface UnavailableReason {
     public object NO_MATCH : UnavailableReason {
         override val rawValue: String get() = "no_match"
     }
+    public object CROP_LOOSE : UnavailableReason {
+        override val rawValue: String get() = "crop_loose"
+    }
 
     /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
     public data class Unknown(override val rawValue: String) : UnavailableReason
@@ -3100,6 +3104,7 @@ public sealed interface UnavailableReason {
             "image_unreadable" -> IMAGE_UNREADABLE
             "image_too_large" -> IMAGE_TOO_LARGE
             "no_match" -> NO_MATCH
+            "crop_loose" -> CROP_LOOSE
             else -> Unknown(raw)
         }
     }
@@ -3110,6 +3115,44 @@ public object UnavailableReasonSerializer : KSerializer<UnavailableReason> {
         PrimitiveSerialDescriptor("UnavailableReason", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): UnavailableReason = UnavailableReason.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: UnavailableReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = CropSerializer::class)
+public sealed interface Crop {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object OK : Crop {
+        override val rawValue: String get() = "ok"
+    }
+    public object LOOSE : Crop {
+        override val rawValue: String get() = "loose"
+    }
+    public object UNKNOWN : Crop {
+        override val rawValue: String get() = "unknown"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : Crop
+
+    public companion object {
+        public fun from(raw: String): Crop = when (raw) {
+            "ok" -> OK
+            "loose" -> LOOSE
+            "unknown" -> UNKNOWN
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object CropSerializer : KSerializer<Crop> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("Crop", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): Crop = Crop.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: Crop) {
         encoder.encodeString(value.rawValue)
     }
 }

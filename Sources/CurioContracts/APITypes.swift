@@ -3770,6 +3770,7 @@ public struct IdentifyMatchResponse: Codable, Sendable {
     public let variantUndecided: Bool
     public let unavailableReason: UnavailableReason?
     public let indexVersion: String?
+    public let crop: Crop
 
     enum CodingKeys: String, CodingKey {
         case candidates
@@ -3777,14 +3778,16 @@ public struct IdentifyMatchResponse: Codable, Sendable {
         case variantUndecided
         case unavailableReason
         case indexVersion
+        case crop
     }
 
-    public init(candidates: [Candidate], confidence: GameConfidence?, variantUndecided: Bool, unavailableReason: UnavailableReason?, indexVersion: String?) {
+    public init(candidates: [Candidate], confidence: GameConfidence?, variantUndecided: Bool, unavailableReason: UnavailableReason?, indexVersion: String?, crop: Crop) {
         self.candidates = candidates
         self.confidence = confidence
         self.variantUndecided = variantUndecided
         self.unavailableReason = unavailableReason
         self.indexVersion = indexVersion
+        self.crop = crop
     }
 
     public init(from decoder: Decoder) throws {
@@ -3794,6 +3797,7 @@ public struct IdentifyMatchResponse: Codable, Sendable {
         self.variantUndecided = try c.decode(Bool.self, forKey: .variantUndecided)
         self.unavailableReason = try c.decodeIfPresent(UnavailableReason.self, forKey: .unavailableReason)
         self.indexVersion = try c.decodeIfPresent(String.self, forKey: .indexVersion)
+        self.crop = try c.decodeIfPresent(Crop.self, forKey: .crop) ?? Crop(rawValue: "unknown")
     }
 }
 
@@ -3813,6 +3817,7 @@ public enum UnavailableReason: Codable, Sendable, Equatable, Hashable {
     case imageUnreadable
     case imageTooLarge
     case noMatch
+    case cropLoose
     /// A value this build does not know. Carries the wire value so it round-trips unchanged.
     /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
     case unrecognised(String)
@@ -3824,6 +3829,7 @@ public enum UnavailableReason: Codable, Sendable, Equatable, Hashable {
         case .imageUnreadable: return "image_unreadable"
         case .imageTooLarge: return "image_too_large"
         case .noMatch: return "no_match"
+        case .cropLoose: return "crop_loose"
         case .unrecognised(let raw): return raw
         }
     }
@@ -3835,6 +3841,43 @@ public enum UnavailableReason: Codable, Sendable, Equatable, Hashable {
         case "image_unreadable": self = .imageUnreadable
         case "image_too_large": self = .imageTooLarge
         case "no_match": self = .noMatch
+        case "crop_loose": self = .cropLoose
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum Crop: Codable, Sendable, Equatable, Hashable {
+    case ok
+    case loose
+    case unknown
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .ok: return "ok"
+        case .loose: return "loose"
+        case .unknown: return "unknown"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "ok": self = .ok
+        case "loose": self = .loose
+        case "unknown": self = .unknown
         default: self = .unrecognised(rawValue)
         }
     }

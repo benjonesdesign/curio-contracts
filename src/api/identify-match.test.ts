@@ -1,4 +1,4 @@
-// MUTATION-CHECKED 2026-10-26: red against `.max(5)` removed from IdentifyMatchResponseSchema.candidates in src/api/identify-match.ts (the at-most-five test), red against `if (r.unavailableReason !== null && (r.candidates.length > 0 || r.confidence !== null)) {` changed to `if (false) {` (the unavailable-has-nothing test), red against `if (r.unavailableReason === null && r.candidates.length === 0) {` changed to `if (false) {` (the no-candidates-needs-a-reason test), red against `if (r.candidates.length > 0 && r.confidence === null) {` changed to `if (false) {` (the candidates-need-a-confidence test), red against `score: z.number().min(0).max(1)` changed to `z.number()` (the score range test), green against current.
+// MUTATION-CHECKED 2026-10-26: red against `.max(5)` removed from IdentifyMatchResponseSchema.candidates in src/api/identify-match.ts (the at-most-five test), red against `if (r.unavailableReason !== null && (r.candidates.length > 0 || r.confidence !== null)) {` changed to `if (false) {` (the unavailable-has-nothing test), red against `if (r.unavailableReason === null && r.candidates.length === 0) {` changed to `if (false) {` (the no-candidates-needs-a-reason test), red against `if (r.candidates.length > 0 && r.confidence === null) {` changed to `if (false) {` (the candidates-need-a-confidence test), red against `score: z.number().min(0).max(1)` changed to `z.number()` (the score range test), red against `if (r.unavailableReason === "crop_loose" && r.crop !== "loose") {` changed to `if (false) {` (the crop_loose-needs-loose test), red against `.default("unknown")` removed from `crop` (the omitted-crop-is-unknown test), green against current.
 import { describe, it, expect } from "vitest";
 import { IdentifyMatchRequestSchema, IdentifyMatchResponseSchema } from "./identify-match.js";
 
@@ -62,5 +62,19 @@ describe("POST /api/identify/match: response", () => {
 
   it("an unknown unavailable reason is refused (the list is closed here; a client treats a future one as 'no picture match')", () => {
     expect(IdentifyMatchResponseSchema.safeParse({ candidates: [], confidence: null, variantUndecided: false, unavailableReason: "on_fire", indexVersion: null }).success).toBe(false);
+  });
+
+  it("crop: the server's read of the crop. Omitted means unknown; ok, loose and unknown are the only values", () => {
+    const base = { candidates: [CAND(0.9)], confidence: "high", variantUndecided: false, unavailableReason: null, indexVersion: "i" };
+    expect(IdentifyMatchResponseSchema.parse(base).crop).toBe("unknown");
+    for (const crop of ["ok", "loose", "unknown"]) expect(IdentifyMatchResponseSchema.safeParse({ ...base, crop }).success, crop).toBe(true);
+    expect(IdentifyMatchResponseSchema.safeParse({ ...base, crop: "tight" }).success).toBe(false);
+  });
+
+  it("crop_loose is an unavailable answer and says the crop was loose", () => {
+    const loose = { candidates: [], confidence: null, variantUndecided: false, unavailableReason: "crop_loose", indexVersion: "i" };
+    expect(IdentifyMatchResponseSchema.safeParse({ ...loose, crop: "loose" }).success).toBe(true);
+    expect(IdentifyMatchResponseSchema.safeParse({ ...loose, crop: "ok" }).success).toBe(false);
+    expect(IdentifyMatchResponseSchema.safeParse(loose).success).toBe(false);   // omitted crop is "unknown"
   });
 });

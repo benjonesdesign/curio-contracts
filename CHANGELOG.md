@@ -14,7 +14,8 @@ confidence rule and thresholds are not.
   from a reverse holo or two printings of one art, so the printed number/set decides), `unavailableReason` (`index_not_ready`,
   `game_not_indexed`, `image_unreadable`, `image_too_large`, `no_match`) and `indexVersion`.
 - Until the index exists the route answers `index_not_ready` with no candidates, so a client falls through to the next tier.
-- Cross-field rules: candidates empty exactly when `unavailableReason` is set; candidates need a confidence.
+- `crop` (`ok` / `loose` / `unknown`, default `unknown`) is the server's own read of the crop it was sent, and `unavailableReason: "crop_loose"` is the answer for a loose crop (so the app can learn which quads are good); the first server version always says `unknown`. The crop tolerance the app must meet (within about 2 degrees and 2% of the frame; send only when the quad is confident; otherwise fall through) is `docs/IDENTIFY-MATCH-CROP-SPEC.md`.
+- Cross-field rules: candidates empty exactly when `unavailableReason` is set; candidates need a confidence; `crop_loose` needs `crop: loose`.
 - Swift and Kotlin emit it; coverage 188/188. Mutation-checked (5 mutants red, test header). Version bumped to 0.2.3 so a tag would equal it; **untagged: Ben tags.**
 
 

@@ -20,7 +20,8 @@
 // existing CatalogueLookupMatch fields.
 //
 // WHAT IS SENT: one JPEG of the WHOLE CARD, already cropped and upright by the app's whole-card crop (the same crop the Quick
-// Scan guide needs; a raw photo with a table around it will not match). The server computes a fingerprint, ranks, and DISCARDS
+// Scan guide needs; a raw photo with a table around it will not match). The tolerance (within about 2 degrees and 2% of the frame, and
+// what the app does when it cannot meet it) is in docs/IDENTIFY-MATCH-CROP-SPEC.md. The server computes a fingerprint, ranks, and DISCARDS
 // the image: nothing is stored. The catalogue's own images are never stored either, only fingerprints derived from them (the R4
 // catalogue-source legal line is a Ben decision before any fingerprint table exists).
 import { z } from "zod";
@@ -54,6 +55,7 @@ export const IdentifyMatchUnavailableReasonSchema = z.enum([
   "image_unreadable",   // not a decodable JPEG
   "image_too_large",    // over the size limit
   "no_match",           // the index answered and nothing was close enough
+  "crop_loose",         // the server's own check says the crop was outside the tolerance, so it will not answer (see `crop`)
 ]);
 export type IdentifyMatchUnavailableReason = z.infer<typeof IdentifyMatchUnavailableReasonSchema>;
 
@@ -68,12 +70,20 @@ export const IdentifyMatchResponseSchema = z.object({
   unavailableReason: IdentifyMatchUnavailableReasonSchema.nullable(),
   /** Which index answered (for the scan trace and for comparing runs); null when none did. */
   indexVersion: z.string().nullable(),
+  /** The SERVER's own read of the crop it was sent, so the app can learn which of its detected quads are good (docs/IDENTIFY-MATCH-CROP-SPEC.md):
+   *  "ok" = it looks within the tolerance; "loose" = it looks outside it (a re-framed copy of the image matched noticeably better), so any
+   *  candidates are less reliable and `unavailableReason` may be "crop_loose"; "unknown" = not assessed. The first server version always says
+   *  "unknown"; the check and its threshold come from real photos. Omitted means "unknown". */
+  crop: z.enum(["ok", "loose", "unknown"]).default("unknown"),
 }).superRefine((r, ctx) => {
   if (r.unavailableReason !== null && (r.candidates.length > 0 || r.confidence !== null)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["unavailableReason"], message: "an unavailable answer has no candidates and no confidence" });
   }
   if (r.unavailableReason === null && r.candidates.length === 0) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["candidates"], message: "no candidates needs an unavailableReason (use no_match)" });
+  }
+  if (r.unavailableReason === "crop_loose" && r.crop !== "loose") {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["crop"], message: "crop_loose is the answer for a loose crop: crop must be loose" });
   }
   if (r.candidates.length > 0 && r.confidence === null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["confidence"], message: "candidates need a confidence" });
