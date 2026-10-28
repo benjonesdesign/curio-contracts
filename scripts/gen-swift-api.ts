@@ -55,6 +55,9 @@ import {
 } from "../src/api/scan-trace.js";
 import { InspectionDepthHintRequestSchema, InspectionDepthHintResponseSchema } from "../src/api/inspection-depth.js";
 import { SignedPhotoUrlRequestSchema, SignedPhotoUrlResponseSchema, SignedPhotoUrlResultSchema } from "../src/api/signed-photo-url.js";
+import {
+  IdentifyMatchRequestSchema, IdentifyMatchResponseSchema, IdentifyMatchCandidateSchema, IdentifyMatchUnavailableReasonSchema,
+} from "../src/api/identify-match.js";
 import { PricingRuleSchema, PricingRuleInputSchema, PricingRuleListResponseSchema } from "../src/api/pricing-rule.js";
 import {
   ListingTemplateSchema, ListingTemplateInputSchema, ListingTemplateListResponseSchema,
@@ -281,6 +284,8 @@ emitSwift(PricingBreakdownResponseSchema, "PricingBreakdownResponse");
 emitSwift(ProfileResponseSchema, "ProfileResponse");
 emitSwift(ProfilePatchSchema, "ProfilePatch");
 emitSwift(ProfileSettingsPatchSchema, "ProfileSettingsPatch");
+emitSwift(IdentifyMatchRequestSchema, "IdentifyMatchRequest");
+emitSwift(IdentifyMatchResponseSchema, "IdentifyMatchResponse");
 emitSwift(ProfileSettingsResponseSchema, "ProfileSettingsResponse");
 emitSwift(ProfileSettingsInvalidSchema, "ProfileSettingsInvalid");
 emitSwift(PricedBreakdownSchema, "PricedBreakdown");
