@@ -90,6 +90,10 @@ export const ChangeCardResponseSchema = z.object({
     /** False when only the physical record was written and the legacy `cards` row could not be (the
      *  copy is still correct; a refresh of the legacy row happens on the next write). */
     legacyUpdated: z.boolean().nullable().optional(),
+    /** Whether Undo can be offered for this change (inventory-change-card-undo.ts). False when the change
+     *  stands but its audit record could not be written, so there is nothing to undo from. Absent on
+     *  `unchanged`, `refused` and `failed`. A client offers Undo only when this is true. */
+    undoAvailable: z.boolean().optional(),
 }).superRefine((r, ctx) => {
     const issue = (path, message) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
     const hasReason = r.reason != null;

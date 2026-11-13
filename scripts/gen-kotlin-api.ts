@@ -87,6 +87,11 @@ import {
   ChangeCardRefusalReasonSchema,
 } from "../src/api/inventory-change-card.js";
 import {
+  ChangeCardHistoryResponseSchema, ChangeCardHistoryEventSchema, ChangeCardSnapshotSchema,
+  ChangeCardUndoRefusalReasonSchema, ChangeCardUndoOutcomeSchema, ChangeCardRestorableSchema,
+  UndoChangeCardRequestSchema, UndoChangeCardResponseSchema,
+} from "../src/api/inventory-change-card-undo.js";
+import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
@@ -225,6 +230,11 @@ registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
 registerName(ChangeCardRefusalReasonSchema, "ChangeCardRefusalReason");
 registerName(ChangeCardOutcomeSchema, "ChangeCardOutcome");
 registerName(ChangeCardIdentitySchema, "ChangeCardIdentity");
+registerName(ChangeCardUndoRefusalReasonSchema, "ChangeCardUndoRefusalReason");
+registerName(ChangeCardUndoOutcomeSchema, "ChangeCardUndoOutcome");
+registerName(ChangeCardRestorableSchema, "ChangeCardRestorable");
+registerName(ChangeCardSnapshotSchema, "ChangeCardSnapshot");
+registerName(ChangeCardHistoryEventSchema, "ChangeCardHistoryEvent");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -303,6 +313,9 @@ emitKotlin(InventoryStatusKeySchema, "InventoryStatusKey");
 emitKotlin(InventoryChangeResponseSchema, "InventoryChangeResponse");
 emitKotlin(ChangeCardRequestSchema, "ChangeCardRequest");
 emitKotlin(ChangeCardResponseSchema, "ChangeCardResponse");
+emitKotlin(ChangeCardHistoryResponseSchema, "ChangeCardHistoryResponse");
+emitKotlin(UndoChangeCardRequestSchema, "UndoChangeCardRequest");
+emitKotlin(UndoChangeCardResponseSchema, "UndoChangeCardResponse");
 emitKotlin(StatsResponseSchema, "StatsResponse");
 emitKotlin(GradedCreateRequestSchema, "GradedCreateRequest");
 emitKotlin(GradedCreateResponseSchema, "GradedCreateResponse");
