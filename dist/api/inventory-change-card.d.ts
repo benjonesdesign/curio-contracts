@@ -128,7 +128,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "game_not_available" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | "target_not_found" | null | undefined;
+    reason?: "game_not_available" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | "target_not_found" | null | undefined;
     identity?: {
         game: string;
         name: string;
@@ -148,7 +148,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "game_not_available" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | "target_not_found" | null | undefined;
+    reason?: "game_not_available" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | "target_not_found" | null | undefined;
     identity?: {
         game: string;
         name: string;
@@ -168,7 +168,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "game_not_available" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | "target_not_found" | null | undefined;
+    reason?: "game_not_available" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | "target_not_found" | null | undefined;
     identity?: {
         game: string;
         name: string;
@@ -188,7 +188,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "game_not_available" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | "target_not_found" | null | undefined;
+    reason?: "game_not_available" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | "target_not_found" | null | undefined;
     identity?: {
         game: string;
         name: string;

@@ -89,6 +89,7 @@ import {
 import {
   OwnedCopySchema, OwnedCopiesSummarySchema, QuickScanMarketSchema, KeepItRequestSchema, KeepItResponseSchema,
   KeepItOutcomeSchema, KeepItRefusalReasonSchema,
+  UndoKeepItRequestSchema, UndoKeepItResponseSchema, UndoKeepItOutcomeSchema, UndoKeepItRefusalReasonSchema,
 } from "../src/api/quick-scan-owned.js";
 import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
@@ -234,6 +235,8 @@ registerName(OwnedCopiesSummarySchema, "OwnedCopiesSummary");
 registerName(QuickScanMarketSchema, "QuickScanMarket");
 registerName(KeepItOutcomeSchema, "KeepItOutcome");
 registerName(KeepItRefusalReasonSchema, "KeepItRefusalReason");
+registerName(UndoKeepItOutcomeSchema, "UndoKeepItOutcome");
+registerName(UndoKeepItRefusalReasonSchema, "UndoKeepItRefusalReason");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -314,6 +317,8 @@ emitKotlin(ChangeCardRequestSchema, "ChangeCardRequest");
 emitKotlin(ChangeCardResponseSchema, "ChangeCardResponse");
 emitKotlin(KeepItRequestSchema, "KeepItRequest");
 emitKotlin(KeepItResponseSchema, "KeepItResponse");
+emitKotlin(UndoKeepItRequestSchema, "UndoKeepItRequest");
+emitKotlin(UndoKeepItResponseSchema, "UndoKeepItResponse");
 emitKotlin(StatsResponseSchema, "StatsResponse");
 emitKotlin(GradedCreateRequestSchema, "GradedCreateRequest");
 emitKotlin(GradedCreateResponseSchema, "GradedCreateResponse");

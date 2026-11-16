@@ -4780,22 +4780,28 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listedOnEbayCount: z.ZodNumber;
         copies: z.ZodDefault<z.ZodArray<z.ZodObject<{
             physicalCardId: z.ZodString;
-            sku: z.ZodNullable<z.ZodString>;
+            sku: z.ZodString;
             condition: z.ZodNullable<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>>;
-            conditionConfirmed: z.ZodBoolean;
+            conditionConfirmedBySeller: z.ZodBoolean;
             status: z.ZodEnum<["RECEIVED", "AWAITING_SCAN", "PROCESSING", "NEEDS_ID_REVIEW", "NEEDS_CONDITION", "NEEDS_DECISION", "READY_TO_LIST", "EBAY_DRAFT", "LISTED", "SOLD", "PICKED", "DISPATCHED", "COMPLETED", "EXCEPTION", "RETURNED", "ARCHIVED", "UNMATCHED", "HELD"]>;
+            listed: z.ZodBoolean;
+            channel: z.ZodNullable<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }, {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }>, "many">>;
     }, "strip", z.ZodTypeAny, {
         count: number;
@@ -4803,10 +4809,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listedOnEbayCount: number;
         copies: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[];
     }, {
         count: number;
@@ -4814,10 +4822,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
         copies?: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[] | undefined;
     }>, {
         count: number;
@@ -4825,10 +4835,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listedOnEbayCount: number;
         copies: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[];
     }, {
         count: number;
@@ -4836,10 +4848,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
         copies?: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[] | undefined;
     }>>>;
     /** DRAFT, additive. A4a market line: price range, median ask, listing count, source, fetch date. */
@@ -4850,6 +4864,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listingCount: z.ZodNullable<z.ZodNumber>;
         source: z.ZodNullable<z.ZodString>;
         fetchedAt: z.ZodNullable<z.ZodString>;
+        unavailableReason: z.ZodDefault<z.ZodNullable<z.ZodEnum<["not_priced", "no_listings", "provider_outage"]>>>;
     }, "strip", z.ZodTypeAny, {
         source: string | null;
         lowGbp: number | null;
@@ -4857,6 +4872,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason: "not_priced" | "no_listings" | "provider_outage" | null;
     }, {
         source: string | null;
         lowGbp: number | null;
@@ -4864,6 +4880,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason?: "not_priced" | "no_listings" | "provider_outage" | null | undefined;
     }>, {
         source: string | null;
         lowGbp: number | null;
@@ -4871,6 +4888,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason: "not_priced" | "no_listings" | "provider_outage" | null;
     }, {
         source: string | null;
         lowGbp: number | null;
@@ -4878,6 +4896,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason?: "not_priced" | "no_listings" | "provider_outage" | null | undefined;
     }>>>;
 }, "strip", z.ZodTypeAny, {
     candidates: {
@@ -5001,10 +5020,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listedOnEbayCount: number;
         copies: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[];
     } | null | undefined;
     market?: {
@@ -5014,6 +5035,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason: "not_priced" | "no_listings" | "provider_outage" | null;
     } | null | undefined;
 }, {
     decision: {
@@ -5137,10 +5159,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
         copies?: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[] | undefined;
     } | null | undefined;
     market?: {
@@ -5150,6 +5174,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason?: "not_priced" | "no_listings" | "provider_outage" | null | undefined;
     } | null | undefined;
 }>, {
     candidates: {
@@ -5273,10 +5298,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         listedOnEbayCount: number;
         copies: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[];
     } | null | undefined;
     market?: {
@@ -5286,6 +5313,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason: "not_priced" | "no_listings" | "provider_outage" | null;
     } | null | undefined;
 }, {
     decision: {
@@ -5409,10 +5437,12 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
         copies?: {
             status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
-            sku: string | null;
+            sku: string;
             condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
-            conditionConfirmed: boolean;
             physicalCardId: string;
+            channel: string | null;
+            listed: boolean;
+            conditionConfirmedBySeller: boolean;
         }[] | undefined;
     } | null | undefined;
     market?: {
@@ -5422,6 +5452,7 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         medianAskGbp: number | null;
         listingCount: number | null;
         fetchedAt: string | null;
+        unavailableReason?: "not_priced" | "no_listings" | "provider_outage" | null | undefined;
     } | null | undefined;
 }>;
 export type QuickScanResponse = z.infer<typeof QuickScanResponseSchema>;
