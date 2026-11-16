@@ -3543,6 +3543,7 @@ public data class ChangeCardResponse(
     val cleared: List<Cleared>? = null,
     val kept: List<Kept>? = null,
     val legacyUpdated: Boolean? = null,
+    val undoAvailable: Boolean? = null,
 )
 
 @Serializable(with = ChangeCardOutcomeSerializer::class)
@@ -3738,6 +3739,199 @@ public object KeptSerializer : KSerializer<Kept> {
         PrimitiveSerialDescriptor("Kept", PrimitiveKind.STRING)
     override fun deserialize(decoder: Decoder): Kept = Kept.from(decoder.decodeString())
     override fun serialize(encoder: Encoder, value: Kept) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class ChangeCardHistoryResponse(
+    val physicalCardId: String,
+    val events: List<ChangeCardHistoryEvent>,
+    val undo: Undo,
+)
+
+@Serializable
+public data class ChangeCardHistoryEvent(
+    val eventId: String,
+    val changedAt: String,
+    val previous: ChangeCardSnapshot,
+    val previousStatus: PhysicalCardStatus? = null,
+    val previousIdVerifiedBySeller: Boolean? = null,
+    val next: ChangeCardIdentity,
+    val undone: Boolean,
+    val restores: List<ChangeCardRestorable>,
+    val notRestored: List<ChangeCardRestorable>,
+)
+
+@Serializable
+public data class ChangeCardSnapshot(
+    val game: String? = null,
+    val nativeId: String? = null,
+    val catalogueCardId: String? = null,
+    val name: String? = null,
+    val setName: String? = null,
+    val cardNumber: String? = null,
+    val rarity: String? = null,
+    val language: String? = null,
+)
+
+@Serializable(with = ChangeCardRestorableSerializer::class)
+public sealed interface ChangeCardRestorable {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object IDENTITY : ChangeCardRestorable {
+        override val rawValue: String get() = "identity"
+    }
+    public object STATUS : ChangeCardRestorable {
+        override val rawValue: String get() = "status"
+    }
+    public object IDENTITY_CONFIRMATION : ChangeCardRestorable {
+        override val rawValue: String get() = "identity_confirmation"
+    }
+    public object MARKET_PRICE : ChangeCardRestorable {
+        override val rawValue: String get() = "market_price"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ChangeCardRestorable
+
+    public companion object {
+        public fun from(raw: String): ChangeCardRestorable = when (raw) {
+            "identity" -> IDENTITY
+            "status" -> STATUS
+            "identity_confirmation" -> IDENTITY_CONFIRMATION
+            "market_price" -> MARKET_PRICE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChangeCardRestorableSerializer : KSerializer<ChangeCardRestorable> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ChangeCardRestorable", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ChangeCardRestorable = ChangeCardRestorable.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ChangeCardRestorable) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class Undo(
+    val available: Boolean,
+    val eventId: String? = null,
+    val reason: ChangeCardUndoRefusalReason? = null,
+)
+
+@Serializable(with = ChangeCardUndoRefusalReasonSerializer::class)
+public sealed interface ChangeCardUndoRefusalReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NO_CHANGE_TO_UNDO : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "no_change_to_undo"
+    }
+    public object CHANGED_SINCE : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "changed_since"
+    }
+    public object LIVE_ON_EBAY : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "live_on_ebay"
+    }
+    public object SOLD : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "sold"
+    }
+    public object ARCHIVED : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "archived"
+    }
+    public object NOT_FOUND : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "not_found"
+    }
+    public object WRITE_FAILED : ChangeCardUndoRefusalReason {
+        override val rawValue: String get() = "write_failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ChangeCardUndoRefusalReason
+
+    public companion object {
+        public fun from(raw: String): ChangeCardUndoRefusalReason = when (raw) {
+            "no_change_to_undo" -> NO_CHANGE_TO_UNDO
+            "changed_since" -> CHANGED_SINCE
+            "live_on_ebay" -> LIVE_ON_EBAY
+            "sold" -> SOLD
+            "archived" -> ARCHIVED
+            "not_found" -> NOT_FOUND
+            "write_failed" -> WRITE_FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChangeCardUndoRefusalReasonSerializer : KSerializer<ChangeCardUndoRefusalReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ChangeCardUndoRefusalReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ChangeCardUndoRefusalReason = ChangeCardUndoRefusalReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ChangeCardUndoRefusalReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class UndoChangeCardRequest(
+    @SerialName("physical_card_id") val physicalCardId: String,
+    @SerialName("event_id") val eventId: String,
+)
+
+@Serializable
+public data class UndoChangeCardResponse(
+    val outcome: ChangeCardUndoOutcome,
+    val reason: ChangeCardUndoRefusalReason? = null,
+    val error: String? = null,
+    val identity: ChangeCardSnapshot? = null,
+    val status: PhysicalCardStatus? = null,
+    val idVerifiedBySeller: Boolean? = null,
+    val restored: List<ChangeCardRestorable>? = null,
+    val notRestored: List<ChangeCardRestorable>? = null,
+    val legacyUpdated: Boolean? = null,
+    val recorded: Boolean? = null,
+)
+
+@Serializable(with = ChangeCardUndoOutcomeSerializer::class)
+public sealed interface ChangeCardUndoOutcome {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object UNDONE : ChangeCardUndoOutcome {
+        override val rawValue: String get() = "undone"
+    }
+    public object REFUSED : ChangeCardUndoOutcome {
+        override val rawValue: String get() = "refused"
+    }
+    public object FAILED : ChangeCardUndoOutcome {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : ChangeCardUndoOutcome
+
+    public companion object {
+        public fun from(raw: String): ChangeCardUndoOutcome = when (raw) {
+            "undone" -> UNDONE
+            "refused" -> REFUSED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object ChangeCardUndoOutcomeSerializer : KSerializer<ChangeCardUndoOutcome> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("ChangeCardUndoOutcome", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): ChangeCardUndoOutcome = ChangeCardUndoOutcome.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: ChangeCardUndoOutcome) {
         encoder.encodeString(value.rawValue)
     }
 }

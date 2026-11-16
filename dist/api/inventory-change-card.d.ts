@@ -124,6 +124,10 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     /** False when only the physical record was written and the legacy `cards` row could not be (the
      *  copy is still correct; a refresh of the legacy row happens on the next write). */
     legacyUpdated: z.ZodOptional<z.ZodNullable<z.ZodBoolean>>;
+    /** Whether Undo can be offered for this change (inventory-change-card-undo.ts). False when the change
+     *  stands but its audit record could not be written, so there is nothing to undo from. Absent on
+     *  `unchanged`, `refused` and `failed`. A client offers Undo only when this is true. */
+    undoAvailable: z.ZodOptional<z.ZodBoolean>;
 }, "strip", z.ZodTypeAny, {
     outcome: "failed" | "changed" | "unchanged" | "refused";
     error?: string | null | undefined;
@@ -144,6 +148,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     cleared?: ("market_price" | "identity_confirmation")[] | undefined;
     kept?: ("sku" | "condition" | "asking_price" | "cost" | "notes" | "photos" | "allocation")[] | undefined;
     legacyUpdated?: boolean | null | undefined;
+    undoAvailable?: boolean | undefined;
 }, {
     outcome: "failed" | "changed" | "unchanged" | "refused";
     error?: string | null | undefined;
@@ -164,6 +169,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     cleared?: ("market_price" | "identity_confirmation")[] | undefined;
     kept?: ("sku" | "condition" | "asking_price" | "cost" | "notes" | "photos" | "allocation")[] | undefined;
     legacyUpdated?: boolean | null | undefined;
+    undoAvailable?: boolean | undefined;
 }>, {
     outcome: "failed" | "changed" | "unchanged" | "refused";
     error?: string | null | undefined;
@@ -184,6 +190,7 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     cleared?: ("market_price" | "identity_confirmation")[] | undefined;
     kept?: ("sku" | "condition" | "asking_price" | "cost" | "notes" | "photos" | "allocation")[] | undefined;
     legacyUpdated?: boolean | null | undefined;
+    undoAvailable?: boolean | undefined;
 }, {
     outcome: "failed" | "changed" | "unchanged" | "refused";
     error?: string | null | undefined;
@@ -204,5 +211,6 @@ export declare const ChangeCardResponseSchema: z.ZodEffects<z.ZodObject<{
     cleared?: ("market_price" | "identity_confirmation")[] | undefined;
     kept?: ("sku" | "condition" | "asking_price" | "cost" | "notes" | "photos" | "allocation")[] | undefined;
     legacyUpdated?: boolean | null | undefined;
+    undoAvailable?: boolean | undefined;
 }>;
 export type ChangeCardResponse = z.infer<typeof ChangeCardResponseSchema>;

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (DRAFT, BE-6) — change-card undo (additive)
+
+New `src/api/inventory-change-card-undo.ts`: `GET /api/inventory/change-card/history` (`ChangeCardHistoryResponse`,
+newest-first events + a server-decided `undo {available, eventId, reason}`) and `POST /api/inventory/change-card/undo`
+(`UndoChangeCardRequest {physical_card_id, event_id}` -> `UndoChangeCardResponse`: `undone | refused | failed`, with
+`restored` / `notRestored`). `ChangeCardResponse` gains optional `undoAvailable` (false when the change stood but its audit
+row could not be written). No new table: history is the existing `audit_events` rows. Undo restores the identity, `status`
+and `id_verified_by_seller` exactly; market prices only when the event recorded them (older events: `notRestored`).
+Refusals: `no_change_to_undo`, `changed_since`, `live_on_ebay`, `sold`, `archived`, `not_found`; failure `write_failed`.
+Swift and Kotlin emit it. Not tagged; the tag and the app pin bump are Ben's.
+
 
 ## v0.2.2 (UNTAGGED, in progress) — grade a copy that already exists (additive)
 

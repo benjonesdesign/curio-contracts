@@ -4381,8 +4381,9 @@ public struct ChangeCardResponse: Codable, Sendable {
     public let cleared: [Cleared]?
     public let kept: [Kept]?
     public let legacyUpdated: Bool?
+    public let undoAvailable: Bool?
 
-    public init(outcome: ChangeCardOutcome, reason: ChangeCardRefusalReason?, error: String?, identity: ChangeCardIdentity?, status: PhysicalCardStatus?, idVerifiedBySeller: Bool?, cleared: [Cleared]?, kept: [Kept]?, legacyUpdated: Bool?) {
+    public init(outcome: ChangeCardOutcome, reason: ChangeCardRefusalReason?, error: String?, identity: ChangeCardIdentity?, status: PhysicalCardStatus?, idVerifiedBySeller: Bool?, cleared: [Cleared]?, kept: [Kept]?, legacyUpdated: Bool?, undoAvailable: Bool?) {
         self.outcome = outcome
         self.reason = reason
         self.error = error
@@ -4392,6 +4393,7 @@ public struct ChangeCardResponse: Codable, Sendable {
         self.cleared = cleared
         self.kept = kept
         self.legacyUpdated = legacyUpdated
+        self.undoAvailable = undoAvailable
     }
 }
 
@@ -4573,6 +4575,240 @@ public enum Kept: Codable, Sendable, Equatable, Hashable {
         case "notes": self = .notes
         case "photos": self = .photos
         case "allocation": self = .allocation
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct ChangeCardHistoryResponse: Codable, Sendable {
+    public let physicalCardId: String
+    public let events: [ChangeCardHistoryEvent]
+    public let undo: Undo
+
+    public init(physicalCardId: String, events: [ChangeCardHistoryEvent], undo: Undo) {
+        self.physicalCardId = physicalCardId
+        self.events = events
+        self.undo = undo
+    }
+}
+
+public struct ChangeCardHistoryEvent: Codable, Sendable {
+    public let eventId: String
+    public let changedAt: String
+    public let previous: ChangeCardSnapshot
+    public let previousStatus: PhysicalCardStatus?
+    public let previousIdVerifiedBySeller: Bool?
+    public let next: ChangeCardIdentity
+    public let undone: Bool
+    public let restores: [ChangeCardRestorable]
+    public let notRestored: [ChangeCardRestorable]
+
+    public init(eventId: String, changedAt: String, previous: ChangeCardSnapshot, previousStatus: PhysicalCardStatus?, previousIdVerifiedBySeller: Bool?, next: ChangeCardIdentity, undone: Bool, restores: [ChangeCardRestorable], notRestored: [ChangeCardRestorable]) {
+        self.eventId = eventId
+        self.changedAt = changedAt
+        self.previous = previous
+        self.previousStatus = previousStatus
+        self.previousIdVerifiedBySeller = previousIdVerifiedBySeller
+        self.next = next
+        self.undone = undone
+        self.restores = restores
+        self.notRestored = notRestored
+    }
+}
+
+public struct ChangeCardSnapshot: Codable, Sendable {
+    public let game: String?
+    public let nativeId: String?
+    public let catalogueCardId: String?
+    public let name: String?
+    public let setName: String?
+    public let cardNumber: String?
+    public let rarity: String?
+    public let language: String?
+
+    public init(game: String?, nativeId: String?, catalogueCardId: String?, name: String?, setName: String?, cardNumber: String?, rarity: String?, language: String?) {
+        self.game = game
+        self.nativeId = nativeId
+        self.catalogueCardId = catalogueCardId
+        self.name = name
+        self.setName = setName
+        self.cardNumber = cardNumber
+        self.rarity = rarity
+        self.language = language
+    }
+}
+
+public enum ChangeCardRestorable: Codable, Sendable, Equatable, Hashable {
+    case identity
+    case status
+    case identityConfirmation
+    case marketPrice
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .identity: return "identity"
+        case .status: return "status"
+        case .identityConfirmation: return "identity_confirmation"
+        case .marketPrice: return "market_price"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "identity": self = .identity
+        case "status": self = .status
+        case "identity_confirmation": self = .identityConfirmation
+        case "market_price": self = .marketPrice
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct Undo: Codable, Sendable {
+    public let available: Bool
+    public let eventId: String?
+    public let reason: ChangeCardUndoRefusalReason?
+
+    public init(available: Bool, eventId: String?, reason: ChangeCardUndoRefusalReason?) {
+        self.available = available
+        self.eventId = eventId
+        self.reason = reason
+    }
+}
+
+public enum ChangeCardUndoRefusalReason: Codable, Sendable, Equatable, Hashable {
+    case noChangeToUndo
+    case changedSince
+    case liveOnEbay
+    case sold
+    case archived
+    case notFound
+    case writeFailed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .noChangeToUndo: return "no_change_to_undo"
+        case .changedSince: return "changed_since"
+        case .liveOnEbay: return "live_on_ebay"
+        case .sold: return "sold"
+        case .archived: return "archived"
+        case .notFound: return "not_found"
+        case .writeFailed: return "write_failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "no_change_to_undo": self = .noChangeToUndo
+        case "changed_since": self = .changedSince
+        case "live_on_ebay": self = .liveOnEbay
+        case "sold": self = .sold
+        case "archived": self = .archived
+        case "not_found": self = .notFound
+        case "write_failed": self = .writeFailed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct UndoChangeCardRequest: Codable, Sendable {
+    public let physicalCardId: String
+    public let eventId: String
+
+    enum CodingKeys: String, CodingKey {
+        case physicalCardId = "physical_card_id"
+        case eventId = "event_id"
+    }
+
+    public init(physicalCardId: String, eventId: String) {
+        self.physicalCardId = physicalCardId
+        self.eventId = eventId
+    }
+}
+
+public struct UndoChangeCardResponse: Codable, Sendable {
+    public let outcome: ChangeCardUndoOutcome
+    public let reason: ChangeCardUndoRefusalReason?
+    public let error: String?
+    public let identity: ChangeCardSnapshot?
+    public let status: PhysicalCardStatus?
+    public let idVerifiedBySeller: Bool?
+    public let restored: [ChangeCardRestorable]?
+    public let notRestored: [ChangeCardRestorable]?
+    public let legacyUpdated: Bool?
+    public let recorded: Bool?
+
+    public init(outcome: ChangeCardUndoOutcome, reason: ChangeCardUndoRefusalReason?, error: String?, identity: ChangeCardSnapshot?, status: PhysicalCardStatus?, idVerifiedBySeller: Bool?, restored: [ChangeCardRestorable]?, notRestored: [ChangeCardRestorable]?, legacyUpdated: Bool?, recorded: Bool?) {
+        self.outcome = outcome
+        self.reason = reason
+        self.error = error
+        self.identity = identity
+        self.status = status
+        self.idVerifiedBySeller = idVerifiedBySeller
+        self.restored = restored
+        self.notRestored = notRestored
+        self.legacyUpdated = legacyUpdated
+        self.recorded = recorded
+    }
+}
+
+public enum ChangeCardUndoOutcome: Codable, Sendable, Equatable, Hashable {
+    case undone
+    case refused
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .undone: return "undone"
+        case .refused: return "refused"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "undone": self = .undone
+        case "refused": self = .refused
+        case "failed": self = .failed
         default: self = .unrecognised(rawValue)
         }
     }

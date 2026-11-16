@@ -84,6 +84,11 @@ import {
   ChangeCardRefusalReasonSchema,
 } from "../src/api/inventory-change-card.js";
 import {
+  ChangeCardHistoryResponseSchema, ChangeCardHistoryEventSchema, ChangeCardSnapshotSchema,
+  ChangeCardUndoRefusalReasonSchema, ChangeCardUndoOutcomeSchema, ChangeCardRestorableSchema,
+  UndoChangeCardRequestSchema, UndoChangeCardResponseSchema,
+} from "../src/api/inventory-change-card-undo.js";
+import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
@@ -222,6 +227,11 @@ registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
 registerName(ChangeCardRefusalReasonSchema, "ChangeCardRefusalReason");
 registerName(ChangeCardOutcomeSchema, "ChangeCardOutcome");
 registerName(ChangeCardIdentitySchema, "ChangeCardIdentity");
+registerName(ChangeCardUndoRefusalReasonSchema, "ChangeCardUndoRefusalReason");
+registerName(ChangeCardUndoOutcomeSchema, "ChangeCardUndoOutcome");
+registerName(ChangeCardRestorableSchema, "ChangeCardRestorable");
+registerName(ChangeCardSnapshotSchema, "ChangeCardSnapshot");
+registerName(ChangeCardHistoryEventSchema, "ChangeCardHistoryEvent");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -300,6 +310,9 @@ emitSwift(InventoryStatusKeySchema, "InventoryStatusKey");
 emitSwift(InventoryChangeResponseSchema, "InventoryChangeResponse");
 emitSwift(ChangeCardRequestSchema, "ChangeCardRequest");
 emitSwift(ChangeCardResponseSchema, "ChangeCardResponse");
+emitSwift(ChangeCardHistoryResponseSchema, "ChangeCardHistoryResponse");
+emitSwift(UndoChangeCardRequestSchema, "UndoChangeCardRequest");
+emitSwift(UndoChangeCardResponseSchema, "UndoChangeCardResponse");
 emitSwift(StatsResponseSchema, "StatsResponse");
 emitSwift(GradedCreateRequestSchema, "GradedCreateRequest");
 emitSwift(GradedCreateResponseSchema, "GradedCreateResponse");
