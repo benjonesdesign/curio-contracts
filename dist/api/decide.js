@@ -14,6 +14,7 @@
 import { z } from "zod";
 import { ConditionSchema, ConfidenceSchema, DecisionUnavailableSchema, FeeNotSetReasonSchema, GameIdSchema, LiquiditySchema, MaxBuyUnavailableReasonSchema, } from "./common.js";
 import { EditionAmbiguitySchema } from "./card-value.js";
+import { OwnedCopiesSummarySchema, QuickScanMarketSchema } from "./quick-scan-owned.js";
 import { PostageModeSchema, PricedBreakdownSchema } from "./priced-breakdown.js";
 import { GradeEVConfidenceSchema, PricingSettingsSchema, RecommendedRouteSchema } from "./recommend.js";
 /** Why a route was chosen. A CODE — the shared engine does not own English; each platform renders
@@ -672,6 +673,11 @@ export const QuickScanResponseSchema = z.object({
     editionAmbiguity: EditionAmbiguitySchema.nullable().default(null),
     /** v0.2.0. The lines behind `decision`; null exactly when `decision` is null. */
     breakdown: PricedBreakdownSchema.nullable(),
+    /** DRAFT, additive. A4e "In your inventory": the seller's copies of this card. Null for an anonymous scan or an
+     *  unidentified card (we did not look), never "you own none" (that is `count: 0`). See quick-scan-owned.ts. */
+    ownedCopies: OwnedCopiesSummarySchema.nullable().optional(),
+    /** DRAFT, additive. A4a market line: price range, median ask, listing count, source, fetch date. */
+    market: QuickScanMarketSchema.nullable().optional(),
 }).superRefine((r, ctx) => {
     if ((r.decision === null) !== (r.breakdown === null)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["breakdown"],

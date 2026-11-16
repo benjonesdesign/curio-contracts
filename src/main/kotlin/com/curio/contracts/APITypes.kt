@@ -3743,6 +3743,105 @@ public object KeptSerializer : KSerializer<Kept> {
 }
 
 @Serializable
+public data class KeepItRequest(
+    val game: Game,
+    val nativeId: String,
+    val condition: Condition? = null,
+    val clientRequestId: String? = null,
+)
+
+@Serializable
+public data class KeepItResponse(
+    val outcome: KeepItOutcome,
+    val copy: OwnedCopy? = null,
+    val ordinal: Int? = null,
+    val ownedCount: Int? = null,
+    val replayed: Boolean = false,
+    val reason: KeepItRefusalReason? = null,
+)
+
+@Serializable(with = KeepItOutcomeSerializer::class)
+public sealed interface KeepItOutcome {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object ADDED : KeepItOutcome {
+        override val rawValue: String get() = "added"
+    }
+    public object REFUSED : KeepItOutcome {
+        override val rawValue: String get() = "refused"
+    }
+    public object FAILED : KeepItOutcome {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : KeepItOutcome
+
+    public companion object {
+        public fun from(raw: String): KeepItOutcome = when (raw) {
+            "added" -> ADDED
+            "refused" -> REFUSED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object KeepItOutcomeSerializer : KSerializer<KeepItOutcome> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("KeepItOutcome", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): KeepItOutcome = KeepItOutcome.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: KeepItOutcome) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class OwnedCopy(
+    val physicalCardId: String,
+    val sku: String? = null,
+    val condition: Condition? = null,
+    val conditionConfirmed: Boolean,
+    val status: PhysicalCardStatus,
+)
+
+@Serializable(with = KeepItRefusalReasonSerializer::class)
+public sealed interface KeepItRefusalReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CARD_UNKNOWN : KeepItRefusalReason {
+        override val rawValue: String get() = "card_unknown"
+    }
+    public object GAME_UNAVAILABLE : KeepItRefusalReason {
+        override val rawValue: String get() = "game_unavailable"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : KeepItRefusalReason
+
+    public companion object {
+        public fun from(raw: String): KeepItRefusalReason = when (raw) {
+            "card_unknown" -> CARD_UNKNOWN
+            "game_unavailable" -> GAME_UNAVAILABLE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object KeepItRefusalReasonSerializer : KSerializer<KeepItRefusalReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("KeepItRefusalReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): KeepItRefusalReason = KeepItRefusalReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: KeepItRefusalReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class StatsResponse(
     val statusCounts: Map<String, Int>,
     val costBasis: Double,
@@ -4954,6 +5053,8 @@ public data class QuickScanResponse(
     val conditionAssessed: Boolean = false,
     val editionAmbiguity: EditionAmbiguity? = null,
     val breakdown: PricedBreakdown? = null,
+    val ownedCopies: OwnedCopiesSummary? = null,
+    val market: QuickScanMarket? = null,
 )
 
 @Serializable
@@ -4966,4 +5067,22 @@ public data class QuickScanCandidate(
     val rarity: String? = null,
     val confidence: GameConfidence? = null,
     val image: String? = null,
+)
+
+@Serializable
+public data class OwnedCopiesSummary(
+    val count: Int,
+    val conditions: List<Condition> = emptyList(),
+    val listedOnEbayCount: Int,
+    val copies: List<OwnedCopy> = emptyList(),
+)
+
+@Serializable
+public data class QuickScanMarket(
+    val lowGbp: Double? = null,
+    val highGbp: Double? = null,
+    val medianAskGbp: Double? = null,
+    val listingCount: Int? = null,
+    val source: String? = null,
+    val fetchedAt: String? = null,
 )

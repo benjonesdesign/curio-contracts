@@ -293,6 +293,17 @@ export declare const ScanTraceRequestSchema: z.ZodObject<{
         } | null | undefined;
     }>;
 }, "strip", z.ZodTypeAny, {
+    outcome: {
+        sellerAction: string;
+        changedFields?: string[] | undefined;
+        finalMatch?: {
+            name: string;
+            game?: string | undefined;
+            setName?: string | null | undefined;
+            cardNumber?: string | null | undefined;
+            nativeId?: string | null | undefined;
+        } | null | undefined;
+    };
     v: 1;
     scanId: string;
     platform: "ios" | "android" | "web";
@@ -308,17 +319,6 @@ export declare const ScanTraceRequestSchema: z.ZodObject<{
         ms?: number | undefined;
         resolverTier?: string | null | undefined;
         candidateCount?: number | null | undefined;
-    };
-    outcome: {
-        sellerAction: string;
-        changedFields?: string[] | undefined;
-        finalMatch?: {
-            name: string;
-            game?: string | undefined;
-            setName?: string | null | undefined;
-            cardNumber?: string | null | undefined;
-            nativeId?: string | null | undefined;
-        } | null | undefined;
     };
     ocr?: {
         number?: string | null | undefined;
@@ -333,6 +333,17 @@ export declare const ScanTraceRequestSchema: z.ZodObject<{
     appVersion?: string | undefined;
     gameHint?: string | undefined;
 }, {
+    outcome: {
+        sellerAction: string;
+        changedFields?: string[] | undefined;
+        finalMatch?: {
+            name: string;
+            game?: string | undefined;
+            setName?: string | null | undefined;
+            cardNumber?: string | null | undefined;
+            nativeId?: string | null | undefined;
+        } | null | undefined;
+    };
     v: 1;
     scanId: string;
     platform: "ios" | "android" | "web";
@@ -348,17 +359,6 @@ export declare const ScanTraceRequestSchema: z.ZodObject<{
         ms?: number | undefined;
         resolverTier?: string | null | undefined;
         candidateCount?: number | null | undefined;
-    };
-    outcome: {
-        sellerAction: string;
-        changedFields?: string[] | undefined;
-        finalMatch?: {
-            name: string;
-            game?: string | undefined;
-            setName?: string | null | undefined;
-            cardNumber?: string | null | undefined;
-            nativeId?: string | null | undefined;
-        } | null | undefined;
     };
     ocr?: {
         number?: string | null | undefined;

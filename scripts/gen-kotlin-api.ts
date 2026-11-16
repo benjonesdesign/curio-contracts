@@ -87,6 +87,10 @@ import {
   ChangeCardRefusalReasonSchema,
 } from "../src/api/inventory-change-card.js";
 import {
+  OwnedCopySchema, OwnedCopiesSummarySchema, QuickScanMarketSchema, KeepItRequestSchema, KeepItResponseSchema,
+  KeepItOutcomeSchema, KeepItRefusalReasonSchema,
+} from "../src/api/quick-scan-owned.js";
+import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
@@ -225,6 +229,11 @@ registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
 registerName(ChangeCardRefusalReasonSchema, "ChangeCardRefusalReason");
 registerName(ChangeCardOutcomeSchema, "ChangeCardOutcome");
 registerName(ChangeCardIdentitySchema, "ChangeCardIdentity");
+registerName(OwnedCopySchema, "OwnedCopy");
+registerName(OwnedCopiesSummarySchema, "OwnedCopiesSummary");
+registerName(QuickScanMarketSchema, "QuickScanMarket");
+registerName(KeepItOutcomeSchema, "KeepItOutcome");
+registerName(KeepItRefusalReasonSchema, "KeepItRefusalReason");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -303,6 +312,8 @@ emitKotlin(InventoryStatusKeySchema, "InventoryStatusKey");
 emitKotlin(InventoryChangeResponseSchema, "InventoryChangeResponse");
 emitKotlin(ChangeCardRequestSchema, "ChangeCardRequest");
 emitKotlin(ChangeCardResponseSchema, "ChangeCardResponse");
+emitKotlin(KeepItRequestSchema, "KeepItRequest");
+emitKotlin(KeepItResponseSchema, "KeepItResponse");
 emitKotlin(StatsResponseSchema, "StatsResponse");
 emitKotlin(GradedCreateRequestSchema, "GradedCreateRequest");
 emitKotlin(GradedCreateResponseSchema, "GradedCreateResponse");

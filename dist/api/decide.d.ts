@@ -4772,6 +4772,113 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         };
         computedAt: string;
     }>>;
+    /** DRAFT, additive. A4e "In your inventory": the seller's copies of this card. Null for an anonymous scan or an
+     *  unidentified card (we did not look), never "you own none" (that is `count: 0`). See quick-scan-owned.ts. */
+    ownedCopies: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodObject<{
+        count: z.ZodNumber;
+        conditions: z.ZodDefault<z.ZodArray<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>, "many">>;
+        listedOnEbayCount: z.ZodNumber;
+        copies: z.ZodDefault<z.ZodArray<z.ZodObject<{
+            physicalCardId: z.ZodString;
+            sku: z.ZodNullable<z.ZodString>;
+            condition: z.ZodNullable<z.ZodEnum<["NM", "LP", "MP", "HP", "DMG", "Graded"]>>;
+            conditionConfirmed: z.ZodBoolean;
+            status: z.ZodEnum<["RECEIVED", "AWAITING_SCAN", "PROCESSING", "NEEDS_ID_REVIEW", "NEEDS_CONDITION", "NEEDS_DECISION", "READY_TO_LIST", "EBAY_DRAFT", "LISTED", "SOLD", "PICKED", "DISPATCHED", "COMPLETED", "EXCEPTION", "RETURNED", "ARCHIVED", "UNMATCHED", "HELD"]>;
+        }, "strip", z.ZodTypeAny, {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }, {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }>, "many">>;
+    }, "strip", z.ZodTypeAny, {
+        count: number;
+        conditions: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[];
+        listedOnEbayCount: number;
+        copies: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[];
+    }, {
+        count: number;
+        listedOnEbayCount: number;
+        conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
+        copies?: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[] | undefined;
+    }>, {
+        count: number;
+        conditions: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[];
+        listedOnEbayCount: number;
+        copies: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[];
+    }, {
+        count: number;
+        listedOnEbayCount: number;
+        conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
+        copies?: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[] | undefined;
+    }>>>;
+    /** DRAFT, additive. A4a market line: price range, median ask, listing count, source, fetch date. */
+    market: z.ZodOptional<z.ZodNullable<z.ZodEffects<z.ZodObject<{
+        lowGbp: z.ZodNullable<z.ZodNumber>;
+        highGbp: z.ZodNullable<z.ZodNumber>;
+        medianAskGbp: z.ZodNullable<z.ZodNumber>;
+        listingCount: z.ZodNullable<z.ZodNumber>;
+        source: z.ZodNullable<z.ZodString>;
+        fetchedAt: z.ZodNullable<z.ZodString>;
+    }, "strip", z.ZodTypeAny, {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    }, {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    }>, {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    }, {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    }>>>;
 }, "strip", z.ZodTypeAny, {
     candidates: {
         name: string;
@@ -4888,6 +4995,26 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         currencyNote: string | null;
     } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    ownedCopies?: {
+        count: number;
+        conditions: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[];
+        listedOnEbayCount: number;
+        copies: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[];
+    } | null | undefined;
+    market?: {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    } | null | undefined;
 }, {
     decision: {
         confidence: "high" | "medium" | "low";
@@ -5004,6 +5131,26 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
     } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
     conditionAssessed?: boolean | undefined;
+    ownedCopies?: {
+        count: number;
+        listedOnEbayCount: number;
+        conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
+        copies?: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[] | undefined;
+    } | null | undefined;
+    market?: {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    } | null | undefined;
 }>, {
     candidates: {
         name: string;
@@ -5120,6 +5267,26 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
         currencyNote: string | null;
     } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
+    ownedCopies?: {
+        count: number;
+        conditions: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[];
+        listedOnEbayCount: number;
+        copies: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[];
+    } | null | undefined;
+    market?: {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    } | null | undefined;
 }, {
     decision: {
         confidence: "high" | "medium" | "low";
@@ -5236,5 +5403,25 @@ export declare const QuickScanResponseSchema: z.ZodEffects<z.ZodObject<{
     } | null | undefined;
     decisionUnavailable?: "identity_unresolved" | "no_market_value" | "pricing_unavailable" | null | undefined;
     conditionAssessed?: boolean | undefined;
+    ownedCopies?: {
+        count: number;
+        listedOnEbayCount: number;
+        conditions?: ("NM" | "LP" | "MP" | "HP" | "DMG" | "Graded")[] | undefined;
+        copies?: {
+            status: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD";
+            sku: string | null;
+            condition: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | null;
+            conditionConfirmed: boolean;
+            physicalCardId: string;
+        }[] | undefined;
+    } | null | undefined;
+    market?: {
+        source: string | null;
+        lowGbp: number | null;
+        highGbp: number | null;
+        medianAskGbp: number | null;
+        listingCount: number | null;
+        fetchedAt: string | null;
+    } | null | undefined;
 }>;
 export type QuickScanResponse = z.infer<typeof QuickScanResponseSchema>;

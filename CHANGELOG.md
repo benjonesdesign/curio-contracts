@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (DRAFT) — quick scan: owned copies, market line, "Keep it" (additive)
+
+New `src/api/quick-scan-owned.ts`, from canon `A-quick-scan.md` A4a/A4e. `QuickScanResponse` gains two OPTIONAL fields:
+`ownedCopies` (`OwnedCopiesSummary {count, conditions (seller-confirmed, distinct), listedOnEbayCount, copies[]}`; null when
+the scan is anonymous or unidentified, `count: 0` when the seller owns none) and `market` (`QuickScanMarket {lowGbp, highGbp,
+medianAskGbp, listingCount, source, fetchedAt}`, every figure nullable, never 0 for unknown). New `POST /api/quick-scan/keep`
+(`KeepItRequest {game, nativeId, condition?, clientRequestId?}` -> `KeepItResponse`: `added | refused | failed`, with the `copy`
+(SKU), its 1-based `ordinal`, `ownedCount`, `replayed`; refusals `card_unknown`, `game_unavailable`). No new table: owned copies
+read `physical_cards`; Keep it inserts one row, spends no identification, sets no price. Swift and Kotlin emit it. Not tagged;
+the tag and the app pin bump are Ben's.
+
 
 ## v0.2.2 (UNTAGGED, in progress) — grade a copy that already exists (additive)
 
