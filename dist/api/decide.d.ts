@@ -3888,6 +3888,13 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
      * CARD is worse than a second request.
      */
     setCode: z.ZodOptional<z.ZodNullable<z.ZodString>>;
+    /**
+     * The catalogue id of one specific card, e.g. the `nativeId` of a picker candidate the seller chose from a
+     * tie. When present the server resolves by it and ignores fuzzy name matching (`name`/`setName`/
+     * `cardNumber`/`setCode` are then not used to identify). Pair it with `game`. When absent, behaviour is
+     * unchanged. Additive (v0.2.3 draft).
+     */
+    nativeId: z.ZodOptional<z.ZodString>;
     /** A narrowing HINT, never a precondition — number+set is decisive for ~99.3% of the catalogue
      *  across all games combined. */
     game: z.ZodOptional<z.ZodEnum<["pokemon", "pokemon-jp", "mtg", "yugioh", "lorcana", "one-piece", "digimon", "dbs-fusion"]>>;
@@ -3906,6 +3913,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     name?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    nativeId?: string | undefined;
     setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     finish?: string | null | undefined;
@@ -3918,6 +3926,7 @@ export declare const QuickScanRequestSchema: z.ZodObject<{
     name?: string | undefined;
     setName?: string | null | undefined;
     cardNumber?: string | null | undefined;
+    nativeId?: string | undefined;
     setCode?: string | null | undefined;
     condition?: "NM" | "LP" | "MP" | "HP" | "DMG" | "Graded" | undefined;
     finish?: string | null | undefined;

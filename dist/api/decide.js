@@ -555,6 +555,13 @@ export const QuickScanRequestSchema = z.object({
      * CARD is worse than a second request.
      */
     setCode: z.string().nullable().optional(),
+    /**
+     * The catalogue id of one specific card, e.g. the `nativeId` of a picker candidate the seller chose from a
+     * tie. When present the server resolves by it and ignores fuzzy name matching (`name`/`setName`/
+     * `cardNumber`/`setCode` are then not used to identify). Pair it with `game`. When absent, behaviour is
+     * unchanged. Additive (v0.2.3 draft).
+     */
+    nativeId: z.string().min(1).optional(),
     /** A narrowing HINT, never a precondition — number+set is decisive for ~99.3% of the catalogue
      *  across all games combined. */
     game: GameIdSchema.optional(),

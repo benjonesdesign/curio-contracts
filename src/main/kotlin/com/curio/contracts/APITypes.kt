@@ -5128,6 +5128,7 @@ public data class QuickScanRequest(
     val setName: String? = null,
     val cardNumber: String? = null,
     val setCode: String? = null,
+    val nativeId: String? = null,
     val game: Game? = null,
     val condition: Condition? = null,
     val finish: String? = null,

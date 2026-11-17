@@ -4,10 +4,11 @@
 // the refused-needs-reason check removed ("a refused keep names why" goes red), and against `lowGbp > highGbp` removed
 // ("a low above the high is refused" goes red). 2026-11-17: also red against the undo `retryable` check removed ("a failed undo says
 // whether to retry"), the market no-range-needs-reason check removed and `fetchedAt` made a bare string ("no range needs a reason");
-// green against current.
+// green against current. 2026-11-17: also red against `nativeId` removed from QuickScanRequestSchema (strict-less zod strips it, so the
+// parsed value loses it: "nativeId survives" goes red) and against it made non-optional ("absent nativeId is unchanged" goes red).
 import { describe, it, expect } from "vitest";
 import { UndoKeepItResponseSchema, OwnedCopiesSummarySchema, QuickScanMarketSchema, KeepItRequestSchema, KeepItResponseSchema } from "./quick-scan-owned.js";
-import { QuickScanResponseSchema } from "./decide.js";
+import { QuickScanResponseSchema, QuickScanRequestSchema } from "./decide.js";
 
 const COPY = { physicalCardId: "p1", sku: "SKU-0001", condition: "NM", conditionConfirmedBySeller: true, status: "READY_TO_LIST", listed: false, channel: null };
 const ok = (r: { success: boolean }) => r.success;
@@ -85,5 +86,16 @@ describe("QuickScanResponse stays backward compatible", () => {
   it("a response without the new fields still parses", () => {
     const r = QuickScanResponseSchema.safeParse({ identified: false, candidates: [], match: null, decision: null, breakdown: null, decisionUnavailable: "identity_unresolved" });
     expect(r.success).toBe(true);
+  });
+});
+
+describe("QuickScanRequest nativeId", () => {
+  it("nativeId survives parsing so the server can resolve the exact card", () => {
+    const r = QuickScanRequestSchema.parse({ game: "pokemon", nativeId: "sv1-1" });
+    expect(r.nativeId).toBe("sv1-1");
+  });
+  it("absent nativeId is unchanged, and an empty one is refused", () => {
+    expect(QuickScanRequestSchema.parse({ name: "Charizard" }).nativeId).toBeUndefined();
+    expect(QuickScanRequestSchema.safeParse({ nativeId: "" }).success).toBe(false);
   });
 });

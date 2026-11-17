@@ -6514,6 +6514,7 @@ public struct QuickScanRequest: Codable, Sendable {
     public let setName: String?
     public let cardNumber: String?
     public let setCode: String?
+    public let nativeId: String?
     public let game: Game?
     public let condition: Condition?
     public let finish: String?
@@ -6522,11 +6523,12 @@ public struct QuickScanRequest: Codable, Sendable {
     public let postageMode: PostageMode?
     public let packingKey: String?
 
-    public init(name: String?, setName: String?, cardNumber: String?, setCode: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?, theirPriceGbp: Double?, postageMode: PostageMode?, packingKey: String?) {
+    public init(name: String?, setName: String?, cardNumber: String?, setCode: String?, nativeId: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?, theirPriceGbp: Double?, postageMode: PostageMode?, packingKey: String?) {
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
         self.setCode = setCode
+        self.nativeId = nativeId
         self.game = game
         self.condition = condition
         self.finish = finish

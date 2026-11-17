@@ -28,9 +28,9 @@
 // `ownedCopies` and `market` describe `QuickScanResponse.match` ONLY. When the identity is a tie
 // (`identified` false, `candidates` non-empty) both are null: there is no single card to count or price.
 // They are not per-candidate. After the seller picks a candidate the client has neither for it and must not
-// compute them: it re-scans with that candidate's game, name, setName and cardNumber (QuickScanRequest
-// carries no nativeId), and the server returns them for the resolved match. OPEN: a nativeId lookup would be
-// exact; adding an optional `nativeId` to QuickScanRequest is a PO/Ben call, not made here.
+// compute them: it re-scans with that candidate's `nativeId` (+ `game`) on QuickScanRequest, and the server
+// resolves exactly that card, ignoring fuzzy name matching, and returns them for the resolved match.
+// Without `nativeId` the request behaves as before.
 //
 // Signed out is a plain HTTP 401 (the route is authenticated), not a refusal reason.
 // ── Keep it ─────────────────────────────────────────────────────────────────────────────────
