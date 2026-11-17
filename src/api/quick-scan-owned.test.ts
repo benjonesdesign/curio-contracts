@@ -2,7 +2,9 @@
 // count" goes red), against the `listedOnEbayCount > count` check removed ("cannot list more on eBay than owned" goes
 // red), against the added-needs-copy check removed ("an added result carries its copy and ordinal" goes red), against
 // the refused-needs-reason check removed ("a refused keep names why" goes red), and against `lowGbp > highGbp` removed
-// ("a low above the high is refused" goes red); green against current.
+// ("a low above the high is refused" goes red). 2026-11-17: also red against the undo `retryable` check removed ("a failed undo says
+// whether to retry"), the market no-range-needs-reason check removed and `fetchedAt` made a bare string ("no range needs a reason");
+// green against current.
 import { describe, it, expect } from "vitest";
 import { UndoKeepItResponseSchema, OwnedCopiesSummarySchema, QuickScanMarketSchema, KeepItRequestSchema, KeepItResponseSchema } from "./quick-scan-owned.js";
 import { QuickScanResponseSchema } from "./decide.js";
@@ -30,7 +32,14 @@ describe("quick-scan market", () => {
     expect(ok(QuickScanMarketSchema.safeParse({ ...base, lowGbp: 4, highGbp: 9 }))).toBe(true);
   });
   it("unknown is null, not zero", () => {
-    expect(ok(QuickScanMarketSchema.safeParse({ lowGbp: null, highGbp: null, medianAskGbp: null, listingCount: null, source: null, fetchedAt: null }))).toBe(true);
+    expect(ok(QuickScanMarketSchema.safeParse({ lowGbp: null, highGbp: null, medianAskGbp: null, listingCount: null, source: null, fetchedAt: null, unavailableReason: "no_listings" }))).toBe(true);
+  });
+  it("no range needs a reason, and a range has none", () => {
+    const none = { lowGbp: null, highGbp: null, medianAskGbp: null, listingCount: null, source: null, fetchedAt: null };
+    expect(ok(QuickScanMarketSchema.safeParse(none))).toBe(false);
+    const range = { lowGbp: 1, highGbp: 2, medianAskGbp: 1.5, listingCount: 4, source: "x", fetchedAt: "2026-11-16T10:00:00Z" };
+    expect(ok(QuickScanMarketSchema.safeParse({ ...range, unavailableReason: "not_priced" }))).toBe(false);
+    expect(ok(QuickScanMarketSchema.safeParse({ ...range, fetchedAt: "yesterday" }))).toBe(false);
   });
 });
 
@@ -64,6 +73,11 @@ describe("Undo Keep it", () => {
     expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "undone", ownedCount: null }))).toBe(false);
     expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "refused", ownedCount: null, reason: "changed_since" }))).toBe(true);
     expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "refused", ownedCount: null }))).toBe(false);
+  });
+  it("a failed undo says whether to retry", () => {
+    expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "failed", ownedCount: null }))).toBe(false);
+    expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "failed", ownedCount: null, retryable: true }))).toBe(true);
+    expect(ok(UndoKeepItResponseSchema.safeParse({ outcome: "undone", ownedCount: 1, retryable: true }))).toBe(false);
   });
 });
 

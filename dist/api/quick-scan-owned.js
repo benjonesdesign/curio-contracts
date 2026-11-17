@@ -24,6 +24,14 @@
 // `source`/absence, never 0 (a £0 would read as "worth nothing"). `fetchedAt` is when the server got the
 // figures, not when the scan happened, so a stale price says so.
 //
+// ── Which card do they describe? ────────────────────────────────────────────────────────────
+// `ownedCopies` and `market` describe `QuickScanResponse.match` ONLY. When the identity is a tie
+// (`identified` false, `candidates` non-empty) both are null: there is no single card to count or price.
+// They are not per-candidate. After the seller picks a candidate the client has neither for it and must not
+// compute them: it re-scans with that candidate's game, name, setName and cardNumber (QuickScanRequest
+// carries no nativeId), and the server returns them for the resolved match. OPEN: a nativeId lookup would be
+// exact; adding an optional `nativeId` to QuickScanRequest is a PO/Ben call, not made here.
+//
 // Signed out is a plain HTTP 401 (the route is authenticated), not a refusal reason.
 // ── Keep it ─────────────────────────────────────────────────────────────────────────────────
 // Adds ONE copy of the scanned card to the seller's inventory with a SKU. It spends no identification (the
@@ -76,12 +84,17 @@ export const QuickScanMarketSchema = z.object({
     /** The price's source id, as `price.source`, repeated so the market line stands alone. */
     source: z.string().nullable(),
     /** ISO 8601: the catalogue fetch date (one per card, no per-comp dates). */
-    fetchedAt: z.string().nullable(),
-    /** Why the figures are null, when they are. Null when the range is present. */
+    fetchedAt: z.string().datetime({ offset: true }).nullable(),
+    /** Why the figures are null, when they are. Present exactly when there is no range (low and high both null). */
     unavailableReason: z.enum(["not_priced", "no_listings", "provider_outage"]).nullable().default(null),
 }).superRefine((m, ctx) => {
     if (m.lowGbp !== null && m.highGbp !== null && m.lowGbp > m.highGbp) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["lowGbp"], message: "lowGbp cannot exceed highGbp" });
+    }
+    const noRange = m.lowGbp === null && m.highGbp === null;
+    if (noRange !== (m.unavailableReason !== null)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["unavailableReason"],
+            message: "unavailableReason is present exactly when there is no range: unknown is a dash with its reason, never a bare dash" });
     }
 });
 // ── POST /api/quick-scan/keep — authenticated ────────────────────────────────────────────────
@@ -153,7 +166,12 @@ export const UndoKeepItResponseSchema = z.object({
     /** How many copies of the card the seller owns after the undo. Null unless `undone`. */
     ownedCount: z.number().int().min(0).nullable(),
     reason: UndoKeepItRefusalReasonSchema.nullable().default(null),
+    /** Present exactly when `failed`: true when trying again can work, false when it cannot. */
+    retryable: z.boolean().nullable().default(null),
 }).superRefine((r, ctx) => {
+    if ((r.outcome === "failed") !== (r.retryable !== null)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["retryable"], message: "retryable is present exactly when outcome is failed" });
+    }
     if ((r.outcome === "undone") !== (r.ownedCount !== null)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["ownedCount"], message: "ownedCount is present exactly when undone" });
     }

@@ -134,7 +134,7 @@ export declare const QuickScanMarketSchema: z.ZodEffects<z.ZodObject<{
     source: z.ZodNullable<z.ZodString>;
     /** ISO 8601: the catalogue fetch date (one per card, no per-comp dates). */
     fetchedAt: z.ZodNullable<z.ZodString>;
-    /** Why the figures are null, when they are. Null when the range is present. */
+    /** Why the figures are null, when they are. Present exactly when there is no range (low and high both null). */
     unavailableReason: z.ZodDefault<z.ZodNullable<z.ZodEnum<["not_priced", "no_listings", "provider_outage"]>>>;
 }, "strip", z.ZodTypeAny, {
     source: string | null;
@@ -318,21 +318,27 @@ export declare const UndoKeepItResponseSchema: z.ZodEffects<z.ZodObject<{
     /** How many copies of the card the seller owns after the undo. Null unless `undone`. */
     ownedCount: z.ZodNullable<z.ZodNumber>;
     reason: z.ZodDefault<z.ZodNullable<z.ZodEnum<["not_found", "changed_since", "not_kept_from_scan"]>>>;
+    /** Present exactly when `failed`: true when trying again can work, false when it cannot. */
+    retryable: z.ZodDefault<z.ZodNullable<z.ZodBoolean>>;
 }, "strip", z.ZodTypeAny, {
     reason: "not_found" | "changed_since" | "not_kept_from_scan" | null;
     outcome: "failed" | "refused" | "undone";
     ownedCount: number | null;
+    retryable: boolean | null;
 }, {
     outcome: "failed" | "refused" | "undone";
     ownedCount: number | null;
     reason?: "not_found" | "changed_since" | "not_kept_from_scan" | null | undefined;
+    retryable?: boolean | null | undefined;
 }>, {
     reason: "not_found" | "changed_since" | "not_kept_from_scan" | null;
     outcome: "failed" | "refused" | "undone";
     ownedCount: number | null;
+    retryable: boolean | null;
 }, {
     outcome: "failed" | "refused" | "undone";
     ownedCount: number | null;
     reason?: "not_found" | "changed_since" | "not_kept_from_scan" | null | undefined;
+    retryable?: boolean | null | undefined;
 }>;
 export type UndoKeepItResponse = z.infer<typeof UndoKeepItResponseSchema>;

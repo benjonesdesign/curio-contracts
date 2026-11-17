@@ -3858,6 +3858,7 @@ public data class UndoKeepItResponse(
     val outcome: UndoKeepItOutcome,
     val ownedCount: Int? = null,
     val reason: UndoKeepItRefusalReason? = null,
+    val retryable: Boolean? = null,
 )
 
 @Serializable(with = UndoKeepItOutcomeSerializer::class)

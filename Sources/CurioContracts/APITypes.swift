@@ -4746,11 +4746,13 @@ public struct UndoKeepItResponse: Codable, Sendable {
     public let outcome: UndoKeepItOutcome
     public let ownedCount: Int?
     public let reason: UndoKeepItRefusalReason?
+    public let retryable: Bool?
 
-    public init(outcome: UndoKeepItOutcome, ownedCount: Int?, reason: UndoKeepItRefusalReason?) {
+    public init(outcome: UndoKeepItOutcome, ownedCount: Int?, reason: UndoKeepItRefusalReason?, retryable: Bool?) {
         self.outcome = outcome
         self.ownedCount = ownedCount
         self.reason = reason
+        self.retryable = retryable
     }
 }
 
