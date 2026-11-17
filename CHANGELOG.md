@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased (DRAFT) — quick scan: owned copies, market line, "Keep it" (additive)
+
+New `src/api/quick-scan-owned.ts`, from canon `A-quick-scan.md` A4a/A4e. `QuickScanResponse` gains two OPTIONAL fields:
+`ownedCopies` (`OwnedCopiesSummary {count, conditions (seller-confirmed, distinct), listedOnEbayCount, copies[]}`; null when
+the scan is anonymous or unidentified, `count: 0` when the seller owns none) and `market` (`QuickScanMarket {lowGbp, highGbp,
+medianAskGbp, listingCount, source, fetchedAt}`, every figure nullable, never 0 for unknown). New `POST /api/quick-scan/keep`
+(`KeepItRequest {game, nativeId, condition?, clientRequestId?}` -> `KeepItResponse`: `added | refused | failed`, with the `copy`
+(SKU), its 1-based `ordinal`, `ownedCount`, `replayed`; refusals `card_unknown`, `game_unavailable`). No new table: owned copies
+read `physical_cards`; Keep it inserts one row, spends no identification, sets no price. Per-copy non-null `sku`, `conditionConfirmedBySeller`, `listed`, `channel`; `market.unavailableReason` (`not_priced | no_listings | provider_outage`); `copy_limit_reached` refusal; `KeepItResponse.retryable` on `failed`; signed-out is a plain 401; `POST /api/quick-scan/keep/undo` (`UndoKeepIt*`: archives a just-kept copy; refuses `changed_since | not_found | not_kept_from_scan`). Swift and Kotlin emit it. Not tagged;
+the tag and the app pin bump are Ben's.
+
 
 ## v0.2.2 (UNTAGGED, in progress) — grade a copy that already exists (additive)
 

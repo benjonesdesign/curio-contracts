@@ -84,6 +84,11 @@ import {
   ChangeCardRefusalReasonSchema,
 } from "../src/api/inventory-change-card.js";
 import {
+  OwnedCopySchema, OwnedCopiesSummarySchema, QuickScanMarketSchema, KeepItRequestSchema, KeepItResponseSchema,
+  KeepItOutcomeSchema, KeepItRefusalReasonSchema,
+  UndoKeepItRequestSchema, UndoKeepItResponseSchema, UndoKeepItOutcomeSchema, UndoKeepItRefusalReasonSchema,
+} from "../src/api/quick-scan-owned.js";
+import {
   MineRequestSchema, SetAsideRequestSchema, PutBackRequestSchema, StopHoldingRequestSchema, InventoryChangeResponseSchema,
   InventoryChangeResultSchema, InventoryChangeSummarySchema, InventoryChangeRefusalReasonSchema,
   InventoryChangeOutcomeSchema, StatsResponseSchema, InventoryCountsSchema, CollectionValueSchema,
@@ -222,6 +227,13 @@ registerName(InventoryChangeOutcomeSchema, "InventoryChangeOutcome");
 registerName(ChangeCardRefusalReasonSchema, "ChangeCardRefusalReason");
 registerName(ChangeCardOutcomeSchema, "ChangeCardOutcome");
 registerName(ChangeCardIdentitySchema, "ChangeCardIdentity");
+registerName(OwnedCopySchema, "OwnedCopy");
+registerName(OwnedCopiesSummarySchema, "OwnedCopiesSummary");
+registerName(QuickScanMarketSchema, "QuickScanMarket");
+registerName(KeepItOutcomeSchema, "KeepItOutcome");
+registerName(KeepItRefusalReasonSchema, "KeepItRefusalReason");
+registerName(UndoKeepItOutcomeSchema, "UndoKeepItOutcome");
+registerName(UndoKeepItRefusalReasonSchema, "UndoKeepItRefusalReason");
 registerName(InventoryChangeResultSchema, "InventoryChangeResult");
 registerName(InventoryChangeSummarySchema, "InventoryChangeSummary");
 registerName(InventoryCountsSchema, "InventoryCounts");
@@ -300,6 +312,10 @@ emitSwift(InventoryStatusKeySchema, "InventoryStatusKey");
 emitSwift(InventoryChangeResponseSchema, "InventoryChangeResponse");
 emitSwift(ChangeCardRequestSchema, "ChangeCardRequest");
 emitSwift(ChangeCardResponseSchema, "ChangeCardResponse");
+emitSwift(KeepItRequestSchema, "KeepItRequest");
+emitSwift(KeepItResponseSchema, "KeepItResponse");
+emitSwift(UndoKeepItRequestSchema, "UndoKeepItRequest");
+emitSwift(UndoKeepItResponseSchema, "UndoKeepItResponse");
 emitSwift(StatsResponseSchema, "StatsResponse");
 emitSwift(GradedCreateRequestSchema, "GradedCreateRequest");
 emitSwift(GradedCreateResponseSchema, "GradedCreateResponse");

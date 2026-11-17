@@ -3743,6 +3743,201 @@ public object KeptSerializer : KSerializer<Kept> {
 }
 
 @Serializable
+public data class KeepItRequest(
+    val game: Game,
+    val nativeId: String,
+    val condition: Condition? = null,
+    val clientRequestId: String? = null,
+)
+
+@Serializable
+public data class KeepItResponse(
+    val outcome: KeepItOutcome,
+    val copy: OwnedCopy? = null,
+    val ordinal: Int? = null,
+    val ownedCount: Int? = null,
+    val replayed: Boolean = false,
+    val retryable: Boolean? = null,
+    val reason: KeepItRefusalReason? = null,
+)
+
+@Serializable(with = KeepItOutcomeSerializer::class)
+public sealed interface KeepItOutcome {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object ADDED : KeepItOutcome {
+        override val rawValue: String get() = "added"
+    }
+    public object REFUSED : KeepItOutcome {
+        override val rawValue: String get() = "refused"
+    }
+    public object FAILED : KeepItOutcome {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : KeepItOutcome
+
+    public companion object {
+        public fun from(raw: String): KeepItOutcome = when (raw) {
+            "added" -> ADDED
+            "refused" -> REFUSED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object KeepItOutcomeSerializer : KSerializer<KeepItOutcome> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("KeepItOutcome", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): KeepItOutcome = KeepItOutcome.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: KeepItOutcome) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class OwnedCopy(
+    val physicalCardId: String,
+    val sku: String,
+    val condition: Condition? = null,
+    val conditionConfirmedBySeller: Boolean,
+    val status: PhysicalCardStatus,
+    val listed: Boolean,
+    val channel: String? = null,
+)
+
+@Serializable(with = KeepItRefusalReasonSerializer::class)
+public sealed interface KeepItRefusalReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object CARD_UNKNOWN : KeepItRefusalReason {
+        override val rawValue: String get() = "card_unknown"
+    }
+    public object GAME_UNAVAILABLE : KeepItRefusalReason {
+        override val rawValue: String get() = "game_unavailable"
+    }
+    public object COPY_LIMIT_REACHED : KeepItRefusalReason {
+        override val rawValue: String get() = "copy_limit_reached"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : KeepItRefusalReason
+
+    public companion object {
+        public fun from(raw: String): KeepItRefusalReason = when (raw) {
+            "card_unknown" -> CARD_UNKNOWN
+            "game_unavailable" -> GAME_UNAVAILABLE
+            "copy_limit_reached" -> COPY_LIMIT_REACHED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object KeepItRefusalReasonSerializer : KSerializer<KeepItRefusalReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("KeepItRefusalReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): KeepItRefusalReason = KeepItRefusalReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: KeepItRefusalReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
+public data class UndoKeepItRequest(
+    val physicalCardId: String,
+)
+
+@Serializable
+public data class UndoKeepItResponse(
+    val outcome: UndoKeepItOutcome,
+    val ownedCount: Int? = null,
+    val reason: UndoKeepItRefusalReason? = null,
+    val retryable: Boolean? = null,
+)
+
+@Serializable(with = UndoKeepItOutcomeSerializer::class)
+public sealed interface UndoKeepItOutcome {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object UNDONE : UndoKeepItOutcome {
+        override val rawValue: String get() = "undone"
+    }
+    public object REFUSED : UndoKeepItOutcome {
+        override val rawValue: String get() = "refused"
+    }
+    public object FAILED : UndoKeepItOutcome {
+        override val rawValue: String get() = "failed"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : UndoKeepItOutcome
+
+    public companion object {
+        public fun from(raw: String): UndoKeepItOutcome = when (raw) {
+            "undone" -> UNDONE
+            "refused" -> REFUSED
+            "failed" -> FAILED
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object UndoKeepItOutcomeSerializer : KSerializer<UndoKeepItOutcome> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UndoKeepItOutcome", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): UndoKeepItOutcome = UndoKeepItOutcome.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: UndoKeepItOutcome) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable(with = UndoKeepItRefusalReasonSerializer::class)
+public sealed interface UndoKeepItRefusalReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NOT_FOUND : UndoKeepItRefusalReason {
+        override val rawValue: String get() = "not_found"
+    }
+    public object CHANGED_SINCE : UndoKeepItRefusalReason {
+        override val rawValue: String get() = "changed_since"
+    }
+    public object NOT_KEPT_FROM_SCAN : UndoKeepItRefusalReason {
+        override val rawValue: String get() = "not_kept_from_scan"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : UndoKeepItRefusalReason
+
+    public companion object {
+        public fun from(raw: String): UndoKeepItRefusalReason = when (raw) {
+            "not_found" -> NOT_FOUND
+            "changed_since" -> CHANGED_SINCE
+            "not_kept_from_scan" -> NOT_KEPT_FROM_SCAN
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object UndoKeepItRefusalReasonSerializer : KSerializer<UndoKeepItRefusalReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UndoKeepItRefusalReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): UndoKeepItRefusalReason = UndoKeepItRefusalReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: UndoKeepItRefusalReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}
+
+@Serializable
 public data class StatsResponse(
     val statusCounts: Map<String, Int>,
     val costBasis: Double,
@@ -4933,6 +5128,7 @@ public data class QuickScanRequest(
     val setName: String? = null,
     val cardNumber: String? = null,
     val setCode: String? = null,
+    val nativeId: String? = null,
     val game: Game? = null,
     val condition: Condition? = null,
     val finish: String? = null,
@@ -4954,6 +5150,8 @@ public data class QuickScanResponse(
     val conditionAssessed: Boolean = false,
     val editionAmbiguity: EditionAmbiguity? = null,
     val breakdown: PricedBreakdown? = null,
+    val ownedCopies: OwnedCopiesSummary? = null,
+    val market: QuickScanMarket? = null,
 )
 
 @Serializable
@@ -4967,3 +5165,60 @@ public data class QuickScanCandidate(
     val confidence: GameConfidence? = null,
     val image: String? = null,
 )
+
+@Serializable
+public data class OwnedCopiesSummary(
+    val count: Int,
+    val conditions: List<Condition> = emptyList(),
+    val listedOnEbayCount: Int,
+    val copies: List<OwnedCopy> = emptyList(),
+)
+
+@Serializable
+public data class QuickScanMarket(
+    val lowGbp: Double? = null,
+    val highGbp: Double? = null,
+    val medianAskGbp: Double? = null,
+    val listingCount: Int? = null,
+    val source: String? = null,
+    val fetchedAt: String? = null,
+    val unavailableReason: UnavailableReason? = null,
+)
+
+@Serializable(with = UnavailableReasonSerializer::class)
+public sealed interface UnavailableReason {
+    /** The wire value. Present on every case INCLUDING Unknown, so a value this client does
+     *  not recognise can still be round-tripped back unchanged rather than silently dropped. */
+    public val rawValue: String
+
+    public object NOT_PRICED : UnavailableReason {
+        override val rawValue: String get() = "not_priced"
+    }
+    public object NO_LISTINGS : UnavailableReason {
+        override val rawValue: String get() = "no_listings"
+    }
+    public object PROVIDER_OUTAGE : UnavailableReason {
+        override val rawValue: String get() = "provider_outage"
+    }
+
+    /** A value this build does not know. Never originate one — see decisions/0027 item 2a. */
+    public data class Unknown(override val rawValue: String) : UnavailableReason
+
+    public companion object {
+        public fun from(raw: String): UnavailableReason = when (raw) {
+            "not_priced" -> NOT_PRICED
+            "no_listings" -> NO_LISTINGS
+            "provider_outage" -> PROVIDER_OUTAGE
+            else -> Unknown(raw)
+        }
+    }
+}
+
+public object UnavailableReasonSerializer : KSerializer<UnavailableReason> {
+    override val descriptor: SerialDescriptor =
+        PrimitiveSerialDescriptor("UnavailableReason", PrimitiveKind.STRING)
+    override fun deserialize(decoder: Decoder): UnavailableReason = UnavailableReason.from(decoder.decodeString())
+    override fun serialize(encoder: Encoder, value: UnavailableReason) {
+        encoder.encodeString(value.rawValue)
+    }
+}

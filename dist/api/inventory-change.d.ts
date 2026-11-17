@@ -81,37 +81,37 @@ export declare const InventoryChangeResultSchema: z.ZodEffects<z.ZodObject<{
     previousReason: z.ZodOptional<z.ZodNullable<z.ZodEnum<["looks_off", "altered_or_damaged", "unsupported_game", "other"]>>>;
 }, "strip", z.ZodTypeAny, {
     id: string;
-    outcome: "failed" | "changed" | "unchanged" | "refused";
+    outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+    reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
     replacedChannel?: string | null | undefined;
     droppedChannel?: string | null | undefined;
     previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
 }, {
     id: string;
-    outcome: "failed" | "changed" | "unchanged" | "refused";
+    outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+    reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
     replacedChannel?: string | null | undefined;
     droppedChannel?: string | null | undefined;
     previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
 }>, {
     id: string;
-    outcome: "failed" | "changed" | "unchanged" | "refused";
+    outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+    reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
     replacedChannel?: string | null | undefined;
     droppedChannel?: string | null | undefined;
     previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
 }, {
     id: string;
-    outcome: "failed" | "changed" | "unchanged" | "refused";
+    outcome: "failed" | "refused" | "changed" | "unchanged";
     error?: string | null | undefined;
     status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-    reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+    reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
     replacedChannel?: string | null | undefined;
     droppedChannel?: string | null | undefined;
     previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
@@ -124,14 +124,14 @@ export declare const InventoryChangeSummarySchema: z.ZodObject<{
     failed: z.ZodNumber;
 }, "strip", z.ZodTypeAny, {
     failed: number;
+    refused: number;
     changed: number;
     unchanged: number;
-    refused: number;
 }, {
     failed: number;
+    refused: number;
     changed: number;
     unchanged: number;
-    refused: number;
 }>;
 export type InventoryChangeSummary = z.infer<typeof InventoryChangeSummarySchema>;
 /** The answer of all three routes: one result per copy, in the order asked (repeats dropped), and a
@@ -156,37 +156,37 @@ export declare const InventoryChangeResponseSchema: z.ZodEffects<z.ZodObject<{
         previousReason: z.ZodOptional<z.ZodNullable<z.ZodEnum<["looks_off", "altered_or_damaged", "unsupported_game", "other"]>>>;
     }, "strip", z.ZodTypeAny, {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }, {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }>, {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }, {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
@@ -198,82 +198,82 @@ export declare const InventoryChangeResponseSchema: z.ZodEffects<z.ZodObject<{
         failed: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     }, {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     }>;
 }, "strip", z.ZodTypeAny, {
     results: {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }[];
     summary: {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     };
 }, {
     results: {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }[];
     summary: {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     };
 }>, {
     results: {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }[];
     summary: {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     };
 }, {
     results: {
         id: string;
-        outcome: "failed" | "changed" | "unchanged" | "refused";
+        outcome: "failed" | "refused" | "changed" | "unchanged";
         error?: string | null | undefined;
         status?: "RECEIVED" | "AWAITING_SCAN" | "PROCESSING" | "NEEDS_ID_REVIEW" | "NEEDS_CONDITION" | "NEEDS_DECISION" | "READY_TO_LIST" | "EBAY_DRAFT" | "LISTED" | "SOLD" | "PICKED" | "DISPATCHED" | "COMPLETED" | "EXCEPTION" | "RETURNED" | "ARCHIVED" | "UNMATCHED" | "HELD" | null | undefined;
-        reason?: "set_aside" | "sold" | "archived" | "live_on_ebay" | "not_found" | "write_failed" | null | undefined;
+        reason?: "set_aside" | "sold" | "archived" | "not_found" | "live_on_ebay" | "write_failed" | null | undefined;
         replacedChannel?: string | null | undefined;
         droppedChannel?: string | null | undefined;
         previousReason?: "looks_off" | "altered_or_damaged" | "unsupported_game" | "other" | null | undefined;
     }[];
     summary: {
         failed: number;
+        refused: number;
         changed: number;
         unchanged: number;
-        refused: number;
     };
 }>;
 export type InventoryChangeResponse = z.infer<typeof InventoryChangeResponseSchema>;
@@ -314,30 +314,30 @@ export declare const CollectionValueSchema: z.ZodEffects<z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     lowGbp: number | null;
     count: number;
+    highGbp: number | null;
     pricedCount: number;
     notPricedCount: number;
-    highGbp: number | null;
     sources: string[];
 }, {
     lowGbp: number | null;
     count: number;
+    highGbp: number | null;
     pricedCount: number;
     notPricedCount: number;
-    highGbp: number | null;
     sources: string[];
 }>, {
     lowGbp: number | null;
     count: number;
+    highGbp: number | null;
     pricedCount: number;
     notPricedCount: number;
-    highGbp: number | null;
     sources: string[];
 }, {
     lowGbp: number | null;
     count: number;
+    highGbp: number | null;
     pricedCount: number;
     notPricedCount: number;
-    highGbp: number | null;
     sources: string[];
 }>;
 export type CollectionValue = z.infer<typeof CollectionValueSchema>;
@@ -384,30 +384,30 @@ export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     }, "strip", z.ZodTypeAny, {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     }, {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     }>, {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     }, {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     }>;
 }, "strip", z.ZodTypeAny, {
@@ -427,9 +427,9 @@ export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     collectionValue: {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     };
 }, {
@@ -449,9 +449,9 @@ export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     collectionValue: {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     };
 }>, {
@@ -471,9 +471,9 @@ export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     collectionValue: {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     };
 }, {
@@ -493,9 +493,9 @@ export declare const StatsResponseSchema: z.ZodEffects<z.ZodObject<{
     collectionValue: {
         lowGbp: number | null;
         count: number;
+        highGbp: number | null;
         pricedCount: number;
         notPricedCount: number;
-        highGbp: number | null;
         sources: string[];
     };
 }>;

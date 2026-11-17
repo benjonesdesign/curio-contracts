@@ -4587,6 +4587,247 @@ public enum Kept: Codable, Sendable, Equatable, Hashable {
     }
 }
 
+public struct KeepItRequest: Codable, Sendable {
+    public let game: Game
+    public let nativeId: String
+    public let condition: Condition?
+    public let clientRequestId: String?
+
+    public init(game: Game, nativeId: String, condition: Condition?, clientRequestId: String?) {
+        self.game = game
+        self.nativeId = nativeId
+        self.condition = condition
+        self.clientRequestId = clientRequestId
+    }
+}
+
+public struct KeepItResponse: Codable, Sendable {
+    public let outcome: KeepItOutcome
+    public let copy: OwnedCopy?
+    public let ordinal: Int?
+    public let ownedCount: Int?
+    public let replayed: Bool
+    public let retryable: Bool?
+    public let reason: KeepItRefusalReason?
+
+    enum CodingKeys: String, CodingKey {
+        case outcome
+        case copy
+        case ordinal
+        case ownedCount
+        case replayed
+        case retryable
+        case reason
+    }
+
+    public init(outcome: KeepItOutcome, copy: OwnedCopy?, ordinal: Int?, ownedCount: Int?, replayed: Bool, retryable: Bool?, reason: KeepItRefusalReason?) {
+        self.outcome = outcome
+        self.copy = copy
+        self.ordinal = ordinal
+        self.ownedCount = ownedCount
+        self.replayed = replayed
+        self.retryable = retryable
+        self.reason = reason
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.outcome = try c.decode(KeepItOutcome.self, forKey: .outcome)
+        self.copy = try c.decodeIfPresent(OwnedCopy.self, forKey: .copy)
+        self.ordinal = try c.decodeIfPresent(Int.self, forKey: .ordinal)
+        self.ownedCount = try c.decodeIfPresent(Int.self, forKey: .ownedCount)
+        self.replayed = try c.decodeIfPresent(Bool.self, forKey: .replayed) ?? false
+        self.retryable = try c.decodeIfPresent(Bool.self, forKey: .retryable)
+        self.reason = try c.decodeIfPresent(KeepItRefusalReason.self, forKey: .reason)
+    }
+}
+
+public enum KeepItOutcome: Codable, Sendable, Equatable, Hashable {
+    case added
+    case refused
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .added: return "added"
+        case .refused: return "refused"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "added": self = .added
+        case "refused": self = .refused
+        case "failed": self = .failed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct OwnedCopy: Codable, Sendable {
+    public let physicalCardId: String
+    public let sku: String
+    public let condition: Condition?
+    public let conditionConfirmedBySeller: Bool
+    public let status: PhysicalCardStatus
+    public let listed: Bool
+    public let channel: String?
+
+    public init(physicalCardId: String, sku: String, condition: Condition?, conditionConfirmedBySeller: Bool, status: PhysicalCardStatus, listed: Bool, channel: String?) {
+        self.physicalCardId = physicalCardId
+        self.sku = sku
+        self.condition = condition
+        self.conditionConfirmedBySeller = conditionConfirmedBySeller
+        self.status = status
+        self.listed = listed
+        self.channel = channel
+    }
+}
+
+public enum KeepItRefusalReason: Codable, Sendable, Equatable, Hashable {
+    case cardUnknown
+    case gameUnavailable
+    case copyLimitReached
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .cardUnknown: return "card_unknown"
+        case .gameUnavailable: return "game_unavailable"
+        case .copyLimitReached: return "copy_limit_reached"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "card_unknown": self = .cardUnknown
+        case "game_unavailable": self = .gameUnavailable
+        case "copy_limit_reached": self = .copyLimitReached
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public struct UndoKeepItRequest: Codable, Sendable {
+    public let physicalCardId: String
+
+    public init(physicalCardId: String) {
+        self.physicalCardId = physicalCardId
+    }
+}
+
+public struct UndoKeepItResponse: Codable, Sendable {
+    public let outcome: UndoKeepItOutcome
+    public let ownedCount: Int?
+    public let reason: UndoKeepItRefusalReason?
+    public let retryable: Bool?
+
+    public init(outcome: UndoKeepItOutcome, ownedCount: Int?, reason: UndoKeepItRefusalReason?, retryable: Bool?) {
+        self.outcome = outcome
+        self.ownedCount = ownedCount
+        self.reason = reason
+        self.retryable = retryable
+    }
+}
+
+public enum UndoKeepItOutcome: Codable, Sendable, Equatable, Hashable {
+    case undone
+    case refused
+    case failed
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .undone: return "undone"
+        case .refused: return "refused"
+        case .failed: return "failed"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "undone": self = .undone
+        case "refused": self = .refused
+        case "failed": self = .failed
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+public enum UndoKeepItRefusalReason: Codable, Sendable, Equatable, Hashable {
+    case notFound
+    case changedSince
+    case notKeptFromScan
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .notFound: return "not_found"
+        case .changedSince: return "changed_since"
+        case .notKeptFromScan: return "not_kept_from_scan"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "not_found": self = .notFound
+        case "changed_since": self = .changedSince
+        case "not_kept_from_scan": self = .notKeptFromScan
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
 public struct StatsResponse: Codable, Sendable {
     public let statusCounts: [String: Int]
     public let costBasis: Double
@@ -6273,6 +6514,7 @@ public struct QuickScanRequest: Codable, Sendable {
     public let setName: String?
     public let cardNumber: String?
     public let setCode: String?
+    public let nativeId: String?
     public let game: Game?
     public let condition: Condition?
     public let finish: String?
@@ -6281,11 +6523,12 @@ public struct QuickScanRequest: Codable, Sendable {
     public let postageMode: PostageMode?
     public let packingKey: String?
 
-    public init(name: String?, setName: String?, cardNumber: String?, setCode: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?, theirPriceGbp: Double?, postageMode: PostageMode?, packingKey: String?) {
+    public init(name: String?, setName: String?, cardNumber: String?, setCode: String?, nativeId: String?, game: Game?, condition: Condition?, finish: String?, targetMarginPct: Double?, theirPriceGbp: Double?, postageMode: PostageMode?, packingKey: String?) {
         self.name = name
         self.setName = setName
         self.cardNumber = cardNumber
         self.setCode = setCode
+        self.nativeId = nativeId
         self.game = game
         self.condition = condition
         self.finish = finish
@@ -6307,6 +6550,8 @@ public struct QuickScanResponse: Codable, Sendable {
     public let conditionAssessed: Bool
     public let editionAmbiguity: EditionAmbiguity?
     public let breakdown: PricedBreakdown?
+    public let ownedCopies: OwnedCopiesSummary?
+    public let market: QuickScanMarket?
 
     enum CodingKeys: String, CodingKey {
         case identified
@@ -6319,9 +6564,11 @@ public struct QuickScanResponse: Codable, Sendable {
         case conditionAssessed
         case editionAmbiguity
         case breakdown
+        case ownedCopies
+        case market
     }
 
-    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool, editionAmbiguity: EditionAmbiguity?, breakdown: PricedBreakdown?) {
+    public init(identified: Bool, candidates: [QuickScanCandidate], match: QuickScanCandidate?, decision: Decision?, price: PriceProvenance?, gradeEV: DecisionGradeEV?, decisionUnavailable: DecisionUnavailable?, conditionAssessed: Bool, editionAmbiguity: EditionAmbiguity?, breakdown: PricedBreakdown?, ownedCopies: OwnedCopiesSummary?, market: QuickScanMarket?) {
         self.identified = identified
         self.candidates = candidates
         self.match = match
@@ -6332,6 +6579,8 @@ public struct QuickScanResponse: Codable, Sendable {
         self.conditionAssessed = conditionAssessed
         self.editionAmbiguity = editionAmbiguity
         self.breakdown = breakdown
+        self.ownedCopies = ownedCopies
+        self.market = market
     }
 
     public init(from decoder: Decoder) throws {
@@ -6346,6 +6595,8 @@ public struct QuickScanResponse: Codable, Sendable {
         self.conditionAssessed = try c.decodeIfPresent(Bool.self, forKey: .conditionAssessed) ?? false
         self.editionAmbiguity = try c.decodeIfPresent(EditionAmbiguity.self, forKey: .editionAmbiguity)
         self.breakdown = try c.decodeIfPresent(PricedBreakdown.self, forKey: .breakdown)
+        self.ownedCopies = try c.decodeIfPresent(OwnedCopiesSummary.self, forKey: .ownedCopies)
+        self.market = try c.decodeIfPresent(QuickScanMarket.self, forKey: .market)
     }
 }
 
@@ -6368,5 +6619,90 @@ public struct QuickScanCandidate: Codable, Sendable {
         self.rarity = rarity
         self.confidence = confidence
         self.image = image
+    }
+}
+
+public struct OwnedCopiesSummary: Codable, Sendable {
+    public let count: Int
+    public let conditions: [Condition]
+    public let listedOnEbayCount: Int
+    public let copies: [OwnedCopy]
+
+    enum CodingKeys: String, CodingKey {
+        case count
+        case conditions
+        case listedOnEbayCount
+        case copies
+    }
+
+    public init(count: Int, conditions: [Condition], listedOnEbayCount: Int, copies: [OwnedCopy]) {
+        self.count = count
+        self.conditions = conditions
+        self.listedOnEbayCount = listedOnEbayCount
+        self.copies = copies
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.count = try c.decode(Int.self, forKey: .count)
+        self.conditions = try c.decodeIfPresent([Condition].self, forKey: .conditions) ?? []
+        self.listedOnEbayCount = try c.decode(Int.self, forKey: .listedOnEbayCount)
+        self.copies = try c.decodeIfPresent([OwnedCopy].self, forKey: .copies) ?? []
+    }
+}
+
+public struct QuickScanMarket: Codable, Sendable {
+    public let lowGbp: Double?
+    public let highGbp: Double?
+    public let medianAskGbp: Double?
+    public let listingCount: Int?
+    public let source: String?
+    public let fetchedAt: String?
+    public let unavailableReason: UnavailableReason?
+
+    public init(lowGbp: Double?, highGbp: Double?, medianAskGbp: Double?, listingCount: Int?, source: String?, fetchedAt: String?, unavailableReason: UnavailableReason?) {
+        self.lowGbp = lowGbp
+        self.highGbp = highGbp
+        self.medianAskGbp = medianAskGbp
+        self.listingCount = listingCount
+        self.source = source
+        self.fetchedAt = fetchedAt
+        self.unavailableReason = unavailableReason
+    }
+}
+
+public enum UnavailableReason: Codable, Sendable, Equatable, Hashable {
+    case notPriced
+    case noListings
+    case providerOutage
+    /// A value this build does not know. Carries the wire value so it round-trips unchanged.
+    /// NEVER ORIGINATE ONE — see decisions/0027 item 2a.
+    case unrecognised(String)
+
+    public var rawValue: String {
+        switch self {
+        case .notPriced: return "not_priced"
+        case .noListings: return "no_listings"
+        case .providerOutage: return "provider_outage"
+        case .unrecognised(let raw): return raw
+        }
+    }
+
+    public init(rawValue: String) {
+        switch rawValue {
+        case "not_priced": self = .notPriced
+        case "no_listings": self = .noListings
+        case "provider_outage": self = .providerOutage
+        default: self = .unrecognised(rawValue)
+        }
+    }
+
+    public init(from decoder: Decoder) throws {
+        self.init(rawValue: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
